@@ -1,103 +1,235 @@
+// *************** IMPORT LIBRARY ***************
 const { ApolloServer, gql } = require('apollo-server');
 const mongoose = require('mongoose');
+
+// *************** IMPORT MODULE ***************
 const User = require('./models/User');
 const Student = require('./models/Student');
 const School = require('./models/School');
 
-// Connect to MongoDB (adjust URI as needed)
+// *************** IMPORT UTILITIES ***************
+const { isNonEmptyString, isValidEmail, isValidDate } = require('./utils/validation');
+
+// *************** IMPORT HELPER FUNCTION ***************
+const { handleResolverError } = require('./helpers/graphqlHelper');
+const { studentsBySchoolIdLoader } = require('./utils/dataloader');
+
+// *************** DATABASE CONNECTION ***************
+/**
+ * Connect to MongoDB database
+ */
 mongoose.connect('mongodb://localhost:27017/module1', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
-// GraphQL type definitions
-defaultTypeDefs = gql`
+// *************** TYPE DEFINITIONS ***************
+const defaultTypeDefs = gql`
   scalar Date
 
-  type User {
+  type user {
     id: ID!
-    firstName: String!
-    lastName: String!
+    first_name: String!
+    last_name: String!
     email: String!
     role: String!
-    deletedAt: Date
+    deleted_at: Date
   }
 
-  type Student {
+  type student {
     id: ID!
-    firstName: String!
-    lastName: String!
+    first_name: String!
+    last_name: String!
     email: String!
-    dateOfBirth: Date
-    schoolId: ID!
-    deletedAt: Date
+    date_of_birth: Date
+    school_id: ID!
+    deleted_at: Date
   }
 
-  type School {
+  type school {
     id: ID!
     name: String!
     address: String
-    students: [Student]
-    deletedAt: Date
+    students: [student]
+    deleted_at: Date
   }
 
   type Query {
-    users: [User]
-    user(id: ID!): User
-    students: [Student]
-    student(id: ID!): Student
-    schools: [School]
-    school(id: ID!): School
+    Users: [user]
+    User(id: ID!): user
+    Students: [student]
+    Student(id: ID!): student
+    Schools: [school]
+    School(id: ID!): school
   }
 
   type Mutation {
-    createUser(firstName: String!, lastName: String!, email: String!, password: String!, role: String!): User
-    updateUser(id: ID!, firstName: String, lastName: String, email: String, password: String, role: String, deletedAt: Date): User
-    deleteUser(id: ID!): User
+    CreateUser(first_name: String!, last_name: String!, email: String!, password: String!, role: String!): user
+    UpdateUser(id: ID!, first_name: String, last_name: String, email: String, password: String, role: String, deleted_at: Date): user
+    DeleteUser(id: ID!): user
 
-    createStudent(firstName: String!, lastName: String!, email: String!, dateOfBirth: Date, schoolId: ID!): Student
-    updateStudent(id: ID!, firstName: String, lastName: String, email: String, dateOfBirth: Date, schoolId: ID, deletedAt: Date): Student
-    deleteStudent(id: ID!): Student
+    CreateStudent(first_name: String!, last_name: String!, email: String!, date_of_birth: Date, school_id: ID!): student
+    UpdateStudent(id: ID!, first_name: String, last_name: String, email: String, date_of_birth: Date, school_id: ID, deleted_at: Date): student
+    DeleteStudent(id: ID!): student
 
-    createSchool(name: String!, address: String): School
-    updateSchool(id: ID!, name: String, address: String, deletedAt: Date): School
-    deleteSchool(id: ID!): School
+    CreateSchool(name: String!, address: String): school
+    UpdateSchool(id: ID!, name: String, address: String, deleted_at: Date): school
+    DeleteSchool(id: ID!): school
   }
 `;
 
-// GraphQL resolvers
-const resolvers = {
-  Query: {
-    users: () => User.find(),
-    user: (_, { id }) => User.findById(id),
-    students: () => Student.find(),
-    student: (_, { id }) => Student.findById(id),
-    schools: () => School.find(),
-    school: (_, { id }) => School.findById(id),
-  },
-  School: {
-    students: async (parent) => Student.find({ schoolId: parent.id }),
-  },
-  Mutation: {
-    createUser: (_, args) => User.create(args),
-    updateUser: async (_, { id, ...rest }) => User.findByIdAndUpdate(id, rest, { new: true }),
-    deleteUser: async (_, { id }) => User.findByIdAndUpdate(id, { deletedAt: new Date() }, { new: true }),
-
-    createStudent: (_, args) => Student.create(args),
-    updateStudent: async (_, { id, ...rest }) => Student.findByIdAndUpdate(id, rest, { new: true }),
-    deleteStudent: async (_, { id }) => Student.findByIdAndUpdate(id, { deletedAt: new Date() }, { new: true }),
-
-    createSchool: (_, args) => School.create(args),
-    updateSchool: async (_, { id, ...rest }) => School.findByIdAndUpdate(id, rest, { new: true }),
-    deleteSchool: async (_, { id }) => School.findByIdAndUpdate(id, { deletedAt: new Date() }, { new: true }),
-  },
+// *************** QUERY ***************
+/**
+ * Query resolvers for data retrieval
+ */
+const Query = {
+  /**
+   * Get all users
+   */
+  Users: handleResolverError(() => User.find()),
+  /**
+   * Get user by ID
+   * @param {object} _
+   * @param {object} args
+   * @param {string} args.id
+   */
+  User: handleResolverError((_, { id }) => User.findById(id)),
+  /**
+   * Get all students
+   */
+  Students: handleResolverError(() => Student.find()),
+  /**
+   * Get student by ID
+   * @param {object} _
+   * @param {object} args
+   * @param {string} args.id
+   */
+  Student: handleResolverError((_, { id }) => Student.findById(id)),
+  /**
+   * Get all schools
+   */
+  Schools: handleResolverError(() => School.find()),
+  /**
+   * Get school by ID
+   * @param {object} _
+   * @param {object} args
+   * @param {string} args.id
+   */
+  School: handleResolverError((_, { id }) => School.findById(id)),
 };
 
+// *************** MUTATION ***************
+/**
+ * Mutation resolvers for data changes
+ */
+const Mutation = {
+  /**
+   * Create a new user
+   */
+  CreateUser: handleResolverError(async (_, args) => {
+    // *************** START: Input Validation ***************
+    if (!isNonEmptyString(args.first_name)) throw new Error('First name required');
+    if (!isNonEmptyString(args.last_name)) throw new Error('Last name required');
+    if (!isValidEmail(args.email)) throw new Error('Invalid email');
+    if (!isNonEmptyString(args.password)) throw new Error('Password required');
+    if (!isNonEmptyString(args.role)) throw new Error('Role required');
+    // *************** END: Input Validation ***************
+    return User.create(args);
+  }),
+  /**
+   * Update a user
+   */
+  UpdateUser: handleResolverError(async (_, { id, ...rest }) => {
+    // *************** START: Input Validation ***************
+    if (rest.email && !isValidEmail(rest.email)) throw new Error('Invalid email');
+    if (rest.first_name && !isNonEmptyString(rest.first_name)) throw new Error('Invalid first name');
+    if (rest.last_name && !isNonEmptyString(rest.last_name)) throw new Error('Invalid last name');
+    // *************** END: Input Validation ***************
+    return User.findByIdAndUpdate(id, rest, { new: true });
+  }),
+  /**
+   * Soft delete a user
+   */
+  DeleteUser: handleResolverError(async (_, { id }) => {
+    return User.findByIdAndUpdate(id, { deleted_at: new Date() }, { new: true });
+  }),
+  /**
+   * Create a new student
+   */
+  CreateStudent: handleResolverError(async (_, args) => {
+    // *************** START: Input Validation ***************
+    if (!isNonEmptyString(args.first_name)) throw new Error('First name required');
+    if (!isNonEmptyString(args.last_name)) throw new Error('Last name required');
+    if (!isValidEmail(args.email)) throw new Error('Invalid email');
+    if (args.date_of_birth && !isValidDate(args.date_of_birth)) throw new Error('Invalid date of birth');
+    if (!args.school_id) throw new Error('School ID required');
+    // *************** END: Input Validation ***************
+    return Student.create(args);
+  }),
+  /**
+   * Update a student
+   */
+  UpdateStudent: handleResolverError(async (_, { id, ...rest }) => {
+    if (rest.email && !isValidEmail(rest.email)) throw new Error('Invalid email');
+    if (rest.first_name && !isNonEmptyString(rest.first_name)) throw new Error('Invalid first name');
+    if (rest.last_name && !isNonEmptyString(rest.last_name)) throw new Error('Invalid last name');
+    if (rest.date_of_birth && !isValidDate(rest.date_of_birth)) throw new Error('Invalid date of birth');
+    return Student.findByIdAndUpdate(id, rest, { new: true });
+  }),
+  /**
+   * Soft delete a student
+   */
+  DeleteStudent: handleResolverError(async (_, { id }) => {
+    return Student.findByIdAndUpdate(id, { deleted_at: new Date() }, { new: true });
+  }),
+  /**
+   * Create a new school
+   */
+  CreateSchool: handleResolverError(async (_, args) => {
+    if (!isNonEmptyString(args.name)) throw new Error('School name required');
+    return School.create(args);
+  }),
+  /**
+   * Update a school
+   */
+  UpdateSchool: handleResolverError(async (_, { id, ...rest }) => {
+    if (rest.name && !isNonEmptyString(rest.name)) throw new Error('Invalid school name');
+    return School.findByIdAndUpdate(id, rest, { new: true });
+  }),
+  /**
+   * Soft delete a school
+   */
+  DeleteSchool: handleResolverError(async (_, { id }) => {
+    return School.findByIdAndUpdate(id, { deleted_at: new Date() }, { new: true });
+  }),
+};
+
+// *************** LOADER ***************
+/**
+ * Loader for School.students field
+ */
+const SchoolType = {
+  students: handleResolverError(async (parent, _, { loaders }) => {
+    // Use DataLoader for efficient batch loading
+    return loaders.studentsBySchoolIdLoader.load(parent.id);
+  }),
+};
+
+// *************** EXPORT MODULE ***************
 const server = new ApolloServer({
   typeDefs: defaultTypeDefs,
-  resolvers,
+  resolvers: {
+    Query,
+    Mutation,
+    school: SchoolType,
+  },
+  context: () => ({
+    loaders: {
+      studentsBySchoolIdLoader,
+    },
+  }),
 });
 
 server.listen().then(({ url }) => {
-  console.log(`🚀 Server ready at ${url}`);
+  console.log(`Server ready at ${url}`);
 });
