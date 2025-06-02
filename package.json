@@ -1,0 +1,24 @@
+{
+  "name": "module-1",
+  "version": "1.0.0",
+  "description": "My first signed commit My first signed commit My first signed commit My first signed commit My first signed commit My first signed commit",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zettacamp-muhammadagung-ferdiansyah/module1-CRUD-student-and-shcool-data.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zettacamp-muhammadagung-ferdiansyah/module1-CRUD-student-and-shcool-data/issues"
+  },
+  "homepage": "https://github.com/zettacamp-muhammadagung-ferdiansyah/module1-CRUD-student-and-shcool-data#readme"
+}
