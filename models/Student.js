@@ -9,7 +9,7 @@ const studentSchema = new mongoose.Schema({
   deletedAt: { type: Date, default: null }
 }, { timestamps: true });
 
-// Add virtual 'id' field for GraphQL compatibility
+// Add virtual 'id' field for GraphQL 
 studentSchema.virtual('id').get(function () {
   return this._id.toHexString();
 });

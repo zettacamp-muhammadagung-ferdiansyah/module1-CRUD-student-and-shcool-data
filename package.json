@@ -4,8 +4,10 @@
   "description": "My first signed commit My first signed commit My first signed commit My first signed commit My first signed commit My first signed commit",
   "main": "index.js",
   "dependencies": {
+    "apollo-server": "^2.25.2",
     "express": "^4.21.2",
-    "mongoose": "^8.15.1"
+    "graphql": "^15.5.0",
+    "mongoose": "^5.13.21"
   },
   "devDependencies": {},
   "scripts": {
