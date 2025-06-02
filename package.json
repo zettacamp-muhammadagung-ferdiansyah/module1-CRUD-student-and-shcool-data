@@ -4,7 +4,7 @@
   "description": "My first signed commit My first signed commit My first signed commit My first signed commit My first signed commit My first signed commit",
   "main": "index.js",
   "dependencies": {
-    "express": "^5.1.0"
+    "express": "^4.21.2"
   },
   "devDependencies": {},
   "scripts": {
