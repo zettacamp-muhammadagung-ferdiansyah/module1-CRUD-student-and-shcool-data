@@ -1,27 +1,34 @@
 // *************** IMPORT CORE ***************
-// No core modules required for this helper
+// Essential core module imports or dependencies needed for the module's operation.
 
 // *************** IMPORT LIBRARY ***************
-// No third-party libraries required for this helper
+// Third-party libraries or packages used in this module.
 
 // *************** HELPER FUNCTIONS ***************
+// Helper functions separated from the main logic for reuse and clarity.
 
 /**
- * Handles async resolver errors and returns a consistent error message
- * @param {Function} fn - The async resolver function
- * @returns {Function} - Wrapped resolver
+ * Handles asynchronous resolver execution and error handling
+ * Ensures consistent error response format across GraphQL resolvers
+ * @param {Function} fn - The async resolver function to be wrapped
+ * @returns {Function} - A wrapped resolver that handles errors consistently
+ * @throws {Error} - Returns original error message or default internal server error
  */
-function handleResolverError(fn) {
+function HandleResolverError(fn) {
+  // *************** START: Error handler wrapper function ***************
   return async function(...args) {
     try {
       return await fn(...args);
     } catch (error) {
-      // Log error here if needed
+      // Capture and transform error to appropriate GraphQL error format
       throw new Error(error.message || 'Internal server error');
     }
   };
+  // *************** END: Error handler wrapper function ***************
 }
 
+// *************** EXPORT MODULE ***************
+// Final exports for the module's functionality.
 module.exports = {
-  handleResolverError,
+  HandleResolverError,
 };
