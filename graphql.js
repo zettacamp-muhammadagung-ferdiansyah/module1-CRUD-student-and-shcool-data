@@ -12,7 +12,7 @@ const { isNonEmptyString, isValidEmail, isValidDate } = require('./utils/validat
 
 // *************** IMPORT HELPER FUNCTION ***************
 const { handleResolverError } = require('./helpers/graphqlHelper');
-const { studentsBySchoolIdLoader } = require('./utils/dataloader');
+const { StudentsBySchoolIdLoader } = require('./utils/dataloader');
 
 // *************** DATABASE CONNECTION ***************
 /**
@@ -50,7 +50,7 @@ const defaultTypeDefs = gql`
     id: ID!
     name: String!
     address: String
-    students: [student]
+    Students: [student] # Changed to PascalCase to match resolver
     deleted_at: Date
   }
 
@@ -86,36 +86,36 @@ const Query = {
   /**
    * Get all users
    */
-  Users: handleResolverError(() => User.find()),
+  Users: handleResolverError(function() { return User.find(); }),
   /**
    * Get user by ID
    * @param {object} _
    * @param {object} args
    * @param {string} args.id
    */
-  User: handleResolverError((_, { id }) => User.findById(id)),
+  User: handleResolverError(function(_, { id }) { return User.findById(id); }),
   /**
    * Get all students
    */
-  Students: handleResolverError(() => Student.find()),
+  Students: handleResolverError(function() { return Student.find(); }),
   /**
    * Get student by ID
    * @param {object} _
    * @param {object} args
    * @param {string} args.id
    */
-  Student: handleResolverError((_, { id }) => Student.findById(id)),
+  Student: handleResolverError(function(_, { id }) { return Student.findById(id); }),
   /**
    * Get all schools
    */
-  Schools: handleResolverError(() => School.find()),
+  Schools: handleResolverError(function() { return School.find(); }),
   /**
    * Get school by ID
    * @param {object} _
    * @param {object} args
    * @param {string} args.id
    */
-  School: handleResolverError((_, { id }) => School.findById(id)),
+  School: handleResolverError(function(_, { id }) { return School.findById(id); }),
 };
 
 // *************** MUTATION ***************
@@ -126,7 +126,7 @@ const Mutation = {
   /**
    * Create a new user
    */
-  CreateUser: handleResolverError(async (_, args) => {
+  CreateUser: handleResolverError(async function(_, args) {
     // *************** START: Input Validation ***************
     if (!isNonEmptyString(args.first_name)) throw new Error('First name required');
     if (!isNonEmptyString(args.last_name)) throw new Error('Last name required');
@@ -139,7 +139,7 @@ const Mutation = {
   /**
    * Update a user
    */
-  UpdateUser: handleResolverError(async (_, { id, ...rest }) => {
+  UpdateUser: handleResolverError(async function(_, { id, ...rest }) {
     // *************** START: Input Validation ***************
     if (rest.email && !isValidEmail(rest.email)) throw new Error('Invalid email');
     if (rest.first_name && !isNonEmptyString(rest.first_name)) throw new Error('Invalid first name');
@@ -150,13 +150,13 @@ const Mutation = {
   /**
    * Soft delete a user
    */
-  DeleteUser: handleResolverError(async (_, { id }) => {
+  DeleteUser: handleResolverError(async function(_, { id }) {
     return User.findByIdAndUpdate(id, { deleted_at: new Date() }, { new: true });
   }),
   /**
    * Create a new student
    */
-  CreateStudent: handleResolverError(async (_, args) => {
+  CreateStudent: handleResolverError(async function(_, args) {
     // *************** START: Input Validation ***************
     if (!isNonEmptyString(args.first_name)) throw new Error('First name required');
     if (!isNonEmptyString(args.last_name)) throw new Error('Last name required');
@@ -169,7 +169,7 @@ const Mutation = {
   /**
    * Update a student
    */
-  UpdateStudent: handleResolverError(async (_, { id, ...rest }) => {
+  UpdateStudent: handleResolverError(async function(_, { id, ...rest }) {
     if (rest.email && !isValidEmail(rest.email)) throw new Error('Invalid email');
     if (rest.first_name && !isNonEmptyString(rest.first_name)) throw new Error('Invalid first name');
     if (rest.last_name && !isNonEmptyString(rest.last_name)) throw new Error('Invalid last name');
@@ -179,39 +179,39 @@ const Mutation = {
   /**
    * Soft delete a student
    */
-  DeleteStudent: handleResolverError(async (_, { id }) => {
+  DeleteStudent: handleResolverError(async function(_, { id }) {
     return Student.findByIdAndUpdate(id, { deleted_at: new Date() }, { new: true });
   }),
   /**
    * Create a new school
    */
-  CreateSchool: handleResolverError(async (_, args) => {
+  CreateSchool: handleResolverError(async function(_, args) {
     if (!isNonEmptyString(args.name)) throw new Error('School name required');
     return School.create(args);
   }),
   /**
    * Update a school
    */
-  UpdateSchool: handleResolverError(async (_, { id, ...rest }) => {
+  UpdateSchool: handleResolverError(async function(_, { id, ...rest }) {
     if (rest.name && !isNonEmptyString(rest.name)) throw new Error('Invalid school name');
     return School.findByIdAndUpdate(id, rest, { new: true });
   }),
   /**
    * Soft delete a school
    */
-  DeleteSchool: handleResolverError(async (_, { id }) => {
+  DeleteSchool: handleResolverError(async function(_, { id }) {
     return School.findByIdAndUpdate(id, { deleted_at: new Date() }, { new: true });
   }),
 };
 
 // *************** LOADER ***************
 /**
- * Loader for School.students field
+ * Loader for School.Students field
  */
 const SchoolType = {
-  students: handleResolverError(async (parent, _, { loaders }) => {
+  Students: handleResolverError(async function(parent, _, { loaders }) {
     // Use DataLoader for efficient batch loading
-    return loaders.studentsBySchoolIdLoader.load(parent.id);
+    return loaders.StudentsBySchoolIdLoader.load(parent.id);
   }),
 };
 
@@ -225,7 +225,7 @@ const server = new ApolloServer({
   },
   context: () => ({
     loaders: {
-      studentsBySchoolIdLoader,
+      StudentsBySchoolIdLoader,
     },
   }),
 });
