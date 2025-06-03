@@ -7,10 +7,10 @@ const PORT = process.env.PORT || 3000;
 
 // *************** ROOT ROUTE ***************
 app.get('/', (req, res) => {
-  res.send('Hello, Express server is running!');
+  res.json({ message: 'Express server is up and running!' });
 });
 
 // *************** START SERVER ***************
 app.listen(PORT, () => {
-  console.log(`Express server listening on port ${PORT}`);
+  console.log(`Express server started on port ${PORT}`);
 });
