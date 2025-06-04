@@ -6,9 +6,6 @@ const ConnectDatabase = require('./config/database');
 const { typeDefs, resolvers } = require('./schema');
 const { StudentsBySchoolIdLoader } = require('./utils/dataloader');
 
-// *************** SERVER CONFIGURATION ***************
-
-
 /**
  * Initializes and starts the Apollo GraphQL server
  * Sets up database connection and context

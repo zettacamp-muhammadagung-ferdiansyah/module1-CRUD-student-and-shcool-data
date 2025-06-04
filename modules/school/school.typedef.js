@@ -1,7 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const { gql } = require('apollo-server');
 
-// *************** TYPE DEFINITIONS ***************
 /**
  * GraphQL type definitions for School entity and related queries/mutations.
  *
@@ -30,8 +29,8 @@ const SchoolTypeDefs = gql`
     deleted_at: Date
   }
   extend type Query {
-    Schools: [School]
-    School(id: ID!): School
+    GetAllSchools: [School]
+    GetSchoolById(id: ID!): School
   }
   extend type Mutation {
     CreateSchool(name: String!, address: String): School

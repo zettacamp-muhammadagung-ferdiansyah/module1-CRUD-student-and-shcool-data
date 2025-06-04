@@ -1,8 +1,4 @@
-// *************** IMPORT CORE ***************
 
-// *************** IMPORT LIBRARY ***************
-
-// *************** HELPER FUNCTIONS ***************
 /**
  * Handles asynchronous resolver execution and error handling
  * Ensures consistent error response format across GraphQL resolvers

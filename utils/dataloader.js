@@ -4,7 +4,6 @@ const DataLoader = require('dataloader');
 // *************** IMPORT MODULE ***************
 const Student = require('../modules/student/student.model');
 
-// *************** LOADER CONFIGURATION ***************
 /**
  * DataLoader configuration for batch loading related data
  * Efficiently loads students by their school IDs to prevent N+1 queries

@@ -2,8 +2,10 @@
 const User = require('./user.model');
 const { ApolloError } = require('apollo-server');
 const ErrorLogModel = require('../../error-logs/error-log.model');
+
 // *************** IMPORT HELPER FUNCTION ***************
 const { HandleResolverError } = require('../../helpers/graphqlHelper');
+
 // *************** IMPORT VALIDATOR ***************
 const { IsNonEmptyString, IsValidEmail } = require('../../validation/validation');
 
@@ -225,8 +227,8 @@ async function DeleteUser(parent, { id }) {
 // *************** EXPORT MODULE ***************
 module.exports = {
   Query: {
-    Users: GetAllUsers,
-    User: GetUserById,
+    GetAllUsers,
+    GetUserById,
   },
   Mutation: {
     CreateUser,

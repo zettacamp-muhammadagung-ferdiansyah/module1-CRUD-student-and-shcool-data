@@ -22,8 +22,6 @@ const ErrorLogSchema = new mongoose.Schema({
   error: { type: String, required: true }
 }, { timestamps: true });
 
-// *************** VIRTUAL FIELDS ***************
-
 /**
  * Virtual field "id" that returns the hexadecimal string of the MongoDB _id.
  * This is useful for front-end clients that expect an "id" instead of "_id".
@@ -38,7 +36,6 @@ ErrorLogSchema.virtual('id').get(function () {
  * Enables virtual fields to be included when converting documents to JSON.
  */
 ErrorLogSchema.set('toJSON', { virtuals: true });
-
 
 // *************** EXPORT MODULE ***************
 module.exports = mongoose.model('ErrorLog', ErrorLogSchema);

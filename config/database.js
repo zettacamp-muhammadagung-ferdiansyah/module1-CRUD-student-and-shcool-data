@@ -1,6 +1,3 @@
-
-
-
 // *************** IMPORT LIBRARY ***************
 const mongoose = require('mongoose');
 

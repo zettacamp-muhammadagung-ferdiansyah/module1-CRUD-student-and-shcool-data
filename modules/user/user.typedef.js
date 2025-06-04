@@ -1,7 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const { gql } = require('apollo-server');
 
-// *************** TYPE DEFINITIONS ***************
 /**
  * GraphQL type definitions for User entity and related queries/mutations.
  *
@@ -32,8 +31,8 @@ const UserTypeDefs = gql`
     deleted_at: Date
   }
   extend type Query {
-    Users: [User]
-    User(id: ID!): User
+    GetAllUsers: [User]
+    GetUserById(id: ID!): User
   }
   extend type Mutation {
     CreateUser(first_name: String!, last_name: String!, email: String!, password: String!, role: String!): User

@@ -1,7 +1,6 @@
 // *************** IMPORT CORE ***************
 const mongoose = require('mongoose');
 
-// *************** USER SCHEMA DEFINITION ***************
 /**
  * Mongoose schema for User model
  * @typedef {Object} UserSchema
@@ -29,7 +28,6 @@ const userSchema = new mongoose.Schema({
   deleted_at: { type: Date, default: null }
 }, { timestamps: true });
 
-// *************** VIRTUAL FIELDS ***************
 /**
  * Virtual field that converts MongoDB's _id to GraphQL-friendly id
  * @virtual

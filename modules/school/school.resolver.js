@@ -3,8 +3,10 @@ const School = require('./school.model');
 const Student = require('../student/student.model');
 const { ApolloError } = require('apollo-server');
 const ErrorLogModel = require('../../error-logs/error-log.model');
+
 // *************** IMPORT HELPER FUNCTION ***************
 const { HandleResolverError } = require('../../helpers/graphqlHelper');
+
 // *************** IMPORT VALIDATOR ***************
 const { IsNonEmptyString } = require('../../validation/validation');
 
@@ -187,6 +189,17 @@ async function DeleteSchool(parent, { id }) {
 }
 
 // *************** LOADER ***************
+/**
+ * Retrieves all students associated with a specific school.
+ *
+ * @async
+ * @function GetStudentsBySchool
+ * @param {Object} parent - The parent resolver object, typically contains the school ID.
+ * @param {string} parent.id - The ID of the school to retrieve students for.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of student documents.
+ * @throws {ApolloError} If a database error occurs, throws an ApolloError with code 'DATABASE_ERROR'.
+ */
+
 async function GetStudentsBySchool(parent) {
   try {
     // *************** Retrieve Students by School
@@ -204,11 +217,12 @@ async function GetStudentsBySchool(parent) {
   }
 }
 
+
 // *************** EXPORT MODULE ***************
 module.exports = {
   Query: {
-    Schools: GetAllSchools,
-    School: GetSchoolById,
+    GetAllSchools,
+    GetSchoolById,
   },
   Mutation: {
     CreateSchool,

@@ -1,7 +1,6 @@
 // *************** IMPORT CORE ***************
 const mongoose = require('mongoose');
 
-// *************** STUDENT SCHEMA DEFINITION ***************
 /**
  * Mongoose schema for Student model
  * @typedef {Object} StudentSchema
@@ -29,7 +28,6 @@ const studentSchema = new mongoose.Schema({
   deleted_at: { type: Date, default: null }
 }, { timestamps: true });
 
-// *************** VIRTUAL FIELDS ***************
 /**
  * Virtual field that converts MongoDB's _id to GraphQL-friendly id
  * @virtual

@@ -1,7 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const { gql } = require('apollo-server');
 
-// *************** TYPE DEFINITIONS ***************
 /**
  * GraphQL type definitions for Student entity and related queries/mutations.
  *
@@ -34,8 +33,8 @@ const StudentTypeDefs = gql`
     deleted_at: Date
   }
   extend type Query {
-    Students: [Student]
-    Student(id: ID!): Student
+    GetAllStudents: [Student]
+    GetStudentById(id: ID!): Student
   }
   extend type Mutation {
     CreateStudent(first_name: String!, last_name: String!, email: String!, date_of_birth: Date, school_id: ID!): Student
