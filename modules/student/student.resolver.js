@@ -3,9 +3,6 @@ const Student = require('./student.model');
 const { ApolloError } = require('apollo-server');
 const ErrorLogModel = require('../../error-logs/error-log.model');
 
-// *************** IMPORT HELPER FUNCTION ***************
-const { HandleResolverError } = require('../../helpers/graphqlHelper');
-
 // *************** IMPORT VALIDATOR ***************
 const { IsNonEmptyString, IsValidEmail, IsValidDate } = require('../../validation/validation');
 
