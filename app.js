@@ -7,7 +7,7 @@ const { typeDefs, resolvers } = require('./schema');
 const { StudentsBySchoolIdLoader } = require('./utils/dataloader');
 
 // *************** SERVER CONFIGURATION ***************
-// Apollo Server setup and configuration.
+
 
 /**
  * Initializes and starts the Apollo GraphQL server
@@ -18,10 +18,10 @@ const { StudentsBySchoolIdLoader } = require('./utils/dataloader');
 async function StartServer() {
   // *************** START: Server initialization ***************
   try {
-    // Initialize database connection
+    // *************** Initialize database connection
     await ConnectDatabase();
 
-    // Configure Apollo Server
+    // ***************  Configure Apollo Server
     const server = new ApolloServer({
       typeDefs,
       resolvers,
@@ -32,7 +32,7 @@ async function StartServer() {
       }),
     });
 
-    // Start the server
+    // *************** Start the server
     const { url } = await server.listen();
     console.log(`Server ready at ${url}`);
   } catch (error) {

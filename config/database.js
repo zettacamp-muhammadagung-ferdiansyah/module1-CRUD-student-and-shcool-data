@@ -1,14 +1,8 @@
-// *************** IMPORT CORE ***************
+
 
 
 // *************** IMPORT LIBRARY ***************
 const mongoose = require('mongoose');
-
-// *************** DATABASE CONFIGURATION ***************
-/**
- * Database connection configuration and setup
- * @module Database
- */
 
 /**
  * Establishes and configures the MongoDB database connection
@@ -41,5 +35,4 @@ function ConnectDatabase() {
 }
 
 // *************** EXPORT MODULE ***************
-
 module.exports = ConnectDatabase;

@@ -1,7 +1,6 @@
 // *************** IMPORT CORE ***************
 const mongoose = require('mongoose');
 
-// *************** ERROR LOG SCHEMA DEFINITION ***************
 /**
  * Mongoose schema for Error Log model
  * @typedef {Object} ErrorLogSchema
@@ -24,10 +23,22 @@ const ErrorLogSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // *************** VIRTUAL FIELDS ***************
-ErrorLogSchema.virtual('id').get(function() {
+
+/**
+ * Virtual field "id" that returns the hexadecimal string of the MongoDB _id.
+ * This is useful for front-end clients that expect an "id" instead of "_id".
+ * 
+ * @returns {string} Hex string of the document's _id
+ */
+ErrorLogSchema.virtual('id').get(function () {
   return this._id.toHexString();
 });
+
+/**
+ * Enables virtual fields to be included when converting documents to JSON.
+ */
 ErrorLogSchema.set('toJSON', { virtuals: true });
+
 
 // *************** EXPORT MODULE ***************
 module.exports = mongoose.model('ErrorLog', ErrorLogSchema);
