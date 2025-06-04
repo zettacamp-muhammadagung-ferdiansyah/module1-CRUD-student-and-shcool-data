@@ -1,23 +1,48 @@
-// Entry point for the modular GraphQL server
+// *************** IMPORT LIBRARY ***************
+// Third-party libraries or packages used in this module.
 const { ApolloServer } = require('apollo-server');
-const connectDatabase = require('./config/database');
+
+// *************** IMPORT MODULE ***************
+// Other internal modules this module depends on.
+const ConnectDatabase = require('./config/database');
 const { typeDefs, resolvers } = require('./schema');
 const { StudentsBySchoolIdLoader } = require('./utils/dataloader');
 
-async function startServer() {
-  await connectDatabase();
-  const server = new ApolloServer({
-    typeDefs,
-    resolvers,
-    context: () => ({
-      loaders: {
-        StudentsBySchoolIdLoader,
-      },
-    }),
-  });
-  server.listen().then(({ url }) => {
+// *************** SERVER CONFIGURATION ***************
+// Apollo Server setup and configuration.
+
+/**
+ * Initializes and starts the Apollo GraphQL server
+ * Sets up database connection and context
+ * @returns {Promise<void>} 
+ * @throws {Error} If server fails to start
+ */
+async function StartServer() {
+  // *************** START: Server initialization ***************
+  try {
+    // Initialize database connection
+    await ConnectDatabase();
+
+    // Configure Apollo Server
+    const server = new ApolloServer({
+      typeDefs,
+      resolvers,
+      context: () => ({
+        loaders: {
+          studentsBySchoolId: StudentsBySchoolIdLoader,
+        },
+      }),
+    });
+
+    // Start the server
+    const { url } = await server.listen();
     console.log(`Server ready at ${url}`);
-  });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+  // *************** END: Server initialization ***************
 }
 
-startServer();
+// *************** START SERVER ***************
+StartServer();
