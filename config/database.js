@@ -1,28 +1,45 @@
 // *************** IMPORT CORE ***************
-// Essential core module imports or dependencies needed for the module's operation.
+
 
 // *************** IMPORT LIBRARY ***************
-// Third-party libraries or packages used in this module.
 const mongoose = require('mongoose');
 
 // *************** DATABASE CONFIGURATION ***************
-// Database connection and configuration settings.
+/**
+ * Database connection configuration and setup
+ * @module Database
+ */
 
 /**
- * Establishes connection to MongoDB database
- * Configures connection with recommended options
- * @returns {Promise<mongoose.Connection>} MongoDB connection instance
- * @throws {Error} If connection fails
+ * Establishes and configures the MongoDB database connection
+ * @async
+ * @function ConnectDatabase
+ * @returns {Promise<mongoose.Connection>} A promise that resolves to the MongoDB connection instance
+ * @throws {Error} If the database connection fails
+ * @example
+ * try {
+ *   await ConnectDatabase();
+ *   console.log('Database connected successfully');
+ * } catch (error) {
+ *   console.error('Database connection failed:', error);
+ * }
  */
 function ConnectDatabase() {
-  // *************** START: Database connection setup ***************
-  return mongoose.connect('mongodb://localhost:27017/module1', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
-  // *************** END: Database connection setup ***************
+  // *************** START: Database Connection Setup ***************
+  try {
+    return mongoose.connect('mongodb://localhost:27017/module1', {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    // *************** END: Database Connection Setup ***************
+  } catch (error) {
+    // *************** START: Error Handling ***************
+    console.error('Failed to connect to database:', error);
+    throw error;
+    // *************** END: Error Handling ***************
+  }
 }
 
 // *************** EXPORT MODULE ***************
-// Final exports for the module's functionality.
+
 module.exports = ConnectDatabase;

@@ -1,71 +1,58 @@
 // *************** IMPORT LIBRARY ***************
-// Third-party libraries or packages used in this module.
 const { gql } = require('apollo-server');
 const { merge } = require('lodash');
 
 // *************** IMPORT MODULE ***************
-// Other internal modules this module depends on.
-const userTypeDefs = require('../modules/user/user.typedef');
-const userResolvers = require('../modules/user/user.resolver');
-const studentTypeDefs = require('../modules/student/student.typedef');
-const studentResolvers = require('../modules/student/student.resolver');
-const schoolTypeDefs = require('../modules/school/school.typedef');
-const schoolResolvers = require('../modules/school/school.resolver');
-const schoolTypeResolvers = require('../modules/school/school.resolver').school;
+const UserTypeDefs = require('../modules/user/user.typedef');
+const UserResolvers = require('../modules/user/user.resolver');
+const StudentTypeDefs = require('../modules/student/student.typedef');
+const StudentResolvers = require('../modules/student/student.resolver');
+const SchoolTypeDefs = require('../modules/school/school.typedef');
+const SchoolResolvers = require('../modules/school/school.resolver');
+const SchoolTypeResolvers = require('../modules/school/school.resolver').school;
 
-// *************** TYPE DEFINITIONS ***************
-// GraphQL type definitions combining all module schemas.
-
+// *************** BASE TYPE DEFINITIONS ***************
 /**
- * Combines all GraphQL type definitions
- * Includes base scalar types and empty Query/Mutation types
- * @type {Array<DocumentNode>} Array of GraphQL type definitions
+ * Main GraphQL schema configuration that combines all type definitions and resolvers
+ * @module Schema
  */
-const typeDefs = [
-  // *************** START: Base schema definitions ***************
-  gql`
-    scalar Date
-    type Query { _: Boolean }
-    type Mutation { _: Boolean }
-  `,
-  userTypeDefs,
-  studentTypeDefs,
-  schoolTypeDefs,
-  // *************** END: Base schema definitions ***************
+const BaseTypeDefs = gql`
+  scalar Date
+  type Query { _: Boolean }
+  type Mutation { _: Boolean }
+`;
+
+// *************** COMBINED TYPE DEFINITIONS ***************
+const TypeDefs = [
+  BaseTypeDefs,
+  UserTypeDefs,
+  StudentTypeDefs,
+  SchoolTypeDefs
 ];
 
-// *************** RESOLVER CONFIGURATION ***************
-// Combines all module resolvers into a single resolver map.
+// *************** QUERY RESOLVERS ***************
+const QueryResolvers = {
+  ...UserResolvers.Query,
+  ...StudentResolvers.Query,
+  ...SchoolResolvers.Query
+};
 
-/**
- * Merges all module resolvers
- * Combines Query, Mutation, and Type resolvers from all modules
- * @type {Object} Combined GraphQL resolvers
- */
-const resolvers = merge(
-  {},
-  // *************** START: Resolver combination ***************
-  { 
-    Query: { 
-      ...userResolvers.Query, 
-      ...studentResolvers.Query, 
-      ...schoolResolvers.Query 
-    } 
-  },
-  { 
-    Mutation: { 
-      ...userResolvers.Mutation, 
-      ...studentResolvers.Mutation, 
-      ...schoolResolvers.Mutation 
-    } 
-  },
-  { School: schoolTypeResolvers }
-  // *************** END: Resolver combination ***************
-);
+// *************** MUTATION RESOLVERS ***************
+const MutationResolvers = {
+  ...UserResolvers.Mutation,
+  ...StudentResolvers.Mutation,
+  ...SchoolResolvers.Mutation
+};
+
+// *************** COMBINED RESOLVERS ***************
+const Resolvers = {
+  Query: QueryResolvers,
+  Mutation: MutationResolvers,
+  School: SchoolTypeResolvers
+};
 
 // *************** EXPORT MODULE ***************
-// Final exports for the module's functionality.
 module.exports = { 
-  typeDefs, 
-  resolvers 
+  typeDefs: TypeDefs, 
+  resolvers: Resolvers 
 };

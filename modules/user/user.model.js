@@ -2,23 +2,39 @@
 const mongoose = require('mongoose');
 
 // *************** USER SCHEMA DEFINITION ***************
+/**
+ * Mongoose schema for User model
+ * @typedef {Object} UserSchema
+ * @property {string} first_name - User's first name (required)
+ * @property {string} last_name - User's last name (required)
+ * @property {string} email - User's email address, must be unique (required)
+ * @property {string} password - User's hashed password (required)
+ * @property {string} role - User's role (e.g., admin, student) (required)
+ * @property {Date} [deleted_at] - Soft delete timestamp, null if active
+ * @property {Date} createdAt - Automatically managed creation timestamp
+ * @property {Date} updatedAt - Automatically managed update timestamp
+ */
 const userSchema = new mongoose.Schema({
-  // User's first name
+  // *************** User's first name ***************
   first_name: { type: String, required: true },
-  // User's last name
+  // *************** User's last name ***************
   last_name: { type: String, required: true },
-  // User's email address (must be unique)
+  // *************** User's email address ***************
   email: { type: String, required: true, unique: true },
-  // User's password (hashed)
+  // *************** User's password ***************
   password: { type: String, required: true },
-  // User's role (e.g., admin, student, etc.)
+  // *************** User's role ***************
   role: { type: String, required: true },
-  // Soft delete timestamp (null if not deleted)
+  // *************** Soft delete timestamp ***************
   deleted_at: { type: Date, default: null }
 }, { timestamps: true });
 
 // *************** VIRTUAL FIELDS ***************
-// Add virtual 'id' field for GraphQL compatibility
+/**
+ * Virtual field that converts MongoDB's _id to GraphQL-friendly id
+ * @virtual
+ * @returns {string} The hexadecimal string representation of _id
+ */
 userSchema.virtual('id').get(function () {
   return this._id.toHexString();
 });

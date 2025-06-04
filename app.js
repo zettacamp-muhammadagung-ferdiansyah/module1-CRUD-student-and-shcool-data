@@ -1,9 +1,7 @@
 // *************** IMPORT LIBRARY ***************
-// Third-party libraries or packages used in this module.
 const { ApolloServer } = require('apollo-server');
 
 // *************** IMPORT MODULE ***************
-// Other internal modules this module depends on.
 const ConnectDatabase = require('./config/database');
 const { typeDefs, resolvers } = require('./schema');
 const { StudentsBySchoolIdLoader } = require('./utils/dataloader');
