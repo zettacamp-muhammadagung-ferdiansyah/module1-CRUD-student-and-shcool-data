@@ -13,13 +13,13 @@ const mongoose = require('mongoose');
  * @property {Date} updatedAt - Automatically managed update timestamp
  */
 const ErrorLogSchema = new mongoose.Schema({
-  // *************** File path ***************
+  //  File path 
   path: { type: String, required: true },
-  // *************** Input parameters ***************
+  // Input parameters 
   parameter_input: { type: String, required: true },
-  // *************** Function name ***************
+  // Function name 
   function_name: { type: String, required: true },
-  // *************** Error details ***************
+  // Error details 
   error: { type: String, required: true }
 }, { timestamps: true });
 

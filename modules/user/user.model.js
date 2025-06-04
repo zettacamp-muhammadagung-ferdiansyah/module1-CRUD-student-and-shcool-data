@@ -15,17 +15,17 @@ const mongoose = require('mongoose');
  * @property {Date} updatedAt - Automatically managed update timestamp
  */
 const userSchema = new mongoose.Schema({
-  // *************** User's first name ***************
+  //  User's first name 
   first_name: { type: String, required: true },
-  // *************** User's last name ***************
+  //  User's last name 
   last_name: { type: String, required: true },
-  // *************** User's email address ***************
+  //  User's email address 
   email: { type: String, required: true, unique: true },
-  // *************** User's password ***************
+  //  User's password 
   password: { type: String, required: true },
-  // *************** User's role ***************
+  //  User's role 
   role: { type: String, required: true },
-  // *************** Soft delete timestamp ***************
+  //  Soft delete timestamp 
   deleted_at: { type: Date, default: null }
 }, { timestamps: true });
 

@@ -25,7 +25,7 @@ async function BatchStudentsBySchoolId(schoolIds) {
   );
 }
 
-// Create DataLoader instance
+// **************** Create DataLoader instance
 const StudentsBySchoolIdLoader = new DataLoader(BatchStudentsBySchoolId);
 
 // *************** EXPORT MODULE ***************

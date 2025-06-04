@@ -15,17 +15,17 @@ const mongoose = require('mongoose');
  * @property {Date} updatedAt - Automatically managed update timestamp
  */
 const studentSchema = new mongoose.Schema({
-  // *************** Student's first name ***************
+  //  Student's first name 
   first_name: { type: String, required: true },
-  // *************** Student's last name ***************
+  // Student's last name 
   last_name: { type: String, required: true },
-  // *************** Student's email address ***************
+  //  Student's email address 
   email: { type: String, required: true, unique: true },
-  // *************** Student's date of birth ***************
+  // Student's date of birth 
   date_of_birth: { type: Date },
-  // *************** Reference to the School ***************
+  //  Reference to the School 
   school_id: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true },
-  // *************** Soft delete timestamp ***************
+  //  Soft delete timestamp 
   deleted_at: { type: Date, default: null }
 }, { timestamps: true });
 
