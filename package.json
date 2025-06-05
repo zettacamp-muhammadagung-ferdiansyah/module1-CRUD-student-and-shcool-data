@@ -1,13 +1,19 @@
 {
   "name": "module-1",
   "version": "1.0.0",
-  "description": "My first signed commit My first signed commit My first signed commit My first signed commit My first signed commit My first signed commit",
-  "main": "index.js",
+  "description": "Module 1 - CRUD operations for student and school data with GraphQL",
+  "main": "app.js",
   "dependencies": {
-    "express": "^4.21.2"
+    "apollo-server": "^2.25.2",
+    "dataloader": "^2.2.3",
+    "express": "^4.21.2",
+    "graphql": "^15.5.0",
+    "lodash": "^4.17.21",
+    "mongoose": "^5.13.21"
   },
   "devDependencies": {},
   "scripts": {
+    "start": "node app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
