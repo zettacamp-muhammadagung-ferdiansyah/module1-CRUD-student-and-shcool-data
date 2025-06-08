@@ -1,17 +1,17 @@
 // *************** IMPORT MODULE ***************
 const User = require('./user.model');
 const { ApolloError } = require('apollo-server');
-const ErrorLogModel = require('../../error-logs/error-log.model');
+
 
 // *************** IMPORT VALIDATOR ***************
-const { IsNonEmptyString, IsValidEmail } = require('../../validation/validation');
+const { IsRequiredString, IsEmailFormat } = require('../../validation/validation');
 
 // *************** QUERY ***************
 /**
  * Retrieves all users that haven't been soft deleted
  *
  * @async
- * @function GetUsers
+ * @function GetAllUsers
  * @param {object} parent - The parent object (unused in this function)
  * @param {object} args - The arguments object (unused in this function)
  * @throws {ApolloError} Throws ApolloError if an error occurs during retrieval
@@ -23,14 +23,6 @@ async function GetAllUsers(parent, args) {
     const users = await User.find({ deleted_at: null });
     return users;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/user/user.resolver.js',
-      parameter_input: JSON.stringify(args),
-      function_name: 'GetUsers',
-      error: String(error),
-    });
-
     throw new ApolloError(error.message, 'DATABASE_ERROR');
   }
 }
@@ -39,7 +31,7 @@ async function GetAllUsers(parent, args) {
  * Retrieves a single user by ID
  *
  * @async
- * @function GetUser
+ * @function GetUserById
  * @param {object} parent - The parent object (unused in this function)
  * @param {object} args - The arguments object containing id
  * @param {string} args.id - The ID of the user to retrieve
@@ -60,14 +52,6 @@ async function GetUserById(parent, { id }) {
     }
     return user;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/user/user.resolver.js',
-      parameter_input: JSON.stringify({ id }),
-      function_name: 'GetUser',
-      error: String(error),
-    });
-
     throw new ApolloError(error.message, 'DATABASE_ERROR');
   }
 }
@@ -91,19 +75,19 @@ async function GetUserById(parent, { id }) {
 async function CreateUser(parent, args) {
   try {
     // *************** Validate Input
-    if (!IsNonEmptyString(args.first_name)) {
+    if (!IsRequiredString(args.first_name)) {
       throw new ApolloError('First name is required', 'VALIDATION_ERROR');
     }
-    if (!IsNonEmptyString(args.last_name)) {
+    if (!IsRequiredString(args.last_name)) {
       throw new ApolloError('Last name is required', 'VALIDATION_ERROR');
     }
-    if (!IsValidEmail(args.email)) {
+    if (!IsEmailFormat(args.email)) {
       throw new ApolloError('Invalid email format', 'VALIDATION_ERROR');
     }
-    if (!IsNonEmptyString(args.password)) {
+    if (!IsRequiredString(args.password)) {
       throw new ApolloError('Password is required', 'VALIDATION_ERROR');
     }
-    if (!IsNonEmptyString(args.role)) {
+    if (!IsRequiredString(args.role)) {
       throw new ApolloError('Role is required', 'VALIDATION_ERROR');
     }
 
@@ -111,14 +95,6 @@ async function CreateUser(parent, args) {
     const user = await User.create(args);
     return user;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/user/user.resolver.js',
-      parameter_input: JSON.stringify(args),
-      function_name: 'CreateUser',
-      error: String(error),
-    });
-
     if (error.code === 11000) {
       throw new ApolloError('Email already exists', 'DUPLICATE_EMAIL');
     }
@@ -142,37 +118,58 @@ async function CreateUser(parent, args) {
  * @throws {ApolloError} Throws ApolloError if validation fails or update error occurs
  * @returns {Promise<object|null>} The updated user object or null if not found
  */
-async function UpdateUser(parent, { id, ...rest }) {
+async function UpdateUser(parent, { id, first_name, last_name, email, password, role }) {
   try {
     // *************** Validate Input
     if (!id) {
       throw new ApolloError('User ID is required', 'USER_ID_REQUIRED');
     }
-    if (rest.email && !IsValidEmail(rest.email)) {
-      throw new ApolloError('Invalid email format', 'VALIDATION_ERROR');
+
+    // Build update object with only provided fields
+    const updateData = {};
+    
+    if (first_name !== undefined) {
+      if (!IsRequiredString(first_name)) {
+        throw new ApolloError('Invalid first name', 'VALIDATION_ERROR');
+      }
+      updateData.first_name = first_name;
     }
-    if (rest.first_name && !IsNonEmptyString(rest.first_name)) {
-      throw new ApolloError('Invalid first name', 'VALIDATION_ERROR');
+
+    if (last_name !== undefined) {
+      if (!IsRequiredString(last_name)) {
+        throw new ApolloError('Invalid last name', 'VALIDATION_ERROR');
+      }
+      updateData.last_name = last_name;
     }
-    if (rest.last_name && !IsNonEmptyString(rest.last_name)) {
-      throw new ApolloError('Invalid last name', 'VALIDATION_ERROR');
+
+    if (email !== undefined) {
+      if (!IsEmailFormat(email)) {
+        throw new ApolloError('Invalid email format', 'VALIDATION_ERROR');
+      }
+      updateData.email = email;
+    }
+
+    if (password !== undefined) {
+      if (!IsRequiredString(password)) {
+        throw new ApolloError('Invalid password', 'VALIDATION_ERROR');
+      }
+      updateData.password = password;
+    }
+
+    if (role !== undefined) {
+      if (!IsRequiredString(role)) {
+        throw new ApolloError('Invalid role', 'VALIDATION_ERROR');
+      }
+      updateData.role = role;
     }
 
     // *************** Update User
-    const user = await User.findByIdAndUpdate(id, rest, { new: true });
+    const user = await User.findByIdAndUpdate(id, updateData, { new: true });
     if (!user) {
       throw new ApolloError('User not found', 'USER_NOT_FOUND');
     }
     return user;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/user/user.resolver.js',
-      parameter_input: JSON.stringify({ id, ...rest }),
-      function_name: 'UpdateUser',
-      error: String(error),
-    });
-
     if (error.code === 11000) {
       throw new ApolloError('Email already exists', 'DUPLICATE_EMAIL');
     }
@@ -209,14 +206,6 @@ async function DeleteUser(parent, { id }) {
     }
     return user;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/user/user.resolver.js',
-      parameter_input: JSON.stringify({ id }),
-      function_name: 'DeleteUser',
-      error: String(error),
-    });
-
     throw new ApolloError(error.message, 'DATABASE_ERROR');
   }
 }

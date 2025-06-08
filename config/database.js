@@ -1,32 +1,84 @@
 // *************** IMPORT LIBRARY ***************
 const mongoose = require('mongoose');
+require('dotenv').config();
 
 /**
  * Establishes and configures the MongoDB database connection
  * @async
  * @function ConnectDatabase
- * @returns {Promise<mongoose.Connection>} A promise that resolves to the MongoDB connection instance
- * @throws {Error} If the database connection fails
+ * @returns {Promise<import('mongoose').Connection>} Resolves with the Mongoose connection object
+ * @throws {Error} If database URI is invalid or connection fails
+ * @throws {Error} If MONGODB_URI environment variable is not defined
  * @example
  * try {
- *   await ConnectDatabase();
- *   console.log('Database connected successfully');
+ *   const connection = await ConnectDatabase();
+ *   // Connection is now established
  * } catch (error) {
- *   console.error('Database connection failed:', error);
+ *   console.error('Database connection failed:', error.message);
+ *   process.exit(1);
  * }
  */
-function ConnectDatabase() {
-  // *************** START: Database Connection Setup ***************
+async function ConnectDatabase() {
+  // *************** START: URI Validation ***************
+  const dbUri = process.env.MONGODB_URI;
+  if (!dbUri) {
+    const error = new Error('Database configuration error: MONGODB_URI environment variable is not defined');
+    console.error('Validation failed:', error.message);
+    throw error;
+  }
+
+  const isValidUri = dbUri.startsWith('mongodb://') || dbUri.startsWith('mongodb+srv://');
+  if (!isValidUri) {
+    const error = new Error('Invalid database URI format: Must start with mongodb:// or mongodb+srv://');
+    console.error('Validation failed:', error.message);
+    throw error;
+  }
+  // *************** END: URI Validation ***************
+
   try {
-    return mongoose.connect('mongodb://localhost:27017/module1', {
+    // *************** START: Database Connection Setup ***************
+    console.log('Attempting database connection...');
+    const connection = await mongoose.connect(dbUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
+    
+    console.log('Connected to MongoDB at:', dbUri);
     // *************** END: Database Connection Setup ***************
+
+    // *************** START: Connection Monitoring ***************
+    /**
+     * Handles MongoDB connection errors
+     * @function handleError
+     * @param {Error} error - The error object from MongoDB
+     */
+    connection.connection.on('error', function handleError(error) {
+      console.error('MongoDB connection error:', error.message);
+    });
+
+    /**
+     * Handles MongoDB disconnection events
+     * @function handleDisconnect
+     */
+    connection.connection.on('disconnected', function handleDisconnect() {
+      console.warn('MongoDB disconnected');
+    });
+
+    /**
+     * Handles MongoDB reconnection events
+     * @function handleReconnect
+     */
+    connection.connection.on('reconnected', function handleReconnect() {
+      console.log('MongoDB reconnected');
+    });
+    // *************** END: Connection Monitoring ***************
+    // *************** Return the actual Connection object
+    return connection.connection; 
+
   } catch (error) {
     // *************** START: Error Handling ***************
-    console.error('Failed to connect to database:', error);
-    throw error;
+    console.error('Database connection failed:', error.message);
+    throw new Error(`Failed to connect to database: ${error.message}`);
     // *************** END: Error Handling ***************
   }
 }

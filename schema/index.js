@@ -11,18 +11,13 @@ const SchoolTypeDefs = require('../modules/school/school.typedef');
 const SchoolResolvers = require('../modules/school/school.resolver');
 const SchoolTypeResolvers = require('../modules/school/school.resolver').school;
 
-// *************** BASE TYPE DEFINITIONS ***************
-/**
- * Main GraphQL schema configuration that combines all type definitions and resolvers
- * @module Schema
- */
+// *************** QUERY ***************
 const BaseTypeDefs = gql`
   scalar Date
   type Query { _: Boolean }
   type Mutation { _: Boolean }
 `;
 
-// *************** COMBINED TYPE DEFINITIONS ***************
 const TypeDefs = [
   BaseTypeDefs,
   UserTypeDefs,
@@ -30,21 +25,19 @@ const TypeDefs = [
   SchoolTypeDefs
 ];
 
-// *************** QUERY RESOLVERS ***************
 const QueryResolvers = {
   ...UserResolvers.Query,
   ...StudentResolvers.Query,
   ...SchoolResolvers.Query
 };
 
-// *************** MUTATION RESOLVERS ***************
+// *************** MUTATION ***************
 const MutationResolvers = {
   ...UserResolvers.Mutation,
   ...StudentResolvers.Mutation,
   ...SchoolResolvers.Mutation
 };
 
-// *************** COMBINED RESOLVERS ***************
 const Resolvers = {
   Query: QueryResolvers,
   Mutation: MutationResolvers,

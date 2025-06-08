@@ -2,17 +2,17 @@
 const School = require('./school.model');
 const Student = require('../student/student.model');
 const { ApolloError } = require('apollo-server');
-const ErrorLogModel = require('../../error-logs/error-log.model');
+
 
 // *************** IMPORT VALIDATOR ***************
-const { IsNonEmptyString } = require('../../validation/validation');
+const { IsRequiredString } = require('../../validation/validation');
 
 // *************** QUERY ***************
 /**
  * Retrieves all schools that haven't been soft deleted
  *
  * @async
- * @function GetSchools
+ * @function GetAllSchools
  * @param {object} parent - The parent object (unused in this function)
  * @param {object} args - The arguments object (unused in this function)
  * @throws {ApolloError} Throws ApolloError if an error occurs during retrieval
@@ -24,14 +24,6 @@ async function GetAllSchools(parent, args) {
     const schools = await School.find({ deleted_at: null });
     return schools;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/school/school.resolver.js',
-      parameter_input: JSON.stringify(args),
-      function_name: 'GetSchools',
-      error: String(error),
-    });
-
     throw new ApolloError(error.message, 'DATABASE_ERROR');
   }
 }
@@ -40,7 +32,7 @@ async function GetAllSchools(parent, args) {
  * Retrieves a single school by ID
  *
  * @async
- * @function GetSchool
+ * @function GetSchoolById
  * @param {object} parent - The parent object (unused in this function)
  * @param {object} args - The arguments object containing id
  * @throws {ApolloError} Throws ApolloError if school ID is not provided or an error occurs
@@ -60,14 +52,6 @@ async function GetSchoolById(parent, { id }) {
     }
     return school;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/school/school.resolver.js',
-      parameter_input: JSON.stringify({ id }),
-      function_name: 'GetSchool',
-      error: String(error),
-    });
-
     throw new ApolloError(error.message, 'DATABASE_ERROR');
   }
 }
@@ -86,7 +70,7 @@ async function GetSchoolById(parent, { id }) {
 async function CreateSchool(parent, args) {
   try {
     // *************** Validate Input
-    if (!IsNonEmptyString(args.name)) {
+    if (!IsRequiredString(args.name)) {
       throw new ApolloError('School name is required', 'VALIDATION_ERROR');
     }
 
@@ -94,14 +78,6 @@ async function CreateSchool(parent, args) {
     const school = await School.create(args);
     return school;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/school/school.resolver.js',
-      parameter_input: JSON.stringify(args),
-      function_name: 'CreateSchool',
-      error: String(error),
-    });
-
     throw new ApolloError(error.message, 'DATABASE_ERROR');
   }
 }
@@ -113,34 +89,40 @@ async function CreateSchool(parent, args) {
  * @function UpdateSchool
  * @param {object} parent - The parent object (unused in this function)
  * @param {object} args - The update data
+ * @param {string} args.id - School ID to update
+ * @param {string} [args.name] - Updated school name
+ * @param {string} [args.address] - Updated school address
  * @throws {ApolloError} Throws ApolloError if validation fails or update error occurs
  * @returns {Promise<object|null>} The updated school object or null if not found
  */
-async function UpdateSchool(parent, { id, ...rest }) {
+async function UpdateSchool(parent, { id, name, address }) {
   try {
     // *************** Validate Input
     if (!id) {
       throw new ApolloError('School ID is required', 'SCHOOL_ID_REQUIRED');
     }
-    if (rest.name && !IsNonEmptyString(rest.name)) {
-      throw new ApolloError('Invalid school name', 'VALIDATION_ERROR');
+
+    // Build update object with only provided fields
+    const updateData = {};
+    
+    if (name !== undefined) {
+      if (!IsRequiredString(name)) {
+        throw new ApolloError('Invalid school name', 'VALIDATION_ERROR');
+      }
+      updateData.name = name;
+    }
+
+    if (address !== undefined) {
+      updateData.address = address;
     }
 
     // *************** Update School
-    const school = await School.findByIdAndUpdate(id, rest, { new: true });
+    const school = await School.findByIdAndUpdate(id, updateData, { new: true });
     if (!school) {
       throw new ApolloError('School not found', 'SCHOOL_NOT_FOUND');
     }
     return school;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/school/school.resolver.js',
-      parameter_input: JSON.stringify({ id, ...rest }),
-      function_name: 'UpdateSchool',
-      error: String(error),
-    });
-
     throw new ApolloError(error.message, 'DATABASE_ERROR');
   }
 }
@@ -173,14 +155,6 @@ async function DeleteSchool(parent, { id }) {
     }
     return school;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/school/school.resolver.js',
-      parameter_input: JSON.stringify({ id }),
-      function_name: 'DeleteSchool',
-      error: String(error),
-    });
-
     throw new ApolloError(error.message, 'DATABASE_ERROR');
   }
 }
@@ -202,14 +176,6 @@ async function GetStudentsBySchool(parent) {
     // *************** Retrieve Students by School
     return await Student.find({ school_id: parent.id, deleted_at: null });
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/school/school.resolver.js',
-      parameter_input: JSON.stringify({ school_id: parent.id }),
-      function_name: 'GetStudentsBySchool',
-      error: String(error),
-    });
-
     throw new ApolloError(error.message, 'DATABASE_ERROR');
   }
 }

@@ -1,16 +1,16 @@
 // *************** IMPORT MODULE ***************
 const Student = require('./student.model');
 const { ApolloError } = require('apollo-server');
-const ErrorLogModel = require('../../error-logs/error-log.model');
+
 // *************** IMPORT VALIDATOR ***************
-const { IsNonEmptyString, IsValidEmail, IsValidDate } = require('../../validation/validation');
+const { IsRequiredString, IsEmailFormat, IsValidDateFormat } = require('../../validation/validation');
 
 // *************** QUERY ***************
 /**
  * Retrieves all students that haven't been soft deleted
  *
  * @async
- * @function GetStudents
+ * @function GetAllStudents
  * @param {object} parent - The parent object (unused in this function)
  * @param {object} args - The arguments object (unused in this function)
  * @throws {ApolloError} Throws ApolloError if an error occurs during retrieval
@@ -22,14 +22,6 @@ async function GetAllStudents(parent, args) {
     const students = await Student.find({ deleted_at: null });
     return students;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/student/student.resolver.js',
-      parameter_input: JSON.stringify(args),
-      function_name: 'GetStudents',
-      error: String(error),
-    });
-
     throw new ApolloError(error.message, 'DATABASE_ERROR');
   }
 }
@@ -38,7 +30,7 @@ async function GetAllStudents(parent, args) {
  * Retrieves a single student by ID
  *
  * @async
- * @function GetStudent
+ * @function GetStudentById
  * @param {object} parent - The parent object (unused in this function)
  * @param {object} args - The arguments object containing id
  * @param {string} args.id - The ID of the student to retrieve
@@ -59,14 +51,6 @@ async function GetStudentById(parent, { id }) {
     }
     return student;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/student/student.resolver.js',
-      parameter_input: JSON.stringify({ id }),
-      function_name: 'GetStudent',
-      error: String(error),
-    });
-
     throw new ApolloError(error.message, 'DATABASE_ERROR');
   }
 }
@@ -90,16 +74,16 @@ async function GetStudentById(parent, { id }) {
 async function CreateStudent(parent, args) {
   try {
     // *************** Validate Input
-    if (!IsNonEmptyString(args.first_name)) {
+    if (!IsRequiredString(args.first_name)) {
       throw new ApolloError('First name is required', 'VALIDATION_ERROR');
     }
-    if (!IsNonEmptyString(args.last_name)) {
+    if (!IsRequiredString(args.last_name)) {
       throw new ApolloError('Last name is required', 'VALIDATION_ERROR');
     }
-    if (!IsValidEmail(args.email)) {
+    if (!IsEmailFormat(args.email)) {
       throw new ApolloError('Invalid email format', 'VALIDATION_ERROR');
     }
-    if (args.date_of_birth && !IsValidDate(args.date_of_birth)) {
+    if (args.date_of_birth && !IsValidDateFormat(args.date_of_birth)) {
       throw new ApolloError('Invalid date of birth', 'VALIDATION_ERROR');
     }
     if (!args.school_id) {
@@ -110,14 +94,6 @@ async function CreateStudent(parent, args) {
     const student = await Student.create(args);
     return student;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/student/student.resolver.js',
-      parameter_input: JSON.stringify(args),
-      function_name: 'CreateStudent',
-      error: String(error),
-    });
-
     if (error.code === 11000) {
       throw new ApolloError('Email already exists', 'DUPLICATE_EMAIL');
     }
@@ -141,40 +117,55 @@ async function CreateStudent(parent, args) {
  * @throws {ApolloError} Throws ApolloError if validation fails or update error occurs
  * @returns {Promise<object|null>} The updated student object or null if not found
  */
-async function UpdateStudent(parent, { id, ...rest }) {
+async function UpdateStudent(parent, { id, first_name, last_name, email, date_of_birth, school_id }) {
   try {
     // *************** Validate Input
     if (!id) {
       throw new ApolloError('Student ID is required', 'STUDENT_ID_REQUIRED');
     }
-    if (rest.email && !IsValidEmail(rest.email)) {
-      throw new ApolloError('Invalid email format', 'VALIDATION_ERROR');
+
+    // *************** Build update object with only provided fields
+    const updateData = {};
+    
+    if (first_name !== undefined) {
+      if (!IsRequiredString(first_name)) {
+        throw new ApolloError('Invalid first name', 'VALIDATION_ERROR');
+      }
+      updateData.first_name = first_name;
     }
-    if (rest.first_name && !IsNonEmptyString(rest.first_name)) {
-      throw new ApolloError('Invalid first name', 'VALIDATION_ERROR');
+
+    if (last_name !== undefined) {
+      if (!IsRequiredString(last_name)) {
+        throw new ApolloError('Invalid last name', 'VALIDATION_ERROR');
+      }
+      updateData.last_name = last_name;
     }
-    if (rest.last_name && !IsNonEmptyString(rest.last_name)) {
-      throw new ApolloError('Invalid last name', 'VALIDATION_ERROR');
+
+    if (email !== undefined) {
+      if (!IsEmailFormat(email)) {
+        throw new ApolloError('Invalid email format', 'VALIDATION_ERROR');
+      }
+      updateData.email = email;
     }
-    if (rest.date_of_birth && !IsValidDate(rest.date_of_birth)) {
-      throw new ApolloError('Invalid date of birth', 'VALIDATION_ERROR');
+
+    if (date_of_birth !== undefined) {
+      if (!IsValidDateFormat(date_of_birth)) {
+        throw new ApolloError('Invalid date of birth', 'VALIDATION_ERROR');
+      }
+      updateData.date_of_birth = date_of_birth;
+    }
+
+    if (school_id !== undefined) {
+      updateData.school_id = school_id;
     }
 
     // *************** Update Student
-    const student = await Student.findByIdAndUpdate(id, rest, { new: true });
+    const student = await Student.findByIdAndUpdate(id, updateData, { new: true });
     if (!student) {
       throw new ApolloError('Student not found', 'STUDENT_NOT_FOUND');
     }
     return student;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/student/student.resolver.js',
-      parameter_input: JSON.stringify({ id, ...rest }),
-      function_name: 'UpdateStudent',
-      error: String(error),
-    });
-
     if (error.code === 11000) {
       throw new ApolloError('Email already exists', 'DUPLICATE_EMAIL');
     }
@@ -211,14 +202,6 @@ async function DeleteStudent(parent, { id }) {
     }
     return student;
   } catch (error) {
-    // *************** Log the error
-    await ErrorLogModel.create({
-      path: 'modules/student/student.resolver.js',
-      parameter_input: JSON.stringify({ id }),
-      function_name: 'DeleteStudent',
-      error: String(error),
-    });
-
     throw new ApolloError(error.message, 'DATABASE_ERROR');
   }
 }
