@@ -5,6 +5,7 @@ const { ApolloServer } = require('apollo-server');
 const ConnectDatabase = require('./config/database');
 const { typeDefs, resolvers } = require('./schema');
 const { StudentsBySchoolIdLoader } = require('./utils/dataloader');
+const { LogError } = require('./utils/error-logger');
 
 /**
  * Initializes and starts the Apollo GraphQL server
@@ -27,6 +28,30 @@ async function StartServer() {
           studentsBySchoolId: StudentsBySchoolIdLoader,
         },
       }),
+      formatError: (error) => {
+        // *************** Log server-level errors
+        try {
+          // *************** Only log errors that weren't already logged in resolvers
+          if (!error.extensions || !error.extensions.logged) {
+            LogError(
+              error,
+              error.extensions && error.extensions.code ? error.extensions.code : 'INTERNAL_SERVER_ERROR',
+              'ApolloServer',
+              'server',
+              { message: error.message, path: error.path }
+            );
+          }
+        } catch (logError) {
+          console.error('Failed to log server error:', logError);
+        }
+        
+        // *************** Return a clean error for the client
+        return {
+          message: error.message,
+          code: error.extensions && error.extensions.code ? error.extensions.code : 'INTERNAL_SERVER_ERROR',
+          path: error.path
+        };
+      }
     });
 
     // *************** Start the server

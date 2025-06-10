@@ -4,3 +4,6 @@ node_modules/
 .env
 code_convention.md
 project_details.md
+Plan project.md
+System_Flow_Pseudocode.md
+.gitignore

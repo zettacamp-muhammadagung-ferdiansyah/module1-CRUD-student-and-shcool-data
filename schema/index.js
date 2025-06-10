@@ -1,47 +1,41 @@
 // *************** IMPORT LIBRARY ***************
 const { gql } = require('apollo-server');
-const { merge } = require('lodash');
 
-// *************** IMPORT MODULE ***************
-const UserTypeDefs = require('../modules/user/user.typedef');
-const UserResolvers = require('../modules/user/user.resolver');
-const StudentTypeDefs = require('../modules/student/student.typedef');
-const StudentResolvers = require('../modules/student/student.resolver');
-const SchoolTypeDefs = require('../modules/school/school.typedef');
-const SchoolResolvers = require('../modules/school/school.resolver');
-const SchoolTypeResolvers = require('../modules/school/school.resolver').school;
+// *************** IMPORT MODULES ***************
+const UserModule = require('../modules/user');
+const StudentModule = require('../modules/student');
+const SchoolModule = require('../modules/school');
 
-// *************** QUERY ***************
+// *************** QUERY
 const BaseTypeDefs = gql`
-  scalar Date
   type Query { _: Boolean }
   type Mutation { _: Boolean }
 `;
 
 const TypeDefs = [
   BaseTypeDefs,
-  UserTypeDefs,
-  StudentTypeDefs,
-  SchoolTypeDefs
+  UserModule.typeDefs,
+  StudentModule.typeDefs,
+  SchoolModule.typeDefs
 ];
 
 const QueryResolvers = {
-  ...UserResolvers.Query,
-  ...StudentResolvers.Query,
-  ...SchoolResolvers.Query
+  ...UserModule.resolvers.Query,
+  ...StudentModule.resolvers.Query,
+  ...SchoolModule.resolvers.Query
 };
 
-// *************** MUTATION ***************
+// *************** MUTATION 
 const MutationResolvers = {
-  ...UserResolvers.Mutation,
-  ...StudentResolvers.Mutation,
-  ...SchoolResolvers.Mutation
+  ...UserModule.resolvers.Mutation,
+  ...StudentModule.resolvers.Mutation,
+  ...SchoolModule.resolvers.Mutation
 };
 
 const Resolvers = {
   Query: QueryResolvers,
   Mutation: MutationResolvers,
-  School: SchoolTypeResolvers
+  School: SchoolModule.resolvers.School
 };
 
 // *************** EXPORT MODULE ***************

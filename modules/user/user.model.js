@@ -12,6 +12,8 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   //  User's role 
   role: { type: String, required: true },
+  // Status of the user (active or deleted)
+  status: { type: String, enum: ['active', 'deleted'], default: 'active' },
   //  Soft delete timestamp 
   deleted_at: { type: Date, default: null }
 }, { timestamps: true });

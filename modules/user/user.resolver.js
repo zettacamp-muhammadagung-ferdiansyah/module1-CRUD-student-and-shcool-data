@@ -1,10 +1,13 @@
 // *************** IMPORT MODULE ***************
 const User = require('./user.model');
 const { ApolloError } = require('apollo-server');
+const mongoose = require('mongoose');
 
+// *************** IMPORT UTILITIES ***************
+const { LogError } = require('../../utils/error-logger');
 
 // *************** IMPORT VALIDATOR ***************
-const { IsRequiredString, IsEmailFormat } = require('../../validation/validation');
+const { IsRequiredString, IsValidDateString } = require('../../validation/validation');
 
 // *************** QUERY ***************
 /**
@@ -13,17 +16,41 @@ const { IsRequiredString, IsEmailFormat } = require('../../validation/validation
  * @async
  * @function GetAllUsers
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The arguments object (unused in this function)
+ * @param {object} args - The arguments object containing filter parameters
+ * @param {object} [args.filter] - Filter criteria for users
  * @throws {ApolloError} Throws ApolloError if an error occurs during retrieval
  * @returns {Promise<Array>} Array of user objects
  */
-async function GetAllUsers(parent, args) {
+async function GetAllUsers(parent, { filter = {} }) {
   try {
+    // *************** Build query with filters
+    let query = {
+      $and: [
+        // *************** Filter by status, not by deleted_at
+        { status: filter && filter.status ? filter.status : 'active' } // Default to active users
+      ]
+    };
+    
+    // *************** Add name filter if provided
+    if (filter && filter.name) {
+      query.$and.push({ 
+        $or: [
+          { first_name: { $regex: filter.name, $options: 'i' } },
+          { last_name: { $regex: filter.name, $options: 'i' } }
+        ]
+      });
+    }
+    
+    // *************** Add role filter if provided
+    if (filter && filter.role) {
+      query.$and.push({ role: filter.role });
+    }
+
     // *************** Retrieve Users
-    const users = await User.find({ deleted_at: null });
+    const users = await User.find(query);
     return users;
   } catch (error) {
-    throw new ApolloError(error.message, 'DATABASE_ERROR');
+    throw await LogError(error, 'DATABASE_ERROR', 'GetAllUsers', 'query', { filter });
   }
 }
 
@@ -44,15 +71,20 @@ async function GetUserById(parent, { id }) {
     if (!id) {
       throw new ApolloError('User ID is required', 'USER_ID_REQUIRED');
     }
+    
+    // *************** Validate ID format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new ApolloError('Invalid User ID format', 'INVALID_ID_FORMAT');
+    }
 
-    // *************** Retrieve User
-    const user = await User.findOne({ _id: id, deleted_at: null });
+    // *************** Retrieve User using status instead of deleted_at
+    const user = await User.findOne({ _id: id, status: 'active' });
     if (!user) {
       throw new ApolloError('User not found', 'USER_NOT_FOUND');
     }
     return user;
   } catch (error) {
-    throw new ApolloError(error.message, 'DATABASE_ERROR');
+    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR', 'GetUserById', 'query', { id });
   }
 }
 
@@ -72,33 +104,34 @@ async function GetUserById(parent, { id }) {
  * @throws {ApolloError} Throws ApolloError if validation fails or creation error occurs
  * @returns {Promise<object>} The created user object
  */
-async function CreateUser(parent, args) {
+async function CreateUser(parent, { first_name, last_name, email, password, role }) {
   try {
     // *************** Validate Input
-    if (!IsRequiredString(args.first_name)) {
+    if (!IsRequiredString(first_name)) {
       throw new ApolloError('First name is required', 'VALIDATION_ERROR');
     }
-    if (!IsRequiredString(args.last_name)) {
+    if (!IsRequiredString(last_name)) {
       throw new ApolloError('Last name is required', 'VALIDATION_ERROR');
     }
-    if (!IsEmailFormat(args.email)) {
-      throw new ApolloError('Invalid email format', 'VALIDATION_ERROR');
-    }
-    if (!IsRequiredString(args.password)) {
+    if (!IsRequiredString(password)) {
       throw new ApolloError('Password is required', 'VALIDATION_ERROR');
     }
-    if (!IsRequiredString(args.role)) {
+    if (!IsRequiredString(role)) {
       throw new ApolloError('Role is required', 'VALIDATION_ERROR');
     }
 
     // *************** Create User
-    const user = await User.create(args);
+    const user = await User.create({ first_name, last_name, email, password, role });
     return user;
   } catch (error) {
-    if (error.code === 11000) {
-      throw new ApolloError('Email already exists', 'DUPLICATE_EMAIL');
-    }
-    throw new ApolloError(error.message, 'DATABASE_ERROR');
+    const errorCode = error.code === 11000 ? 'DUPLICATE_EMAIL' : (error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR');
+    const errorMessage = error.code === 11000 ? 'Email already exists' : error.message;
+    const customError = new Error(errorMessage);
+    customError.stack = error.stack;
+    
+    // *************** Redact password in error logs
+    throw await LogError(customError, errorCode, 'CreateUser', 'mutation', 
+      { first_name, last_name, email, password: '[REDACTED]', role });
   }
 }
 
@@ -115,17 +148,23 @@ async function CreateUser(parent, args) {
  * @param {string} [args.email] - Updated email
  * @param {string} [args.password] - Updated password
  * @param {string} [args.role] - Updated role
+ * @param {string} [args.status] - Updated status
  * @throws {ApolloError} Throws ApolloError if validation fails or update error occurs
  * @returns {Promise<object|null>} The updated user object or null if not found
  */
-async function UpdateUser(parent, { id, first_name, last_name, email, password, role }) {
+async function UpdateUser(parent, { id, first_name, last_name, email, password, role, status }) {
   try {
     // *************** Validate Input
     if (!id) {
       throw new ApolloError('User ID is required', 'USER_ID_REQUIRED');
     }
+    
+    // *************** Validate ID format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new ApolloError('Invalid User ID format', 'INVALID_ID_FORMAT');
+    }
 
-    // Build update object with only provided fields
+    // *************** Build update object with only provided fields
     const updateData = {};
     
     if (first_name !== undefined) {
@@ -143,9 +182,6 @@ async function UpdateUser(parent, { id, first_name, last_name, email, password, 
     }
 
     if (email !== undefined) {
-      if (!IsEmailFormat(email)) {
-        throw new ApolloError('Invalid email format', 'VALIDATION_ERROR');
-      }
       updateData.email = email;
     }
 
@@ -162,23 +198,36 @@ async function UpdateUser(parent, { id, first_name, last_name, email, password, 
       }
       updateData.role = role;
     }
+    
+    if (status !== undefined) {
+      if (!['active', 'deleted'].includes(status)) {
+        throw new ApolloError('Invalid status value. Must be "active" or "deleted"', 'VALIDATION_ERROR');
+      }
+      updateData.status = status;
+    }
 
     // *************** Update User
-    const user = await User.findByIdAndUpdate(id, updateData, { new: true });
+    const user = await User.findByIdAndUpdate(id, updateData);
     if (!user) {
       throw new ApolloError('User not found', 'USER_NOT_FOUND');
     }
-    return user;
+    
+    // *************** Retrieve updated user
+    const updatedUser = await User.findById(id);
+    return updatedUser;
   } catch (error) {
-    if (error.code === 11000) {
-      throw new ApolloError('Email already exists', 'DUPLICATE_EMAIL');
-    }
-    throw new ApolloError(error.message, 'DATABASE_ERROR');
+    const requestParams = { id, first_name, last_name, email, password: password ? '[REDACTED]' : undefined, role, status };
+    const errorCode = error.code === 11000 ? 'DUPLICATE_EMAIL' : (error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR');
+    const errorMessage = error.code === 11000 ? 'Email already exists' : error.message;
+    const customError = new Error(errorMessage);
+    customError.stack = error.stack;
+    
+    throw await LogError(customError, errorCode, 'UpdateUser', 'mutation', requestParams);
   }
 }
 
 /**
- * Soft deletes a user by setting deleted_at timestamp
+ * Soft deletes a user by setting status to 'deleted' and updating deleted_at timestamp
  *
  * @async
  * @function DeleteUser
@@ -194,19 +243,29 @@ async function DeleteUser(parent, { id }) {
     if (!id) {
       throw new ApolloError('User ID is required', 'USER_ID_REQUIRED');
     }
+    
+    // *************** Validate ID format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new ApolloError('Invalid User ID format', 'INVALID_ID_FORMAT');
+    }
 
-    // *************** Soft Delete User
+    // *************** Set status to deleted AND update deleted_at timestamp
     const user = await User.findByIdAndUpdate(
       id,
-      { deleted_at: new Date() },
-      { new: true }
+      { 
+        status: 'deleted',
+        deleted_at: new Date().toISOString() 
+      }
     );
     if (!user) {
       throw new ApolloError('User not found', 'USER_NOT_FOUND');
     }
-    return user;
+    
+    // *************** Retrieve updated user
+    const updatedUser = await User.findById(id);
+    return updatedUser;
   } catch (error) {
-    throw new ApolloError(error.message, 'DATABASE_ERROR');
+    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR', 'DeleteUser', 'mutation', { id });
   }
 }
 
