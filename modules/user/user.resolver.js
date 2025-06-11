@@ -2,12 +2,13 @@
 const User = require('./user.model');
 const { ApolloError } = require('apollo-server');
 const mongoose = require('mongoose');
+const validator = require('validator');
 
 // *************** IMPORT UTILITIES ***************
 const { LogError } = require('../../utils/error-logger');
 
 // *************** IMPORT VALIDATOR ***************
-const { IsRequiredString, IsValidDateString } = require('../../validation/validation');
+const { IsRequiredString, IsValidObjectId, IsValidDateString, ErrorCode } = require('../../validation/validation');
 
 // *************** QUERY ***************
 /**
@@ -24,27 +25,28 @@ const { IsRequiredString, IsValidDateString } = require('../../validation/valida
 async function GetAllUsers(parent, { filter = {} }) {
   try {
     // *************** Build query with filters
-    let query = {
-      $and: [
-        // *************** Filter by status, not by deleted_at
-        { status: filter && filter.status ? filter.status : 'active' } // Default to active users
-      ]
-    };
+    const andConditions = [
+      // *************** Filter by status, not by deleted_at
+      { status: filter && filter.status ? filter.status : 'active' } // Default to active users
+    ];
     
     // *************** Add name filter if provided
     if (filter && filter.name) {
-      query.$and.push({ 
+      andConditions[andConditions.length] = { 
         $or: [
           { first_name: { $regex: filter.name, $options: 'i' } },
           { last_name: { $regex: filter.name, $options: 'i' } }
         ]
-      });
+      };
     }
     
     // *************** Add role filter if provided
     if (filter && filter.role) {
-      query.$and.push({ role: filter.role });
+      andConditions[andConditions.length] = { role: filter.role };
     }
+
+    // *************** Create query with MongoDB $and operator for filter conditions
+    const query = { $and: andConditions };
 
     // *************** Retrieve Users
     const users = await User.find(query);
@@ -69,22 +71,28 @@ async function GetUserById(parent, { id }) {
   try {
     // *************** Validate Input
     if (!id) {
-      throw new ApolloError('User ID is required', 'USER_ID_REQUIRED');
+      throw new ApolloError('User ID is required', ErrorCode.INVALID_INPUT, {
+        field: 'id'
+      });
     }
     
     // *************** Validate ID format
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new ApolloError('Invalid User ID format', 'INVALID_ID_FORMAT');
+      throw new ApolloError('Invalid User ID format', ErrorCode.INVALID_INPUT, {
+        field: 'id'
+      });
     }
 
     // *************** Retrieve User using status instead of deleted_at
     const user = await User.findOne({ _id: id, status: 'active' });
     if (!user) {
-      throw new ApolloError('User not found', 'USER_NOT_FOUND');
+      throw new ApolloError('User not found', ErrorCode.RESOURCE_NOT_FOUND, {
+        field: 'id'
+      });
     }
     return user;
   } catch (error) {
-    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR', 'GetUserById', 'query', { id });
+    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR, 'GetUserById', 'query', { id });
   }
 }
 
@@ -107,31 +115,38 @@ async function GetUserById(parent, { id }) {
 async function CreateUser(parent, { first_name, last_name, email, password, role }) {
   try {
     // *************** Validate Input
-    if (!IsRequiredString(first_name)) {
-      throw new ApolloError('First name is required', 'VALIDATION_ERROR');
-    }
-    if (!IsRequiredString(last_name)) {
-      throw new ApolloError('Last name is required', 'VALIDATION_ERROR');
-    }
-    if (!IsRequiredString(password)) {
-      throw new ApolloError('Password is required', 'VALIDATION_ERROR');
-    }
-    if (!IsRequiredString(role)) {
-      throw new ApolloError('Role is required', 'VALIDATION_ERROR');
+    IsRequiredString(first_name, 'First name');
+    IsRequiredString(last_name, 'Last name');
+    IsRequiredString(password, 'Password');
+    IsRequiredString(role, 'Role');
+    
+    // *************** Validate email if provided
+    if (email && !validator.isEmail(email)) {
+      throw new ApolloError('Invalid email format', ErrorCode.INVALID_INPUT, {
+        field: 'email'
+      });
     }
 
     // *************** Create User
     const user = await User.create({ first_name, last_name, email, password, role });
     return user;
   } catch (error) {
-    const errorCode = error.code === 11000 ? 'DUPLICATE_EMAIL' : (error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR');
+    const errorCode = error.code === 11000 ? ErrorCode.INVALID_INPUT : (error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR);
     const errorMessage = error.code === 11000 ? 'Email already exists' : error.message;
     const customError = new Error(errorMessage);
     customError.stack = error.stack;
     
+    // Add field metadata for duplicate email errors
+    const extensions = error.code === 11000 ? { field: 'email' } : (error.extensions || {});
+    
     // *************** Redact password in error logs
-    throw await LogError(customError, errorCode, 'CreateUser', 'mutation', 
-      { first_name, last_name, email, password: '[REDACTED]', role });
+    throw await LogError(
+      Object.assign(customError, { extensions }),
+      errorCode, 
+      'CreateUser', 
+      'mutation', 
+      { first_name, last_name, email, password: '[REDACTED]', role }
+    );
   }
 }
 
@@ -156,52 +171,61 @@ async function UpdateUser(parent, { id, first_name, last_name, email, password, 
   try {
     // *************** Validate Input
     if (!id) {
-      throw new ApolloError('User ID is required', 'USER_ID_REQUIRED');
+      throw new ApolloError('User ID is required', ErrorCode.INVALID_INPUT, {
+        field: 'id'
+      });
     }
     
     // *************** Validate ID format
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new ApolloError('Invalid User ID format', 'INVALID_ID_FORMAT');
+      throw new ApolloError('Invalid User ID format', ErrorCode.INVALID_INPUT, {
+        field: 'id'
+      });
     }
 
     // *************** Build update object with only provided fields
     const updateData = {};
     
     if (first_name !== undefined) {
-      if (!IsRequiredString(first_name)) {
-        throw new ApolloError('Invalid first name', 'VALIDATION_ERROR');
-      }
+      IsRequiredString(first_name, 'First name');
       updateData.first_name = first_name;
     }
 
     if (last_name !== undefined) {
-      if (!IsRequiredString(last_name)) {
-        throw new ApolloError('Invalid last name', 'VALIDATION_ERROR');
-      }
+      IsRequiredString(last_name, 'Last name');
       updateData.last_name = last_name;
     }
 
     if (email !== undefined) {
+      if (email && !validator.isEmail(email)) {
+        throw new ApolloError('Invalid email format', ErrorCode.INVALID_INPUT, {
+          field: 'email'
+        });
+      }
       updateData.email = email;
     }
 
     if (password !== undefined) {
-      if (!IsRequiredString(password)) {
-        throw new ApolloError('Invalid password', 'VALIDATION_ERROR');
-      }
+      IsRequiredString(password, 'Password');
       updateData.password = password;
     }
 
     if (role !== undefined) {
-      if (!IsRequiredString(role)) {
-        throw new ApolloError('Invalid role', 'VALIDATION_ERROR');
-      }
+      IsRequiredString(role, 'Role');
       updateData.role = role;
     }
     
     if (status !== undefined) {
-      if (!['active', 'deleted'].includes(status)) {
-        throw new ApolloError('Invalid status value. Must be "active" or "deleted"', 'VALIDATION_ERROR');
+      const validStatus = ['active', 'deleted'];
+      if (!validStatus.includes(status)) {
+        throw new ApolloError(
+          `Invalid status value. Must be one of: ${validStatus.join(', ')}`, 
+          ErrorCode.INVALID_INPUT, 
+          {
+            field: 'status',
+            allowedValues: validStatus
+          }
+        );
       }
       updateData.status = status;
     }
@@ -209,7 +233,9 @@ async function UpdateUser(parent, { id, first_name, last_name, email, password, 
     // *************** Update User
     const user = await User.findByIdAndUpdate(id, updateData);
     if (!user) {
-      throw new ApolloError('User not found', 'USER_NOT_FOUND');
+      throw new ApolloError('User not found', ErrorCode.RESOURCE_NOT_FOUND, {
+        field: 'id'
+      });
     }
     
     // *************** Retrieve updated user
@@ -217,12 +243,21 @@ async function UpdateUser(parent, { id, first_name, last_name, email, password, 
     return updatedUser;
   } catch (error) {
     const requestParams = { id, first_name, last_name, email, password: password ? '[REDACTED]' : undefined, role, status };
-    const errorCode = error.code === 11000 ? 'DUPLICATE_EMAIL' : (error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR');
+    const errorCode = error.code === 11000 ? ErrorCode.INVALID_INPUT : (error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR);
     const errorMessage = error.code === 11000 ? 'Email already exists' : error.message;
     const customError = new Error(errorMessage);
     customError.stack = error.stack;
     
-    throw await LogError(customError, errorCode, 'UpdateUser', 'mutation', requestParams);
+    // Add field metadata for duplicate email errors
+    const extensions = error.code === 11000 ? { field: 'email' } : (error.extensions || {});
+    
+    throw await LogError(
+      Object.assign(customError, { extensions }),
+      errorCode, 
+      'UpdateUser', 
+      'mutation', 
+      requestParams
+    );
   }
 }
 
@@ -241,12 +276,16 @@ async function DeleteUser(parent, { id }) {
   try {
     // *************** Validate Input
     if (!id) {
-      throw new ApolloError('User ID is required', 'USER_ID_REQUIRED');
+      throw new ApolloError('User ID is required', ErrorCode.INVALID_INPUT, {
+        field: 'id'
+      });
     }
     
     // *************** Validate ID format
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new ApolloError('Invalid User ID format', 'INVALID_ID_FORMAT');
+      throw new ApolloError('Invalid User ID format', ErrorCode.INVALID_INPUT, {
+        field: 'id'
+      });
     }
 
     // *************** Set status to deleted AND update deleted_at timestamp
@@ -258,14 +297,16 @@ async function DeleteUser(parent, { id }) {
       }
     );
     if (!user) {
-      throw new ApolloError('User not found', 'USER_NOT_FOUND');
+      throw new ApolloError('User not found', ErrorCode.RESOURCE_NOT_FOUND, {
+        field: 'id'
+      });
     }
     
     // *************** Retrieve updated user
     const updatedUser = await User.findById(id);
     return updatedUser;
   } catch (error) {
-    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR', 'DeleteUser', 'mutation', { id });
+    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR, 'DeleteUser', 'mutation', { id });
   }
 }
 

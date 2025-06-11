@@ -25,7 +25,9 @@ async function LogError(error, errorCode, resolver, operationType, requestParams
       resolver,
       operation_type: operationType,
       user_id: userId,
-      request_params: requestParams
+      request_params: requestParams,
+      // Store any additional field metadata from the error
+      field_metadata: error.extensions && error.extensions.field ? { field: error.extensions.field } : null
     });
   } catch (logError) {
     // *************** If logging fails, log to console but don't interrupt the flow
@@ -33,7 +35,12 @@ async function LogError(error, errorCode, resolver, operationType, requestParams
   }
   
   // *************** Return an ApolloError for the GraphQL response
-  return new ApolloError(error.message, errorCode);
+  // Preserve any additional extensions from the original error
+  return new ApolloError(
+    error.message,
+    errorCode,
+    error.extensions || {}
+  );
 }
 
 // *************** EXPORT MODULE ***************

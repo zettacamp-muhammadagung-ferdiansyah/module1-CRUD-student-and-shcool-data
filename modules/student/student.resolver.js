@@ -2,12 +2,13 @@
 const Student = require('./student.model');
 const { ApolloError } = require('apollo-server');
 const mongoose = require('mongoose');
+const validator = require('validator');
 
 // *************** IMPORT UTILITIES ***************
 const { LogError } = require('../../utils/error-logger');
 
 // *************** IMPORT VALIDATOR ***************
-const { IsRequiredString, IsValidDateString } = require('../../validation/validation');
+const { IsRequiredString, IsValidObjectId, IsValidDateString, ErrorCode } = require('../../validation/validation');
 
 // *************** QUERY ***************
 /**
@@ -24,22 +25,23 @@ const { IsRequiredString, IsValidDateString } = require('../../validation/valida
 async function GetAllStudents(parent, { filter = {} }) {
   try {
     // *************** Build query with filters
-    let query = {
-      $and: [
-        // *************** Filter by status, not by deleted_at
-        { status: filter && filter.status ? filter.status : 'active' } // Default to active students
-      ]
-    };
+    const andConditions = [
+      // *************** Filter by status, not by deleted_at
+      { status: filter && filter.status ? filter.status : 'active' } // Default to active students
+    ];
     
     // *************** Add name filter if provided
     if (filter && filter.name) {
-      query.$and.push({ 
+      andConditions[andConditions.length] = { 
         $or: [
           { first_name: { $regex: filter.name, $options: 'i' } },
           { last_name: { $regex: filter.name, $options: 'i' } }
         ]
-      });
+      };
     }
+
+    // *************** Create query with MongoDB $and operator for filter conditions
+    const query = { $and: andConditions };
 
     // *************** Retrieve Students
     const students = await Student.find(query);
@@ -64,22 +66,28 @@ async function GetStudentById(parent, { id }) {
   try {
     // *************** Validate Input
     if (!id) {
-      throw new ApolloError('Student ID is required', 'STUDENT_ID_REQUIRED');
+      throw new ApolloError('Student ID is required', ErrorCode.INVALID_INPUT, {
+        field: 'id'
+      });
     }
     
     // *************** Validate ID format
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new ApolloError('Invalid Student ID format', 'INVALID_ID_FORMAT');
+      throw new ApolloError('Invalid Student ID format', ErrorCode.INVALID_INPUT, {
+        field: 'id'
+      });
     }
 
     // *************** Retrieve Student using status instead of deleted_at
     const student = await Student.findOne({ _id: id, status: 'active' });
     if (!student) {
-      throw new ApolloError('Student not found', 'STUDENT_NOT_FOUND');
+      throw new ApolloError('Student not found', ErrorCode.RESOURCE_NOT_FOUND, {
+        field: 'id'
+      });
     }
     return student;
   } catch (error) {
-    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR', 'GetStudentById', 'query', { id });
+    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR, 'GetStudentById', 'query', { id });
   }
 }
 
@@ -101,20 +109,28 @@ async function GetStudentById(parent, { id }) {
  */
 async function CreateStudent(parent, { first_name, last_name, email, date_of_birth, school_id }) {
   try {
-    // *************** Validate Input
-    if (!IsRequiredString(first_name)) {
-      throw new ApolloError('First name is required', 'VALIDATION_ERROR');
-    }
-    if (!IsRequiredString(last_name)) {
-      throw new ApolloError('Last name is required', 'VALIDATION_ERROR');
-    }
+    // *************** Validate Input - using validator.js and improved error handling
+    IsRequiredString(first_name, 'First name');
+    IsRequiredString(last_name, 'Last name');
+    
     if (!school_id) {
-      throw new ApolloError('School ID is required', 'VALIDATION_ERROR');
+      throw new ApolloError('School ID is required', ErrorCode.INVALID_INPUT, {
+        field: 'school_id'
+      });
     }
     
     //*************** Validate school ID format
     if (!mongoose.Types.ObjectId.isValid(school_id)) {
-      throw new ApolloError('Invalid School ID format', 'INVALID_ID_FORMAT');
+      throw new ApolloError('Invalid School ID format', ErrorCode.INVALID_INPUT, {
+        field: 'school_id'
+      });
+    }
+    
+    // *************** Validate email if provided
+    if (email && !validator.isEmail(email)) {
+      throw new ApolloError('Invalid email format', ErrorCode.INVALID_INPUT, {
+        field: 'email'
+      });
     }
     
     // *************** Validate date_of_birth if provided
@@ -126,12 +142,21 @@ async function CreateStudent(parent, { first_name, last_name, email, date_of_bir
     const student = await Student.create({ first_name, last_name, email, date_of_birth, school_id });
     return student;
   } catch (error) {
-    const errorCode = error.code === 11000 ? 'DUPLICATE_EMAIL' : (error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR');
+    const errorCode = error.code === 11000 ? ErrorCode.INVALID_INPUT : (error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR);
     const errorMessage = error.code === 11000 ? 'Email already exists' : error.message;
     const customError = new Error(errorMessage);
     customError.stack = error.stack;
     
-    throw await LogError(customError, errorCode, 'CreateStudent', 'mutation', { first_name, last_name, email, date_of_birth, school_id });
+    // Add field metadata for duplicate email errors
+    const extensions = error.code === 11000 ? { field: 'email' } : (error.extensions || {});
+    
+    throw await LogError(
+      Object.assign(customError, { extensions }), 
+      errorCode, 
+      'CreateStudent', 
+      'mutation', 
+      { first_name, last_name, email, date_of_birth, school_id }
+    );
   }
 }
 
@@ -156,36 +181,39 @@ async function UpdateStudent(parent, { id, first_name, last_name, email, date_of
   try {
     // *************** Validate Input
     if (!id) {
-      throw new ApolloError('Student ID is required', 'STUDENT_ID_REQUIRED');
+      throw new ApolloError('Student ID is required', ErrorCode.INVALID_INPUT, {
+        field: 'id'
+      });
     }
     
     // *************** Validate ID format
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new ApolloError('Invalid Student ID format', 'INVALID_ID_FORMAT');
+      throw new ApolloError('Invalid Student ID format', ErrorCode.INVALID_INPUT, {
+        field: 'id'
+      });
     }
 
     // *************** Build update object with only provided fields
     const updateData = {};
     
     if (first_name !== undefined) {
-      if (!IsRequiredString(first_name)) {
-        throw new ApolloError('Invalid first name', 'VALIDATION_ERROR');
-      }
+      IsRequiredString(first_name, 'First name');
       updateData.first_name = first_name;
     }
 
     if (last_name !== undefined) {
-      if (!IsRequiredString(last_name)) {
-        throw new ApolloError('Invalid last name', 'VALIDATION_ERROR');
-      }
+      IsRequiredString(last_name, 'Last name');
       updateData.last_name = last_name;
     }
 
     if (email !== undefined) {
+      if (email && !validator.isEmail(email)) {
+        throw new ApolloError('Invalid email format', ErrorCode.INVALID_INPUT, {
+          field: 'email'
+        });
+      }
       updateData.email = email;
-    }
-
-    if (date_of_birth !== undefined) {
+    }    if (date_of_birth !== undefined) {
       IsValidDateString(date_of_birth, 'Date of birth');
       updateData.date_of_birth = date_of_birth;
     }
@@ -193,14 +221,24 @@ async function UpdateStudent(parent, { id, first_name, last_name, email, date_of
     if (school_id !== undefined) {
       // **************** Validate school ID format
       if (!mongoose.Types.ObjectId.isValid(school_id)) {
-        throw new ApolloError('Invalid School ID format', 'INVALID_ID_FORMAT');
+        throw new ApolloError('Invalid School ID format', ErrorCode.INVALID_INPUT, {
+          field: 'school_id'
+        });
       }
       updateData.school_id = school_id;
     }
-    
+
     if (status !== undefined) {
-      if (!['active', 'deleted'].includes(status)) {
-        throw new ApolloError('Invalid status value. Must be "active" or "deleted"', 'VALIDATION_ERROR');
+      const validStatus = ['active', 'deleted'];
+      if (!validStatus.includes(status)) {
+        throw new ApolloError(
+          `Invalid status value. Must be one of: ${validStatus.join(', ')}`, 
+          ErrorCode.INVALID_INPUT, 
+          {
+            field: 'status',
+            allowedValues: validStatus
+          }
+        );
       }
       updateData.status = status;
     }
@@ -208,7 +246,9 @@ async function UpdateStudent(parent, { id, first_name, last_name, email, date_of
     // *************** Update Student
     const student = await Student.findByIdAndUpdate(id, updateData);
     if (!student) {
-      throw new ApolloError('Student not found', 'STUDENT_NOT_FOUND');
+      throw new ApolloError('Student not found', ErrorCode.RESOURCE_NOT_FOUND, {
+        field: 'id'
+      });
     }
     
     // *************** Retrieve updated student
@@ -216,12 +256,21 @@ async function UpdateStudent(parent, { id, first_name, last_name, email, date_of
     return updatedStudent;
   } catch (error) {
     const requestParams = { id, first_name, last_name, email, date_of_birth, school_id, status };
-    const errorCode = error.code === 11000 ? 'DUPLICATE_EMAIL' : (error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR');
+    const errorCode = error.code === 11000 ? ErrorCode.INVALID_INPUT : (error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR);
     const errorMessage = error.code === 11000 ? 'Email already exists' : error.message;
     const customError = new Error(errorMessage);
     customError.stack = error.stack;
     
-    throw await LogError(customError, errorCode, 'UpdateStudent', 'mutation', requestParams);
+    // Add field metadata for duplicate email errors
+    const extensions = error.code === 11000 ? { field: 'email' } : (error.extensions || {});
+    
+    throw await LogError(
+      Object.assign(customError, { extensions }),
+      errorCode, 
+      'UpdateStudent', 
+      'mutation', 
+      requestParams
+    );
   }
 }
 
@@ -240,12 +289,16 @@ async function DeleteStudent(parent, { id }) {
   try {
     // *************** Validate Input
     if (!id) {
-      throw new ApolloError('Student ID is required', 'STUDENT_ID_REQUIRED');
+      throw new ApolloError('Student ID is required', ErrorCode.INVALID_INPUT, {
+        field: 'id'
+      });
     }
     
     // *************** Validate ID format
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new ApolloError('Invalid Student ID format', 'INVALID_ID_FORMAT');
+      throw new ApolloError('Invalid Student ID format', ErrorCode.INVALID_INPUT, {
+        field: 'id'
+      });
     }
 
     // *************** Set status to deleted AND update deleted_at timestamp
@@ -257,14 +310,16 @@ async function DeleteStudent(parent, { id }) {
       }
     );
     if (!student) {
-      throw new ApolloError('Student not found', 'STUDENT_NOT_FOUND');
+      throw new ApolloError('Student not found', ErrorCode.RESOURCE_NOT_FOUND, {
+        field: 'id'
+      });
     }
     
     // *************** Retrieve updated student
     const updatedStudent = await Student.findById(id);
     return updatedStudent;
   } catch (error) {
-    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR', 'DeleteStudent', 'mutation', { id });
+    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR, 'DeleteStudent', 'mutation', { id });
   }
 }
 
