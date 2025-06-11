@@ -7,9 +7,9 @@ const validator = require('validator');
 
 // *************** ERROR CODES
 const ErrorCode = {
-  INVALID_INPUT: 'INVALID_INPUT',       // For input validation errors (similar to BAD_USER_INPUT)
-  RESOURCE_NOT_FOUND: 'RESOURCE_NOT_FOUND',  // For when resources aren't found
-  SERVER_ERROR: 'SERVER_ERROR'          // For unexpected server errors
+  INVALID_INPUT: 'INVALID_INPUT',       // *************** For input validation errors 
+  RESOURCE_NOT_FOUND: 'RESOURCE_NOT_FOUND',  // *************** For when resources aren't found
+  SERVER_ERROR: 'SERVER_ERROR'          //*************** For unexpected server errors
 };
 
 /**

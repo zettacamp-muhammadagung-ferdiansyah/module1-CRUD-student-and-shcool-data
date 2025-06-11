@@ -2,26 +2,17 @@
 const mongoose = require('mongoose');
 
 const errorLogSchema = new mongoose.Schema({
-  // Error message content
-  message: { type: String, required: true },
+  // Path to the file where the error occurred
+  path: { type: String, required: true },
   
-  // Error code identifier
-  code: { type: String, required: true },
+  // Input parameters at the time of error
+  parameter_input: { type: String },
   
-  // Stack trace of the error
-  stack: { type: String },
+  // Name of the function where error occurred
+  function_name: { type: String, required: true },
   
-  // Name of the resolver where error occurred
-  resolver: { type: String, required: true },
-  
-  // Type of operation (query/mutation)
-  operation_type: { type: String, required: true },
-  
-  // User ID who performed the operation
-  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  
-  // Request parameters at time of error
-  request_params: { type: Object },
+  // Error stack trace
+  error: { type: String, required: true },
   
   // Timestamp when error occurred (auto-generated)
   created_at: { type: Date, default: Date.now }

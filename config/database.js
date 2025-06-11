@@ -1,5 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const mongoose = require('mongoose');
+const { ApolloError } = require('apollo-server');
 require('dotenv').config();
 
 /**
@@ -22,16 +23,16 @@ async function ConnectDatabase() {
   // *************** START: URI Validation ***************
   const dbUri = process.env.MONGODB_URI;
   if (!dbUri) {
-    const error = new Error('Database configuration error: MONGODB_URI environment variable is not defined');
-    console.error('Validation failed:', error.message);
-    throw error;
+    const errorMessage = 'Database configuration error: MONGODB_URI environment variable is not defined';
+    console.error('Validation failed:', errorMessage);
+    throw new ApolloError(errorMessage, 'SERVER_ERROR');
   }
 
   const isValidUri = dbUri.startsWith('mongodb://') || dbUri.startsWith('mongodb+srv://');
   if (!isValidUri) {
-    const error = new Error('Invalid database URI format: Must start with mongodb:// or mongodb+srv://');
-    console.error('Validation failed:', error.message);
-    throw error;
+    const errorMessage = 'Invalid database URI format: Must start with mongodb:// or mongodb+srv://';
+    console.error('Validation failed:', errorMessage);
+    throw new ApolloError(errorMessage, 'SERVER_ERROR');
   }
   // *************** END: URI Validation ***************
 
@@ -78,7 +79,7 @@ async function ConnectDatabase() {
   } catch (error) {
     // *************** START: Error Handling ***************
     console.error('Database connection failed:', error.message);
-    throw new Error(`Failed to connect to database: ${error.message}`);
+    throw new ApolloError(`Failed to connect to database: ${error.message}`, 'SERVER_ERROR');
     // *************** END: Error Handling ***************
   }
 }

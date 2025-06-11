@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 
 // *************** IMPORT UTILITIES ***************
-const { LogError } = require('../../utils/error-logger');
+const ErrorLogModel = require('../../error-logs/error-log.model');
 
 // *************** IMPORT VALIDATOR ***************
 const { IsRequiredString, IsValidObjectId, IsValidDateString, ErrorCode } = require('../../validation/validation');
@@ -17,37 +17,25 @@ const { IsRequiredString, IsValidObjectId, IsValidDateString, ErrorCode } = requ
  * @async
  * @function GetAllStudents
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The arguments object containing filter parameters
- * @param {object} [args.filter] - Filter criteria for students
+ * @param {object} args - The arguments object
  * @throws {ApolloError} Throws ApolloError if an error occurs during retrieval
  * @returns {Promise<Array>} Array of student objects
  */
-async function GetAllStudents(parent, { filter = {} }) {
+async function GetAllStudents(parent, {}) {
   try {
-    // *************** Build query with filters
-    const andConditions = [
-      // *************** Filter by status, not by deleted_at
-      { status: filter && filter.status ? filter.status : 'active' } // Default to active students
-    ];
-    
-    // *************** Add name filter if provided
-    if (filter && filter.name) {
-      andConditions[andConditions.length] = { 
-        $or: [
-          { first_name: { $regex: filter.name, $options: 'i' } },
-          { last_name: { $regex: filter.name, $options: 'i' } }
-        ]
-      };
-    }
-
-    // *************** Create query with MongoDB $and operator for filter conditions
-    const query = { $and: andConditions };
-
-    // *************** Retrieve Students
-    const students = await Student.find(query);
-    return students;
+    // *************** Query to retrieve only active students
+    return await Student.find({ status: 'active' });
   } catch (error) {
-    throw await LogError(error, 'DATABASE_ERROR', 'GetAllStudents', 'query', { filter });
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/student/student.resolver.js',
+      parameter_input: JSON.stringify({}),
+      function_name: 'GetAllStudents',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
@@ -87,7 +75,16 @@ async function GetStudentById(parent, { id }) {
     }
     return student;
   } catch (error) {
-    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR, 'GetStudentById', 'query', { id });
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/student/student.resolver.js',
+      parameter_input: JSON.stringify({ id }),
+      function_name: 'GetStudentById',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
@@ -142,21 +139,16 @@ async function CreateStudent(parent, { first_name, last_name, email, date_of_bir
     const student = await Student.create({ first_name, last_name, email, date_of_birth, school_id });
     return student;
   } catch (error) {
-    const errorCode = error.code === 11000 ? ErrorCode.INVALID_INPUT : (error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR);
-    const errorMessage = error.code === 11000 ? 'Email already exists' : error.message;
-    const customError = new Error(errorMessage);
-    customError.stack = error.stack;
-    
-    // Add field metadata for duplicate email errors
-    const extensions = error.code === 11000 ? { field: 'email' } : (error.extensions || {});
-    
-    throw await LogError(
-      Object.assign(customError, { extensions }), 
-      errorCode, 
-      'CreateStudent', 
-      'mutation', 
-      { first_name, last_name, email, date_of_birth, school_id }
-    );
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/student/student.resolver.js',
+      parameter_input: JSON.stringify({ first_name, last_name, email, date_of_birth, school_id }),
+      function_name: 'CreateStudent',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
@@ -213,7 +205,9 @@ async function UpdateStudent(parent, { id, first_name, last_name, email, date_of
         });
       }
       updateData.email = email;
-    }    if (date_of_birth !== undefined) {
+    }    
+    
+    if (date_of_birth !== undefined) {
       IsValidDateString(date_of_birth, 'Date of birth');
       updateData.date_of_birth = date_of_birth;
     }
@@ -255,22 +249,16 @@ async function UpdateStudent(parent, { id, first_name, last_name, email, date_of
     const updatedStudent = await Student.findById(id);
     return updatedStudent;
   } catch (error) {
-    const requestParams = { id, first_name, last_name, email, date_of_birth, school_id, status };
-    const errorCode = error.code === 11000 ? ErrorCode.INVALID_INPUT : (error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR);
-    const errorMessage = error.code === 11000 ? 'Email already exists' : error.message;
-    const customError = new Error(errorMessage);
-    customError.stack = error.stack;
-    
-    // Add field metadata for duplicate email errors
-    const extensions = error.code === 11000 ? { field: 'email' } : (error.extensions || {});
-    
-    throw await LogError(
-      Object.assign(customError, { extensions }),
-      errorCode, 
-      'UpdateStudent', 
-      'mutation', 
-      requestParams
-    );
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/student/student.resolver.js',
+      parameter_input: JSON.stringify({ id, first_name, last_name, email, date_of_birth, school_id, status }),
+      function_name: 'UpdateStudent',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
@@ -319,7 +307,16 @@ async function DeleteStudent(parent, { id }) {
     const updatedStudent = await Student.findById(id);
     return updatedStudent;
   } catch (error) {
-    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR, 'DeleteStudent', 'mutation', { id });
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/student/student.resolver.js',
+      parameter_input: JSON.stringify({ id }),
+      function_name: 'DeleteStudent',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 

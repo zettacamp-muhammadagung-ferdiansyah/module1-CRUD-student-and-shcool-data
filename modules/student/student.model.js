@@ -16,7 +16,15 @@ const studentSchema = new mongoose.Schema({
   status: { type: String, enum: ['active', 'deleted'], default: 'active' },
   // Soft delete timestamp 
   deleted_at: { type: Date, default: null }
-}, { timestamps: true });
+}, {
+  // Automatically include created_at and updated_at fields
+  timestamps: {
+    // Timestamp when the student record was created
+    createdAt: 'created_at',
+    // Timestamp when the student record was last updated
+    updatedAt: 'updated_at'
+  }
+});
 
 // *************** EXPORT MODULE ***************
 module.exports = mongoose.model('Student', studentSchema);

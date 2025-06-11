@@ -5,54 +5,38 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 
 // *************** IMPORT UTILITIES ***************
-const { LogError } = require('../../utils/error-logger');
+const ErrorLogModel = require('../../error-logs/error-log.model');
 
 // *************** IMPORT VALIDATOR ***************
 const { IsRequiredString, IsValidObjectId, IsValidDateString, ErrorCode } = require('../../validation/validation');
 
 // *************** QUERY ***************
 /**
- * Retrieves all users that haven't been soft deleted
+ * Retrieves all active users from the database. Filters out any users
+ * that have been marked as deleted by checking their status field.
  *
  * @async
  * @function GetAllUsers
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The arguments object containing filter parameters
- * @param {object} [args.filter] - Filter criteria for users
+ * @param {object} args - The arguments object
  * @throws {ApolloError} Throws ApolloError if an error occurs during retrieval
- * @returns {Promise<Array>} Array of user objects
+ * @returns {Promise<Array>} Array of active user objects
  */
-async function GetAllUsers(parent, { filter = {} }) {
+async function GetAllUsers(parent, {}) {
   try {
-    // *************** Build query with filters
-    const andConditions = [
-      // *************** Filter by status, not by deleted_at
-      { status: filter && filter.status ? filter.status : 'active' } // Default to active users
-    ];
-    
-    // *************** Add name filter if provided
-    if (filter && filter.name) {
-      andConditions[andConditions.length] = { 
-        $or: [
-          { first_name: { $regex: filter.name, $options: 'i' } },
-          { last_name: { $regex: filter.name, $options: 'i' } }
-        ]
-      };
-    }
-    
-    // *************** Add role filter if provided
-    if (filter && filter.role) {
-      andConditions[andConditions.length] = { role: filter.role };
-    }
-
-    // *************** Create query with MongoDB $and operator for filter conditions
-    const query = { $and: andConditions };
-
-    // *************** Retrieve Users
-    const users = await User.find(query);
-    return users;
+    // *************** Query to retrieve only active users
+    return await User.find({ status: 'active' });
   } catch (error) {
-    throw await LogError(error, 'DATABASE_ERROR', 'GetAllUsers', 'query', { filter });
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/user/user.resolver.js',
+      parameter_input: JSON.stringify({}),
+      function_name: 'GetAllUsers',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
@@ -92,7 +76,16 @@ async function GetUserById(parent, { id }) {
     }
     return user;
   } catch (error) {
-    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR, 'GetUserById', 'query', { id });
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/user/user.resolver.js',
+      parameter_input: JSON.stringify({ id }),
+      function_name: 'GetUserById',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
@@ -131,22 +124,16 @@ async function CreateUser(parent, { first_name, last_name, email, password, role
     const user = await User.create({ first_name, last_name, email, password, role });
     return user;
   } catch (error) {
-    const errorCode = error.code === 11000 ? ErrorCode.INVALID_INPUT : (error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR);
-    const errorMessage = error.code === 11000 ? 'Email already exists' : error.message;
-    const customError = new Error(errorMessage);
-    customError.stack = error.stack;
-    
-    // Add field metadata for duplicate email errors
-    const extensions = error.code === 11000 ? { field: 'email' } : (error.extensions || {});
-    
-    // *************** Redact password in error logs
-    throw await LogError(
-      Object.assign(customError, { extensions }),
-      errorCode, 
-      'CreateUser', 
-      'mutation', 
-      { first_name, last_name, email, password: '[REDACTED]', role }
-    );
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/user/user.resolver.js',
+      parameter_input: JSON.stringify({ first_name, last_name, email, password: '[REDACTED]', role }),
+      function_name: 'CreateUser',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
@@ -242,22 +229,16 @@ async function UpdateUser(parent, { id, first_name, last_name, email, password, 
     const updatedUser = await User.findById(id);
     return updatedUser;
   } catch (error) {
-    const requestParams = { id, first_name, last_name, email, password: password ? '[REDACTED]' : undefined, role, status };
-    const errorCode = error.code === 11000 ? ErrorCode.INVALID_INPUT : (error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR);
-    const errorMessage = error.code === 11000 ? 'Email already exists' : error.message;
-    const customError = new Error(errorMessage);
-    customError.stack = error.stack;
-    
-    // Add field metadata for duplicate email errors
-    const extensions = error.code === 11000 ? { field: 'email' } : (error.extensions || {});
-    
-    throw await LogError(
-      Object.assign(customError, { extensions }),
-      errorCode, 
-      'UpdateUser', 
-      'mutation', 
-      requestParams
-    );
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/user/user.resolver.js',
+      parameter_input: JSON.stringify({ id, first_name, last_name, email, password: password ? '[REDACTED]' : undefined, role, status }),
+      function_name: 'UpdateUser',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
@@ -306,7 +287,16 @@ async function DeleteUser(parent, { id }) {
     const updatedUser = await User.findById(id);
     return updatedUser;
   } catch (error) {
-    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : ErrorCode.SERVER_ERROR, 'DeleteUser', 'mutation', { id });
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/user/user.resolver.js',
+      parameter_input: JSON.stringify({ id }),
+      function_name: 'DeleteUser',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 

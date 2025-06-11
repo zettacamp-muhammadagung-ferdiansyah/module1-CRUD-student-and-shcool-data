@@ -6,61 +6,42 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 
 // *************** IMPORT UTILITIES ***************
-const { LogError } = require('../../utils/error-logger');
+const ErrorLogModel = require('../../error-logs/error-log.model');
 
 // *************** IMPORT VALIDATOR ***************
-const { IsRequiredString, IsValidDateString } = require('../../validation/validation');
+const { IsRequiredString, IsValidDateString, ErrorCode } = require('../../validation/validation');
 
 // *************** QUERY ***************
 /**
- * Retrieves all schools based on filter criteria
+ * Retrieves all active schools from the database. Filters out any schools
+ * that have been marked as deleted by checking their status field.
  *
  * @async
  * @function GetAllSchools
- * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The arguments object containing filter parameters
- * @param {object} [args.filter] - Filter criteria for schools
- * @param {string} [args.filter.status] - Filter by school status ('active' or 'deleted')
- * @param {string} [args.filter.name] - Filter schools by name (case-insensitive partial match)
- * @param {boolean} [args.filter.hasStudents] - Filter schools that have students
  * @throws {ApolloError} Throws ApolloError if an error occurs during retrieval
- * @returns {Promise<Array>} Array of school objects matching the filter criteria
+ * @returns {Promise<Array>} Array of active school objects
  */
-async function GetAllSchools(parent, { filter = {} }) {
+async function GetAllSchools() {
   try {
-    // *************** Build query with filters
-    const andConditions = [
-      // *************** Only filter by status, not by deleted_at
-      { status: filter.status || 'active' } // ***************  Default to active schools
-    ];
-    
-    // *************** Add name filter if provided
-    if (filter.name) {
-      andConditions[andConditions.length] = { name: { $regex: filter.name, $options: 'i' } };
-    }
-    
-    // ***************  Add check for schools with students if needed
-    if (filter.hasStudents) {
-      andConditions[andConditions.length] = { students: { $exists: true, $ne: [] } };
-    }
-
-    // *************** Create query with MongoDB $and operator for filter conditions
-    const query = { $and: andConditions };
-    
-    // *************** Retrieve Schools
-    const schools = await School.find(query);
-    return schools;
+    // *************** Retrieve Schools with active status directly
+    return await School.find({ status: 'active' });
   } catch (error) {
-    throw await LogError(error, 'DATABASE_ERROR', 'GetAllSchools', 'query', { filter });
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/school/school.resolver.js',
+      parameter_input: JSON.stringify({}),
+      function_name: 'GetAllSchools',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
 /**
- * Retrieves a single active school by its unique identifier. This function first validates
- * that the provided ID exists and has a valid MongoDB ObjectId format. It then queries the
- * database for a school with matching ID that has status set to 'active'. If such a
- * school exists, it returns the complete school object with all its fields. If no matching
- * school is found or the ID is invalid, appropriate error codes are thrown.
+ * Retrieves a single active school by ID. Validates ID format and existence
+ * before fetching the school data. Only returns schools with 'active' status.
  *
  * @async
  * @function GetSchoolById
@@ -97,7 +78,16 @@ async function GetSchoolById(parent, { id }) {
     }
     return school;
   } catch (error) {
-    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR', 'GetSchoolById', 'query', { id });
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/school/school.resolver.js',
+      parameter_input: JSON.stringify({ id }),
+      function_name: 'GetSchoolById',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
@@ -127,7 +117,16 @@ async function CreateSchool(parent, { name, address }) {
     const school = await School.create({ name, address });
     return school;
   } catch (error) {
-    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR', 'CreateSchool', 'mutation', { name, address });
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/school/school.resolver.js',
+      parameter_input: JSON.stringify({ name, address }),
+      function_name: 'CreateSchool',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
@@ -200,7 +199,16 @@ async function UpdateSchool(parent, { id, name, address, status }) {
     const updatedSchool = await School.findById(id);
     return updatedSchool;
   } catch (error) {
-    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR', 'UpdateSchool', 'mutation', { id, name, address, status });
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/school/school.resolver.js',
+      parameter_input: JSON.stringify({ id, name, address, status }),
+      function_name: 'UpdateSchool',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
@@ -251,7 +259,16 @@ async function DeleteSchool(parent, { id }) {
     const updatedSchool = await School.findById(id);
     return updatedSchool;
   } catch (error) {
-    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR', 'DeleteSchool', 'mutation', { id });
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/school/school.resolver.js',
+      parameter_input: JSON.stringify({ id }),
+      function_name: 'DeleteSchool',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
@@ -286,7 +303,16 @@ async function GetStudentsBySchool(parent) {
     // *************** Retrieve Students by School
     return await Student.find({ school_id: parent.id, status: 'active' });
   } catch (error) {
-    throw await LogError(error, error.extensions && error.extensions.code ? error.extensions.code : 'DATABASE_ERROR', 'GetStudentsBySchool', 'query', { school_id: parent.id });
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/school/school.resolver.js',
+      parameter_input: JSON.stringify({ id: parent.id }),
+      function_name: 'GetStudentsBySchool',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
   }
 }
 
