@@ -1,6 +1,8 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
 const mongoose = require('mongoose');
+
+// *************** IMPORT VALIDATOR ***************
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 
 /**
@@ -28,19 +30,19 @@ function ValidateGetUserByIdParameters({ id }) {
  */
 function ValidateCreateUserParameters({ first_name, last_name, email, password, role }) {
   // *************** Validate required fields
-  if (!first_name || typeof first_name !== 'string' || first_name.trim() === '') {
+  if (!first_name || typeof first_name !== 'string') {
     throw new ApolloError('First name is required and must be a non-empty string', 'INVALID_INPUT');
   }
   
-  if (!last_name || typeof last_name !== 'string' || last_name.trim() === '') {
+  if (!last_name || typeof last_name !== 'string') {
     throw new ApolloError('Last name is required and must be a non-empty string', 'INVALID_INPUT');
   }
   
-  if (!password || typeof password !== 'string' || password.trim() === '') {
+  if (!password || typeof password !== 'string') {
     throw new ApolloError('Password is required and must be a non-empty string', 'INVALID_INPUT');
   }
   
-  if (!role || typeof role !== 'string' || role.trim() === '') {
+  if (!role || typeof role !== 'string') {
     throw new ApolloError('Role is required and must be a non-empty string', 'INVALID_INPUT');
   }
 
@@ -66,12 +68,12 @@ function ValidateUpdateUserParameters({ id, first_name, last_name, email, passwo
   ValidateMongoId(id);
   
   // *************** Validate first_name if provided
-  if (first_name !== undefined && (typeof first_name !== 'string' || first_name.trim() === '')) {
+  if (first_name !== undefined && (!first_name || typeof first_name !== 'string')) {
     throw new ApolloError('First name must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Validate last_name if provided
-  if (last_name !== undefined && (typeof last_name !== 'string' || last_name.trim() === '')) {
+  if (last_name !== undefined && (!last_name || typeof last_name !== 'string')) {
     throw new ApolloError('Last name must be a non-empty string', 'INVALID_INPUT');
   }
   
@@ -81,12 +83,12 @@ function ValidateUpdateUserParameters({ id, first_name, last_name, email, passwo
   }
   
   // *************** Validate password if provided
-  if (password !== undefined && (typeof password !== 'string' || password.trim() === '')) {
+  if (password !== undefined && (!password || typeof password !== 'string')) {
     throw new ApolloError('Password must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Validate role if provided
-  if (role !== undefined && (typeof role !== 'string' || role.trim() === '')) {
+  if (role !== undefined && (!role || typeof role !== 'string')) {
     throw new ApolloError('Role must be a non-empty string', 'INVALID_INPUT');
   }
 }

@@ -1,9 +1,11 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloServer } = require('apollo-server');
+const { typeDefs, resolvers } = require('./schema');
 
 // *************** IMPORT MODULE ***************
 const ConnectDatabase = require('./config/database');
-const { typeDefs, resolvers } = require('./schema');
+
+// *************** IMPORT UTILS ***************
 const { StudentsBySchoolIdLoader } = require('./utils/dataloader');
 
 /**

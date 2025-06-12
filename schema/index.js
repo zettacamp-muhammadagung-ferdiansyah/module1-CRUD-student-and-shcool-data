@@ -8,8 +8,8 @@ const SchoolModule = require('../modules/school');
 
 // *************** QUERY
 const BaseTypeDefs = gql`
-  type Query { _: Boolean }
-  type Mutation { _: Boolean }
+  type Query
+  type Mutation
 `;
 
 const TypeDefs = [
@@ -19,22 +19,18 @@ const TypeDefs = [
   SchoolModule.typeDefs
 ];
 
-const QueryResolvers = {
-  ...UserModule.resolvers.Query,
-  ...StudentModule.resolvers.Query,
-  ...SchoolModule.resolvers.Query
-};
-
-// *************** MUTATION 
-const MutationResolvers = {
-  ...UserModule.resolvers.Mutation,
-  ...StudentModule.resolvers.Mutation,
-  ...SchoolModule.resolvers.Mutation
-};
-
+// *************** RESOLVERS
 const Resolvers = {
-  Query: QueryResolvers,
-  Mutation: MutationResolvers,
+  Query: Object.assign({},
+    UserModule.resolvers.Query,
+    StudentModule.resolvers.Query,
+    SchoolModule.resolvers.Query
+  ),
+  Mutation: Object.assign({},
+    UserModule.resolvers.Mutation,
+    StudentModule.resolvers.Mutation,
+    SchoolModule.resolvers.Mutation
+  ),
   School: SchoolModule.resolvers.School
 };
 

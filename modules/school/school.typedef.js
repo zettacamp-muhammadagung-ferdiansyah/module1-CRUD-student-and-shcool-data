@@ -23,12 +23,12 @@ const SchoolTypeDefs = gql`
   }
   
   extend type Query {
-    GetAllSchools(filter: SchoolFilter): [School]
+    GetAllSchools: [School]
     GetSchoolById(id: ID!): School
   }
   extend type Mutation {
     CreateSchool(name: String!, address: String): School
-    UpdateSchool(id: ID!, name: String, address: String, status: SchoolStatus): School
+    UpdateSchool(id: ID!, name: String, address: String): School
     DeleteSchool(id: ID!): School
   }
 `;

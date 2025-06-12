@@ -1,9 +1,9 @@
-// *************** IMPORT MODULE ***************
-const Student = require('./student.model');
+// *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
 const mongoose = require('mongoose');
 
-// *************** IMPORT UTILITIES ***************
+// *************** IMPORT MODEL ***************
+const Student = require('./student.model');
 const ErrorLogModel = require('../../error-logs/error-log.model');
 
 // *************** IMPORT VALIDATOR ***************
@@ -25,7 +25,7 @@ const {
  * @throws {ApolloError} Throws ApolloError if an error occurs during retrieval
  * @returns {Promise<Array>} Array of student objects
  */
-async function GetAllStudents(parent, {}) {
+async function GetAllStudents() {
   try {
     // *************** Query to retrieve only active students
     return await Student.find({ status: 'active' });
@@ -61,7 +61,7 @@ async function GetStudentById(parent, { id }) {
     // *************** Validate Input
     ValidateGetStudentByIdParameters({ id });
 
-    // *************** Retrieve Student using status instead of deleted_at
+    // *************** Retrieve Student using status active
     const student = await Student.findOne({ _id: id, status: 'active' });
     if (!student) {
       throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND');

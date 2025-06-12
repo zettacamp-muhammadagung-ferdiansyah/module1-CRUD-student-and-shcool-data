@@ -1,7 +1,7 @@
 // *************** IMPORT LIBRARY ***************
 const DataLoader = require('dataloader');
 
-// *************** IMPORT MODULE ***************
+// *************** IMPORT MODEL ***************
 const Student = require('../modules/student/student.model');
 
 /**

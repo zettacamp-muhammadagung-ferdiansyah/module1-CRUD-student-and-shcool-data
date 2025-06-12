@@ -1,6 +1,8 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
 const mongoose = require('mongoose');
+
+// *************** IMPORT VALIDATOR ***************
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 
 /**
@@ -28,11 +30,11 @@ function ValidateGetStudentByIdParameters({ id }) {
  */
 function ValidateCreateStudentParameters({ first_name, last_name, email, date_of_birth, school_id }) {
   // *************** Validate required fields
-  if (!first_name || typeof first_name !== 'string' || first_name.trim() === '') {
+  if (!first_name || typeof first_name !== 'string') {
     throw new ApolloError('First name is required and must be a non-empty string', 'INVALID_INPUT');
   }
   
-  if (!last_name || typeof last_name !== 'string' || last_name.trim() === '') {
+  if (!last_name || typeof last_name !== 'string') {
     throw new ApolloError('Last name is required and must be a non-empty string', 'INVALID_INPUT');
   }
   
@@ -67,12 +69,12 @@ function ValidateUpdateStudentParameters({ id, first_name, last_name, email, dat
   ValidateMongoId(id);
   
   // *************** Validate first_name if provided
-  if (first_name !== undefined && (typeof first_name !== 'string' || first_name.trim() === '')) {
+  if (first_name !== undefined && (!first_name || typeof first_name !== 'string')) {
     throw new ApolloError('First name must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Validate last_name if provided
-  if (last_name !== undefined && (typeof last_name !== 'string' || last_name.trim() === '')) {
+  if (last_name !== undefined && (!last_name || typeof last_name !== 'string')) {
     throw new ApolloError('Last name must be a non-empty string', 'INVALID_INPUT');
   }
   

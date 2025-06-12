@@ -1,9 +1,9 @@
-// *************** IMPORT MODULE ***************
-const User = require('./user.model');
+// *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
 const mongoose = require('mongoose');
 
-// *************** IMPORT UTILITIES ***************
+// *************** IMPORT MODEL ***************
+const User = require('./user.model');
 const ErrorLogModel = require('../../error-logs/error-log.model');
 
 // *************** IMPORT VALIDATOR ***************
@@ -26,7 +26,7 @@ const {
  * @throws {ApolloError} Throws ApolloError if an error occurs during retrieval
  * @returns {Promise<Array>} Array of active user objects
  */
-async function GetAllUsers(parent, {}) {
+async function GetAllUsers() {
   try {
     // *************** Query to retrieve only active users
     return await User.find({ status: 'active' });
@@ -59,7 +59,7 @@ async function GetUserById(parent, { id }) {
     // *************** Validate Input
     ValidateGetUserByIdParameters({ id });
 
-    // *************** Retrieve User using status instead of deleted_at
+    // *************** Retrieve User using status active
     const user = await User.findOne({ _id: id, status: 'active' });
     if (!user) {
       throw new ApolloError('User not found', 'RESOURCE_NOT_FOUND',);
@@ -106,7 +106,7 @@ async function CreateUser(parent, { first_name, last_name, email, password, role
     // ************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/user/user.resolver.js',
-      parameter_input: JSON.stringify({ first_name, last_name, email, password: '[REDACTED]', role }),
+      parameter_input: JSON.stringify({ first_name, last_name, email, role }),
       function_name: 'CreateUser',
       error: String(error.stack),
     });

@@ -24,7 +24,7 @@ const UserTypeDefs = gql`
   }
   
   extend type Query {
-    GetAllUsers(filter: UserFilter): [User]
+    GetAllUsers: [User]
     GetUserById(id: ID!): User
   }
   extend type Mutation {

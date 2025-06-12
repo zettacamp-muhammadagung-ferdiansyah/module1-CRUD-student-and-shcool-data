@@ -14,12 +14,7 @@ const schoolSchema = new mongoose.Schema({
   deleted_at: { type: Date, default: null }
 }, {
   // Automatically include created_at and updated_at fields
-  timestamps: {
-    // Timestamp when the school record was created
-    createdAt: 'created_at',
-    // Timestamp when the school record was last updated
-    updatedAt: 'updated_at'
-  }
+  timestamps: true
 });
 
 // *************** EXPORT MODULE ***************

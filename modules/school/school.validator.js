@@ -25,7 +25,7 @@ function ValidateGetSchoolByIdParameters({ id }) {
  */
 function ValidateCreateSchoolParameters({ name, address }) {
   // ***************  Check if name exists and is a string
-  if (!name || typeof name !== 'string' || name.trim() === '') {
+  if (!name || typeof name !== 'string') {
     throw new ApolloError('School name is required and must be a non-empty string', 'INVALID_INPUT');
   }
   
@@ -50,13 +50,13 @@ function ValidateUpdateSchoolParameters({ id, name, address, status }) {
   ValidateMongoId(id);
   
   // ***************Check if name is a non-empty string when provided
-  if (name !== undefined && (typeof name !== 'string' || name.trim() === '')) {
-    throw new ApolloError('School name must be a non-empty string', 'INVALID_INPUT', );
+  if (name !== undefined && (!name || typeof name !== 'string')) {
+    throw new ApolloError('School name must be a non-empty string', 'INVALID_INPUT');
   }
   
-  // *************** Check if address is a string when provided
-  if (address !== undefined && typeof address !== 'string') {
-    throw new ApolloError('School address must be a string', 'INVALID_INPUT', );
+  // *************** Check if address is a non-empty string when provided
+  if (address !== undefined && (!address || typeof address !== 'string')) {
+    throw new ApolloError('School address must be a non-empty string', 'INVALID_INPUT', );
   }
   
   // *************** Check if status is a valid enum value when provided

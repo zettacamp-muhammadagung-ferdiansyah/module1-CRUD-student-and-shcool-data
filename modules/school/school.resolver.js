@@ -1,10 +1,10 @@
-// *************** IMPORT MODULE ***************
-const School = require('./school.model');
-const Student = require('../student/student.model');
+// *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
 const mongoose = require('mongoose');
 
-// *************** IMPORT UTILITIES ***************
+// *************** IMPORT MODEL ***************
+const School = require('./school.model');
+const Student = require('../student/student.model');
 const ErrorLogModel = require('../../error-logs/error-log.model');
 
 // *************** IMPORT VALIDATOR ***************
