@@ -50,7 +50,6 @@ async function GetAllUsers(parent, {}) {
  * @async
  * @function GetUserById
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The arguments object containing id
  * @param {string} args.id - The ID of the user to retrieve
  * @throws {ApolloError} Throws ApolloError if user ID is not provided or an error occurs
  * @returns {Promise<object|null>} The user object or null if not found
@@ -87,7 +86,6 @@ async function GetUserById(parent, { id }) {
  * @async
  * @function CreateUser
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The user data
  * @param {string} args.first_name - User's first name
  * @param {string} args.last_name - User's last name
  * @param {string} args.email - User's email
@@ -124,7 +122,6 @@ async function CreateUser(parent, { first_name, last_name, email, password, role
  * @async
  * @function UpdateUser
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The update data
  * @param {string} args.id - User ID to update
  * @param {string} [args.first_name] - Updated first name
  * @param {string} [args.last_name] - Updated last name
@@ -169,7 +166,6 @@ async function UpdateUser(parent, { id, first_name, last_name, email, password, 
  * @async
  * @function DeleteUser
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The arguments object
  * @param {string} args.id - User ID to delete
  * @throws {ApolloError} Throws ApolloError if user ID is not provided or deletion error occurs
  * @returns {Promise<object|null>} The deleted user object or null if not found
