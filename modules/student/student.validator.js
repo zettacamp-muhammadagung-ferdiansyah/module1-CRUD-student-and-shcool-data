@@ -1,8 +1,7 @@
-// *************** IMPORT VALIDATORS ***************
-const { ValidateObjectId } = require('../../validation/mongo.validator');
-const { ValidateRequiredString, ValidateEmail } = require('../../validation/string.validator');
-const { ValidateDate } = require('../../validation/date.validator');
+// *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
+const mongoose = require('mongoose');
+const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 
 /**
  * Validates parameters for GetStudentById resolver
@@ -12,7 +11,8 @@ const { ApolloError } = require('apollo-server');
  * @param {string} params.id - Student ID
  */
 function ValidateGetStudentByIdParameters({ id }) {
-  ValidateObjectId(id, 'Student ID');
+  // *************** Check if ID exists and is valid
+  ValidateMongoId(id);
 }
 
 /**
@@ -28,21 +28,26 @@ function ValidateGetStudentByIdParameters({ id }) {
  */
 function ValidateCreateStudentParameters({ first_name, last_name, email, date_of_birth, school_id }) {
   // *************** Validate required fields
-  ValidateRequiredString(first_name, 'First name');
-  ValidateRequiredString(last_name, 'Last name');
+  if (!first_name || typeof first_name !== 'string' || first_name.trim() === '') {
+    throw new ApolloError('First name is required and must be a non-empty string', 'INVALID_INPUT');
+  }
+  
+  if (!last_name || typeof last_name !== 'string' || last_name.trim() === '') {
+    throw new ApolloError('Last name is required and must be a non-empty string', 'INVALID_INPUT');
+  }
   
   // *************** Validate email
-  if (email) {
-    ValidateEmail(email, 'Email');
+  if (email && typeof email !== 'string') {
+    throw new ApolloError('Email must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate date_of_birth if provided
-  if (date_of_birth) {
-    ValidateDate(date_of_birth, 'Date of birth');
+  if (date_of_birth && typeof date_of_birth !== 'string') {
+    throw new ApolloError('Date of birth must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate school_id
-  ValidateObjectId(school_id, 'School ID');
+  ValidateMongoId(school_id);
 }
 
 /**
@@ -56,55 +61,45 @@ function ValidateCreateStudentParameters({ first_name, last_name, email, date_of
  * @param {string} [params.email] - Updated email
  * @param {string} [params.date_of_birth] - Updated date of birth
  * @param {string} [params.school_id] - Updated school ID
- * @param {string} [params.status] - Updated status
  */
-function ValidateUpdateStudentParameters({ id, first_name, last_name, email, date_of_birth, school_id, status }) {
-  ValidateObjectId(id, 'Student ID');
+function ValidateUpdateStudentParameters({ id, first_name, last_name, email, date_of_birth, school_id }) {
+  // *************** Check if ID exists and is valid
+  ValidateMongoId(id);
   
   // *************** Validate first_name if provided
-  if (first_name !== undefined) {
-    ValidateRequiredString(first_name, 'First name');
+  if (first_name !== undefined && (typeof first_name !== 'string' || first_name.trim() === '')) {
+    throw new ApolloError('First name must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Validate last_name if provided
-  if (last_name !== undefined) {
-    ValidateRequiredString(last_name, 'Last name');
+  if (last_name !== undefined && (typeof last_name !== 'string' || last_name.trim() === '')) {
+    throw new ApolloError('Last name must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Validate email if provided
-  if (email !== undefined && email !== null) {
-    ValidateEmail(email, 'Email');
+  if (email !== undefined && email !== null && typeof email !== 'string') {
+    throw new ApolloError('Email must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate date_of_birth if provided
-  if (date_of_birth !== undefined) {
-    ValidateDate(date_of_birth, 'Date of birth');
+  if (date_of_birth !== undefined && typeof date_of_birth !== 'string') {
+    throw new ApolloError('Date of birth must be a string', 'INVALID_INPUT');
   }
   
-  // *************** Validate school_id if provided
-  if (school_id !== undefined) {
-    ValidateObjectId(school_id, 'School ID');
-  }
-  
-  // *************** Validate status if provided
-  if (status !== undefined && !['active', 'deleted'].includes(status)) {
-    throw new ApolloError(
-      'Student status must be either "active" or "deleted".',
-      'INVALID_INPUT',
-      { field: 'status' }
-    );
-  }
+  // *************** Validate school_id
+  ValidateMongoId(school_id);
 }
 
 /**
- * Validates parameters for DeleteStudent resolver
+ * *************** Validates parameters for DeleteStudent resolver
  * 
  * @function ValidateDeleteStudentParameters
  * @param {object} params - Parameters to validate
  * @param {string} params.id - Student ID
  */
 function ValidateDeleteStudentParameters({ id }) {
-  ValidateObjectId(id, 'Student ID');
+  // *************** check if ID exists and is valid
+  ValidateMongoId(id);
 }
 
 // *************** EXPORT MODULE ***************

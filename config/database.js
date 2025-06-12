@@ -21,58 +21,28 @@ require('dotenv').config();
  */
 async function ConnectDatabase() {
   // *************** START: URI Validation ***************
-  const dbUri = process.env.MONGODB_URI;
-  if (!dbUri) {
-    const errorMessage = 'Database configuration error: MONGODB_URI environment variable is not defined';
-    console.error('Validation failed:', errorMessage);
-    throw new ApolloError(errorMessage, 'SERVER_ERROR');
+  const databaseUniformResourceIdentifier = process.env.MONGODB_URI;
+  if (!databaseUniformResourceIdentifier) {
+    throw new ApolloError('Database configuration error: MONGODB_URI environment variable is not defined', 'SERVER_ERROR'); 
   }
 
-  const isValidUri = dbUri.startsWith('mongodb://') || dbUri.startsWith('mongodb+srv://');
+  const isValidUri = databaseUniformResourceIdentifier.startsWith('mongodb://') || databaseUniformResourceIdentifier.startsWith('mongodb+srv://');
   if (!isValidUri) {
-    const errorMessage = 'Invalid database URI format: Must start with mongodb:// or mongodb+srv://';
-    console.error('Validation failed:', errorMessage);
-    throw new ApolloError(errorMessage, 'SERVER_ERROR');
+    throw new ApolloError('Invalid database Uniform Resource Identifier format: Must start with mongodb:// or mongodb+srv://', 'SERVER_ERROR'); 
   }
   // *************** END: URI Validation ***************
 
   try {
     // *************** START: Database Connection Setup ***************
     console.log('Attempting database connection...');
-    const connection = await mongoose.connect(dbUri, {
+    const connection = await mongoose.connect(databaseUniformResourceIdentifier, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
     
-    console.log('Connected to MongoDB at:', dbUri);
+    console.log('Connected to MongoDB at:', databaseUniformResourceIdentifier);
     // *************** END: Database Connection Setup ***************
 
-    // *************** START: Connection Monitoring ***************
-    /**
-     * Handles MongoDB connection errors
-     * @function handleError
-     * @param {Error} error - The error object from MongoDB
-     */
-    connection.connection.on('error', function handleError(error) {
-      console.error('MongoDB connection error:', error.message);
-    });
-
-    /**
-     * Handles MongoDB disconnection events
-     * @function handleDisconnect
-     */
-    connection.connection.on('disconnected', function handleDisconnect() {
-      console.warn('MongoDB disconnected');
-    });
-
-    /**
-     * Handles MongoDB reconnection events
-     * @function handleReconnect
-     */
-    connection.connection.on('reconnected', function handleReconnect() {
-      console.log('MongoDB reconnected');
-    });
-    // *************** END: Connection Monitoring ***************
     // *************** Return the actual Connection object
     return connection.connection; 
 

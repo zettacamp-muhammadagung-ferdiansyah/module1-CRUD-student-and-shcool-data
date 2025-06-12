@@ -50,7 +50,6 @@ async function GetAllSchools() {
  * @async
  * @function GetSchoolById
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The arguments object containing the school ID
  * @param {string} args.id - MongoDB ObjectId of the school to retrieve
  * @throws {ApolloError} Throws 'INVALID_INPUT' if ID is not provided or has invalid format
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if school with given ID doesn't exist or is not active
@@ -89,7 +88,6 @@ async function GetSchoolById(parent, { id }) {
  * @async
  * @function CreateSchool
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The school data
  * @param {string} args.name - Name of the school (required)
  * @param {string} [args.address] - Address of the school (optional)
  * @throws {ApolloError} Throws ApolloError if validation fails or creation error occurs
@@ -123,25 +121,19 @@ async function CreateSchool(parent, { name, address }) {
  * @async
  * @function UpdateSchool
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The update data
  * @param {string} args.id - School ID to update
  * @param {string} [args.name] - Updated school name
  * @param {string} [args.address] - Updated school address
- * @param {string} [args.status] - Updated school status ('active' or 'deleted')
  * @throws {ApolloError} Throws ApolloError if validation fails or update error occurs
  * @returns {Promise<object|null>} The updated school object or null if not found
  */
-async function UpdateSchool(parent, { id, name, address, status }) {
+async function UpdateSchool(parent, { id, name, address }) {
   try {
     // *************** Validate Input
-    ValidateUpdateSchoolParameters({ id, name, address, status });
+    ValidateUpdateSchoolParameters({ id, name, address });
 
-    // *************** Build update object with pre-populated fields that have values
-    const updateData = {
-      ...(name !== undefined && { name }),
-      ...(address !== undefined && { address }),
-      ...(status !== undefined && { status })
-    };
+    // *************** Build update object with direct value assignment
+    const updateData = { name, address };
 
     // *************** Update School
     const school = await School.findByIdAndUpdate(id, updateData);
@@ -154,7 +146,7 @@ async function UpdateSchool(parent, { id, name, address, status }) {
     // ************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/school/school.resolver.js',
-      parameter_input: JSON.stringify({ id, name, address, status }),
+      parameter_input: JSON.stringify({ id, name, address }),
       function_name: 'UpdateSchool',
       error: String(error.stack),
     });
@@ -170,7 +162,6 @@ async function UpdateSchool(parent, { id, name, address, status }) {
  * @async
  * @function DeleteSchool
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The arguments object
  * @param {string} args.id - School ID to delete
  * @throws {ApolloError} Throws 'INVALID_INPUT' if ID is not provided or has invalid format
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if school with given ID doesn't exist

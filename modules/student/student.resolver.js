@@ -44,15 +44,17 @@ async function GetAllStudents(parent, {}) {
 }
 
 /**
- * Retrieves a single student by ID
+ * Retrieves a single active student by ID. Validates ID format and existence
+ * before fetching the student data. Only returns students with 'active' status.
  *
  * @async
  * @function GetStudentById
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The arguments object containing id
- * @param {string} args.id - The ID of the student to retrieve
- * @throws {ApolloError} Throws ApolloError if student ID is not provided or an error occurs
- * @returns {Promise<object|null>} The student object or null if not found
+ * @param {string} args.id - MongoDB ObjectId of the student to retrieve
+ * @throws {ApolloError} Throws 'INVALID_INPUT' if ID is not provided or has invalid format
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if student with given ID doesn't exist or is not active
+ * @throws {ApolloError} Throws 'DATABASE_ERROR' if a database error occurs
+ * @returns {Promise<object>} The student object with matching ID and active status
  */
 async function GetStudentById(parent, { id }) {
   try {
@@ -62,7 +64,7 @@ async function GetStudentById(parent, { id }) {
     // *************** Retrieve Student using status instead of deleted_at
     const student = await Student.findOne({ _id: id, status: 'active' });
     if (!student) {
-      throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND',);
+      throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND');
     }
     return student;
   } catch (error) {
@@ -73,7 +75,6 @@ async function GetStudentById(parent, { id }) {
       function_name: 'GetStudentById',
       error: String(error.stack),
     });
-
     // ************** Throw error message
     throw new ApolloError(error.message);
   }
@@ -86,7 +87,6 @@ async function GetStudentById(parent, { id }) {
  * @async
  * @function CreateStudent
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The student data
  * @param {string} args.first_name - Student's first name
  * @param {string} args.last_name - Student's last name
  * @param {string} args.email - Student's email
@@ -111,7 +111,6 @@ async function CreateStudent(parent, { first_name, last_name, email, date_of_bir
       function_name: 'CreateStudent',
       error: String(error.stack),
     });
-
     // ************** Throw error message
     throw new ApolloError(error.message);
   }
@@ -123,60 +122,37 @@ async function CreateStudent(parent, { first_name, last_name, email, date_of_bir
  * @async
  * @function UpdateStudent
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The update data
  * @param {string} args.id - Student ID to update
  * @param {string} [args.first_name] - Updated first name
  * @param {string} [args.last_name] - Updated last name
  * @param {string} [args.email] - Updated email
  * @param {Date} [args.date_of_birth] - Updated date of birth
  * @param {string} [args.school_id] - Updated school ID
- * @param {string} [args.status] - Updated status
  * @throws {ApolloError} Throws ApolloError if validation fails or update error occurs
  * @returns {Promise<object|null>} The updated student object or null if not found
  */
-async function UpdateStudent(parent, { id, first_name, last_name, email, date_of_birth, school_id, status }) {
+async function UpdateStudent(parent, { id, first_name, last_name, email, date_of_birth, school_id }) {
   try {
     // *************** Validate Input
-    ValidateUpdateStudentParameters({ id, first_name, last_name, email, date_of_birth, school_id, status });
+    ValidateUpdateStudentParameters({ id, first_name, last_name, email, date_of_birth, school_id });
 
-    // *************** Build update object with only provided fields
-    const updateData = {};
-    // *************** Add each field to the update object only if it was provided in the request
-    if (first_name !== undefined) {
-      updateData.first_name = first_name; // *************** Add first_name field if provided
-    }
-    if (last_name !== undefined) {
-      updateData.last_name = last_name; // *************** Add last_name field if provided
-    }
-    if (email !== undefined) {
-      updateData.email = email; // *************** Add email field if provided
-    }
-    if (date_of_birth !== undefined) {
-      updateData.date_of_birth = date_of_birth; // *************** Add date_of_birth field if provided
-    }
-    if (school_id !== undefined) {
-      updateData.school_id = school_id; // *************** Add school_id field if provided
-    }
-    if (status !== undefined) {
-      updateData.status = status; // *************** Add status field if provided
-    }
+    // *************** Build update object with direct value assignment
+    const updateData = { first_name, last_name, email, date_of_birth, school_id };
 
     // *************** Update Student
     const student = await Student.findByIdAndUpdate(id, updateData);
     if (!student) {
       throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND');
     }
-    
     return student;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/student/student.resolver.js',
-      parameter_input: JSON.stringify({ id, first_name, last_name, email, date_of_birth, school_id, status }),
+      parameter_input: JSON.stringify({ id, first_name, last_name, email, date_of_birth, school_id }),
       function_name: 'UpdateStudent',
       error: String(error.stack),
     });
-
     // ************** Throw error message
     throw new ApolloError(error.message);
   }
@@ -188,7 +164,6 @@ async function UpdateStudent(parent, { id, first_name, last_name, email, date_of
  * @async
  * @function DeleteStudent
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The arguments object
  * @param {string} args.id - Student ID to delete
  * @throws {ApolloError} Throws ApolloError if student ID is not provided or deletion error occurs
  * @returns {Promise<object|null>} The deleted student object or null if not found
@@ -201,15 +176,14 @@ async function DeleteStudent(parent, { id }) {
     // *************** Set status to deleted AND update deleted_at timestamp
     const student = await Student.findByIdAndUpdate(
       id,
-      { 
+      {
         status: 'deleted',
-        deleted_at: new Date().toISOString() 
+        deleted_at: new Date().toISOString()
       }
     );
     if (!student) {
       throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND');
     }
-    
     return student;
   } catch (error) {
     // ************** Log error to database
@@ -219,7 +193,6 @@ async function DeleteStudent(parent, { id }) {
       function_name: 'DeleteStudent',
       error: String(error.stack),
     });
-
     // ************** Throw error message
     throw new ApolloError(error.message);
   }

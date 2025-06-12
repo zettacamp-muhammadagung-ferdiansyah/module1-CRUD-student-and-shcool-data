@@ -131,36 +131,16 @@ async function CreateUser(parent, { first_name, last_name, email, password, role
  * @param {string} [args.email] - Updated email
  * @param {string} [args.password] - Updated password
  * @param {string} [args.role] - Updated role
- * @param {string} [args.status] - Updated status
  * @throws {ApolloError} Throws ApolloError if validation fails or update error occurs
  * @returns {Promise<object|null>} The updated user object or null if not found
  */
-async function UpdateUser(parent, { id, first_name, last_name, email, password, role, status }) {
+async function UpdateUser(parent, { id, first_name, last_name, email, password, role }) {
   try {
     // *************** Validate Input
-    ValidateUpdateUserParameters({ id, first_name, last_name, email, password, role, status });
+    ValidateUpdateUserParameters({ id, first_name, last_name, email, password, role });
 
-    // *************** Build update object with only provided fields
-    const updateData = {};
-    // *************** Add each field to the update object only if it was provided in the request
-    if (first_name !== undefined) {
-      updateData.first_name = first_name; // *************** Add first_name field if provided
-    }
-    if (last_name !== undefined) {
-      updateData.last_name = last_name; // *************** Add last_name field if provided
-    }
-    if (email !== undefined) {
-      updateData.email = email; // *************** Add email field if provided
-    }
-    if (password !== undefined) {
-      updateData.password = password; // *************** Add password field if provided
-    }
-    if (role !== undefined) {
-      updateData.role = role; // *************** Add role field if provided
-    }
-    if (status !== undefined) {
-      updateData.status = status; // *************** Add status field if provided
-    }
+    // *************** Build update object with direct value assignment
+    const updateData = { first_name, last_name, email, password, role };
 
     // *************** Update User
     const user = await User.findByIdAndUpdate(id, updateData);
@@ -173,7 +153,7 @@ async function UpdateUser(parent, { id, first_name, last_name, email, password, 
     // ************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/user/user.resolver.js',
-      parameter_input: JSON.stringify({ id, first_name, last_name, email, password: password ? '[REDACTED]' : undefined, role, status }),
+      parameter_input: JSON.stringify({ id, first_name, last_name, email, password: password ? '[REDACTED]' : undefined, role }),
       function_name: 'UpdateUser',
       error: String(error.stack),
     });

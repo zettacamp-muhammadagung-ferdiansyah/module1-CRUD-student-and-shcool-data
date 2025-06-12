@@ -1,7 +1,7 @@
-// *************** IMPORT VALIDATORS ***************
-const { ValidateObjectId } = require('../../validation/mongo.validator');
-const { ValidateRequiredString, ValidateEmail } = require('../../validation/string.validator');
+// *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
+const mongoose = require('mongoose');
+const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 
 /**
  * Validates parameters for GetUserById resolver
@@ -11,7 +11,8 @@ const { ApolloError } = require('apollo-server');
  * @param {string} params.id - User ID
  */
 function ValidateGetUserByIdParameters({ id }) {
-  ValidateObjectId(id, 'User ID');
+  // *************** Check if ID exists and is valid
+  ValidateMongoId(id);
 }
 
 /**
@@ -27,14 +28,24 @@ function ValidateGetUserByIdParameters({ id }) {
  */
 function ValidateCreateUserParameters({ first_name, last_name, email, password, role }) {
   // *************** Validate required fields
-  ValidateRequiredString(first_name, 'First name');
-  ValidateRequiredString(last_name, 'Last name');
-  ValidateRequiredString(password, 'Password');
-  ValidateRequiredString(role, 'Role');
+  if (!first_name || typeof first_name !== 'string' || first_name.trim() === '') {
+    throw new ApolloError('First name is required and must be a non-empty string', 'INVALID_INPUT');
+  }
   
-  // *************** Validate email
-  if (email) {
-    ValidateEmail(email, 'Email');
+  if (!last_name || typeof last_name !== 'string' || last_name.trim() === '') {
+    throw new ApolloError('Last name is required and must be a non-empty string', 'INVALID_INPUT');
+  }
+  
+  if (!password || typeof password !== 'string' || password.trim() === '') {
+    throw new ApolloError('Password is required and must be a non-empty string', 'INVALID_INPUT');
+  }
+  
+  if (!role || typeof role !== 'string' || role.trim() === '') {
+    throw new ApolloError('Role is required and must be a non-empty string', 'INVALID_INPUT');
+  }
+
+  if (email && typeof email !== 'string') {
+    throw new ApolloError('Email must be a string', 'INVALID_INPUT');
   }
 }
 
@@ -49,55 +60,47 @@ function ValidateCreateUserParameters({ first_name, last_name, email, password, 
  * @param {string} [params.email] - Updated email
  * @param {string} [params.password] - Updated password
  * @param {string} [params.role] - Updated role
- * @param {string} [params.status] - Updated status
  */
-function ValidateUpdateUserParameters({ id, first_name, last_name, email, password, role, status }) {
-  ValidateObjectId(id, 'User ID');
+function ValidateUpdateUserParameters({ id, first_name, last_name, email, password, role }) {
+  // *************** Check if ID exists and is valid
+  ValidateMongoId(id);
   
   // *************** Validate first_name if provided
-  if (first_name !== undefined) {
-    ValidateRequiredString(first_name, 'First name');
+  if (first_name !== undefined && (typeof first_name !== 'string' || first_name.trim() === '')) {
+    throw new ApolloError('First name must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Validate last_name if provided
-  if (last_name !== undefined) {
-    ValidateRequiredString(last_name, 'Last name');
+  if (last_name !== undefined && (typeof last_name !== 'string' || last_name.trim() === '')) {
+    throw new ApolloError('Last name must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Validate email if provided
-  if (email !== undefined && email !== null) {
-    ValidateEmail(email, 'Email');
+  if (email !== undefined && email !== null && typeof email !== 'string') {
+    throw new ApolloError('Email must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate password if provided
-  if (password !== undefined) {
-    ValidateRequiredString(password, 'Password');
+  if (password !== undefined && (typeof password !== 'string' || password.trim() === '')) {
+    throw new ApolloError('Password must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Validate role if provided
-  if (role !== undefined) {
-    ValidateRequiredString(role, 'Role');
-  }
-  
-  // *************** Validate status if provided
-  if (status !== undefined && !['active', 'deleted'].includes(status)) {
-    throw new ApolloError(
-      'User status must be either "active" or "deleted".',
-      'INVALID_INPUT',
-      { field: 'status' }
-    );
+  if (role !== undefined && (typeof role !== 'string' || role.trim() === '')) {
+    throw new ApolloError('Role must be a non-empty string', 'INVALID_INPUT');
   }
 }
 
 /**
- * Validates parameters for DeleteUser resolver
+ * *************** Validates parameters for DeleteUser resolver
  * 
  * @function ValidateDeleteUserParameters
  * @param {object} params - Parameters to validate
  * @param {string} params.id - User ID
  */
 function ValidateDeleteUserParameters({ id }) {
-  ValidateObjectId(id, 'User ID');
+  // *************** check if ID exists and is valid
+  ValidateMongoId(id);
 }
 
 // *************** EXPORT MODULE ***************
