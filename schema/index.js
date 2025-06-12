@@ -1,5 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const { gql } = require('apollo-server');
+const { mergeResolvers } = require('@graphql-tools/merge');
 
 // *************** IMPORT MODULES ***************
 const UserModule = require('../modules/user');
@@ -12,6 +13,7 @@ const BaseTypeDefs = gql`
   type Mutation
 `;
 
+// *************** TYPEDEFS
 const TypeDefs = [
   BaseTypeDefs,
   UserModule.typeDefs,
@@ -20,19 +22,12 @@ const TypeDefs = [
 ];
 
 // *************** RESOLVERS
-const Resolvers = {
-  Query: Object.assign({},
-    UserModule.resolvers.Query,
-    StudentModule.resolvers.Query,
-    SchoolModule.resolvers.Query
-  ),
-  Mutation: Object.assign({},
-    UserModule.resolvers.Mutation,
-    StudentModule.resolvers.Mutation,
-    SchoolModule.resolvers.Mutation
-  ),
-  School: SchoolModule.resolvers.School
-};
+
+const Resolvers = mergeResolvers([
+  UserModule.resolvers,
+  StudentModule.resolvers,
+  SchoolModule.resolvers
+]);
 
 // *************** EXPORT MODULE ***************
 module.exports = { 

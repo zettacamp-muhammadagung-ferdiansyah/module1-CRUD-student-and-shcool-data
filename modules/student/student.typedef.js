@@ -18,12 +18,6 @@ const StudentTypeDefs = gql`
     deleted
   }
   
-  input StudentFilter {
-    name: String
-    status: StudentStatus
-    school_id: ID
-  }
-  
   extend type Query {
     GetAllStudents: [Student]
     GetStudentById(id: ID!): Student

@@ -2,17 +2,12 @@
 const { ApolloError } = require('apollo-server');
 const mongoose = require('mongoose');
 
-// *************** IMPORT MODEL ***************
-const Student = require('./student.model');
+// *************** IMPORT MODULE ***************
+const StudentModel = require('./student.model');
 const ErrorLogModel = require('../../error-logs/error-log.model');
 
 // *************** IMPORT VALIDATOR ***************
-const {
-  ValidateGetStudentByIdParameters,
-  ValidateCreateStudentParameters,
-  ValidateUpdateStudentParameters,
-  ValidateDeleteStudentParameters
-} = require('./student.validator');
+const StudentValidators = require('./student.validator');
 
 // *************** QUERY ***************
 /**
@@ -28,7 +23,7 @@ const {
 async function GetAllStudents() {
   try {
     // *************** Query to retrieve only active students
-    return await Student.find({ status: 'active' });
+    return await StudentModel.find({ status: 'active' });
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -59,10 +54,10 @@ async function GetAllStudents() {
 async function GetStudentById(parent, { id }) {
   try {
     // *************** Validate Input
-    ValidateGetStudentByIdParameters({ id });
+    StudentValidators.ValidateGetStudentByIdParameters({ id });
 
     // *************** Retrieve Student using status active
-    const student = await Student.findOne({ _id: id, status: 'active' });
+    const student = await StudentModel.findOne({ _id: id, status: 'active' });
     if (!student) {
       throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND');
     }
@@ -98,10 +93,10 @@ async function GetStudentById(parent, { id }) {
 async function CreateStudent(parent, { first_name, last_name, email, date_of_birth, school_id }) {
   try {
     // *************** Validate Input
-    ValidateCreateStudentParameters({ first_name, last_name, email, date_of_birth, school_id });
+    StudentValidators.ValidateCreateStudentParameters({ first_name, last_name, email, date_of_birth, school_id });
 
     // *************** Create Student
-    const student = await Student.create({ first_name, last_name, email, date_of_birth, school_id });
+    const student = await StudentModel.create({ first_name, last_name, email, date_of_birth, school_id });
     return student;
   } catch (error) {
     // ************** Log error to database
@@ -134,13 +129,13 @@ async function CreateStudent(parent, { first_name, last_name, email, date_of_bir
 async function UpdateStudent(parent, { id, first_name, last_name, email, date_of_birth, school_id }) {
   try {
     // *************** Validate Input
-    ValidateUpdateStudentParameters({ id, first_name, last_name, email, date_of_birth, school_id });
+    StudentValidators.ValidateUpdateStudentParameters({ id, first_name, last_name, email, date_of_birth, school_id });
 
     // *************** Build update object with direct value assignment
     const updateData = { first_name, last_name, email, date_of_birth, school_id };
 
     // *************** Update Student
-    const student = await Student.findByIdAndUpdate(id, updateData);
+    const student = await StudentModel.findByIdAndUpdate(id, updateData);
     if (!student) {
       throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND');
     }
@@ -171,10 +166,10 @@ async function UpdateStudent(parent, { id, first_name, last_name, email, date_of
 async function DeleteStudent(parent, { id }) {
   try {
     // *************** Validate Input
-    ValidateDeleteStudentParameters({ id });
+    StudentValidators.ValidateDeleteStudentParameters({ id });
 
     // *************** Set status to deleted AND update deleted_at timestamp
-    const student = await Student.findByIdAndUpdate(
+    const student = await StudentModel.findByIdAndUpdate(
       id,
       {
         status: 'deleted',

@@ -16,12 +16,6 @@ const SchoolTypeDefs = gql`
     deleted
   }
   
-  input SchoolFilter {
-    name: String
-    status: SchoolStatus
-    hasStudents: Boolean
-  }
-  
   extend type Query {
     GetAllSchools: [School]
     GetSchoolById(id: ID!): School

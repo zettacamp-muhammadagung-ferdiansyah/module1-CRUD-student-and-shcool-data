@@ -4,6 +4,7 @@
   "description": "Module 1 - CRUD operations for student and school data with GraphQL",
   "main": "app.js",
   "dependencies": {
+    "@graphql-tools/merge": "^6.0.0",
     "apollo-server": "^2.25.2",
     "dataloader": "^2.2.3",
     "dotenv": "^16.5.0",

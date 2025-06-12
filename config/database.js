@@ -10,14 +10,6 @@ require('dotenv').config();
  * @returns {Promise<import('mongoose').Connection>} Resolves with the Mongoose connection object
  * @throws {Error} If database URI is invalid or connection fails
  * @throws {Error} If MONGODB_URI environment variable is not defined
- * @example
- * try {
- *   const connection = await ConnectDatabase();
- *   // Connection is now established
- * } catch (error) {
- *   console.error('Database connection failed:', error.message);
- *   process.exit(1);
- * }
  */
 async function ConnectDatabase() {
   // *************** START: URI Validation ***************

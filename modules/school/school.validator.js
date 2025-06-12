@@ -1,6 +1,8 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
 const mongoose = require('mongoose');
+
+// *************** IMPORT VALIDATOR ***************
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 
 /**
@@ -30,7 +32,7 @@ function ValidateCreateSchoolParameters({ name, address }) {
   }
   
   // ***************  Check if address is a string when provided
-  if (address !== undefined && typeof address !== 'string') {
+  if (address && typeof address !== 'string') {
     throw new ApolloError('School address must be a string', 'INVALID_INPUT');
   }
 }
@@ -43,25 +45,19 @@ function ValidateCreateSchoolParameters({ name, address }) {
  * @param {string} params.id - School ID
  * @param {string} [params.name] - Updated school name
  * @param {string} [params.address] - Updated school address
- * @param {string} [params.status] - Updated status
  */
-function ValidateUpdateSchoolParameters({ id, name, address, status }) {
+function ValidateUpdateSchoolParameters({ id, name, address }) {
   // *************** Check if ID exists and is valid
   ValidateMongoId(id);
   
   // ***************Check if name is a non-empty string when provided
-  if (name !== undefined && (!name || typeof name !== 'string')) {
+  if (name && (!name || typeof name !== 'string')) {
     throw new ApolloError('School name must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Check if address is a non-empty string when provided
-  if (address !== undefined && (!address || typeof address !== 'string')) {
-    throw new ApolloError('School address must be a non-empty string', 'INVALID_INPUT', );
-  }
-  
-  // *************** Check if status is a valid enum value when provided
-  if (status !== undefined && !['active', 'deleted'].includes(status)) {
-    throw new ApolloError('School status must be either "active" or "deleted"', 'INVALID_INPUT', );
+  if (address && (!address || typeof address !== 'string')) {
+    throw new ApolloError('School address must be a non-empty string', 'INVALID_INPUT');
   }
 }
 

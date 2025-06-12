@@ -17,12 +17,6 @@ const UserTypeDefs = gql`
     deleted
   }
   
-  input UserFilter {
-    name: String
-    status: UserStatus
-    role: String
-  }
-  
   extend type Query {
     GetAllUsers: [User]
     GetUserById(id: ID!): User

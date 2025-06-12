@@ -26,7 +26,7 @@ async function StartServer() {
       resolvers,
       context: () => ({
         loaders: {
-          studentsBySchoolId: StudentsBySchoolIdLoader,
+          StudentsBySchoolIdLoader,
         },
       }),
       formatError: (error) => {

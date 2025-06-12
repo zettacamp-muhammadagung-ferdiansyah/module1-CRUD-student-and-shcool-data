@@ -2,18 +2,13 @@
 const { ApolloError } = require('apollo-server');
 const mongoose = require('mongoose');
 
-// *************** IMPORT MODEL ***************
-const School = require('./school.model');
-const Student = require('../student/student.model');
+// *************** IMPORT MODULE ***************
+const SchoolModel = require('./school.model');
+const StudentModel = require('../student/student.model');
 const ErrorLogModel = require('../../error-logs/error-log.model');
 
 // *************** IMPORT VALIDATOR ***************
-const { 
-  ValidateGetSchoolByIdParameters,
-  ValidateCreateSchoolParameters,
-  ValidateUpdateSchoolParameters,
-  ValidateDeleteSchoolParameters
-} = require('./school.validator');
+const SchoolValidators = require('./school.validator');
 
 // *************** QUERY ***************
 /**
@@ -28,7 +23,7 @@ const {
 async function GetAllSchools() {
   try {
     // *************** Retrieve Schools with active status directly
-    return await School.find({ status: 'active' });
+    return await SchoolModel.find({ status: 'active' });
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -59,10 +54,10 @@ async function GetAllSchools() {
 async function GetSchoolById(parent, { id }) {
   try {
     // *************** Validate Input
-    ValidateGetSchoolByIdParameters({ id });
+    SchoolValidators.ValidateGetSchoolByIdParameters({ id });
 
     // *************** Retrieve School using status instead of deleted_at
-    const school = await School.findOne({ _id: id, status: 'active' }); 
+    const school = await SchoolModel.findOne({ _id: id, status: 'active' }); 
     if (!school) {
       throw new ApolloError('School not found', 'RESOURCE_NOT_FOUND');
     }
@@ -96,10 +91,10 @@ async function GetSchoolById(parent, { id }) {
 async function CreateSchool(parent, { name, address }) {
   try {
     // *************** Validate Input
-    ValidateCreateSchoolParameters({ name, address });
+    SchoolValidators.ValidateCreateSchoolParameters({ name, address });
 
     // *************** Create School
-    const school = await School.create({ name, address });
+    const school = await SchoolModel.create({ name, address });
     return school;
   } catch (error) {
     // ************** Log error to database
@@ -130,13 +125,13 @@ async function CreateSchool(parent, { name, address }) {
 async function UpdateSchool(parent, { id, name, address }) {
   try {
     // *************** Validate Input
-    ValidateUpdateSchoolParameters({ id, name, address });
+    SchoolValidators.ValidateUpdateSchoolParameters({ id, name, address });
 
     // *************** Build update object with direct value assignment
     const updateData = { name, address };
 
     // *************** Update School
-    const school = await School.findByIdAndUpdate(id, updateData);
+    const school = await SchoolModel.findByIdAndUpdate(id, updateData);
     if (!school) {
       throw new ApolloError('School not found', 'RESOURCE_NOT_FOUND');
     } 
@@ -171,10 +166,10 @@ async function UpdateSchool(parent, { id, name, address }) {
 async function DeleteSchool(parent, { id }) {
   try {
     // *************** Validate Input
-    ValidateDeleteSchoolParameters({ id });
+    SchoolValidators.ValidateDeleteSchoolParameters({ id });
 
     // *************** Set status to deleted AND update deleted_at timestamp
-    const school = await School.findByIdAndUpdate(
+    const school = await SchoolModel.findByIdAndUpdate(
       id,
       { 
         status: 'deleted',
@@ -202,27 +197,24 @@ async function DeleteSchool(parent, { id }) {
 
 // *************** LOADER *************** 
 /**
- * Retrieves all students associated with a specific school.
+ * Retrieves students associated with a specific school using DataLoader.
  *
  * @async
  * @function GetStudentsBySchool
- * @param {Object} parent - The parent resolver object, typically contains the school ID.
- * @param {string} parent.id - The ID of the school to retrieve students for.
+ * @param {Object} parent - The parent resolver object containing the school ID.
+ * @param {Object} _ - The arguments parameter (unused in this resolver).
+ * @param {Object} context - The context object containing loaders.
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of student documents.
- * @throws {ApolloError} If a database error occurs, throws an ApolloError with code 'DATABASE_ERROR'.
  */
-
-async function GetStudentsBySchool(parent) {
+async function GetStudentsBySchool(parent, _, context) {
   try {
-    // *************** Get the status of the school first to make sure we only return students from active schools
-    const school = await School.findById(parent.id);
-    
-    // *************** Filter deleted schools
-    if (school && school.status === 'deleted') {
-      return [];
+    // *************** If there's no ID in parent, return null
+    if (!parent.id) {
+      return null;
     }
-    // *************** Retrieve Students by School
-    return await Student.find({ school_id: parent.id, status: 'active' });
+    
+    // *************** Use the dataloader from context to load students by school ID
+    return await context.loaders.StudentsBySchoolIdLoader.load(parent.id);
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({

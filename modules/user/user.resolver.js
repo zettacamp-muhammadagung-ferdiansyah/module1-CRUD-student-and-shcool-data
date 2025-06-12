@@ -2,17 +2,12 @@
 const { ApolloError } = require('apollo-server');
 const mongoose = require('mongoose');
 
-// *************** IMPORT MODEL ***************
-const User = require('./user.model');
+// *************** IMPORT MODULE ***************
+const UserModel = require('./user.model');
 const ErrorLogModel = require('../../error-logs/error-log.model');
 
 // *************** IMPORT VALIDATOR ***************
-const {
-  ValidateGetUserByIdParameters,
-  ValidateCreateUserParameters,
-  ValidateUpdateUserParameters,
-  ValidateDeleteUserParameters
-} = require('./user.validator');
+const UserValidators = require('./user.validator');
 
 // *************** QUERY ***************
 /**
@@ -22,14 +17,13 @@ const {
  * @async
  * @function GetAllUsers
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The arguments object
  * @throws {ApolloError} Throws ApolloError if an error occurs during retrieval
  * @returns {Promise<Array>} Array of active user objects
  */
 async function GetAllUsers() {
   try {
     // *************** Query to retrieve only active users
-    return await User.find({ status: 'active' });
+    return await UserModel.find({ status: 'active' });
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -57,10 +51,10 @@ async function GetAllUsers() {
 async function GetUserById(parent, { id }) {
   try {
     // *************** Validate Input
-    ValidateGetUserByIdParameters({ id });
+    UserValidators.ValidateGetUserByIdParameters({ id });
 
     // *************** Retrieve User using status active
-    const user = await User.findOne({ _id: id, status: 'active' });
+    const user = await UserModel.findOne({ _id: id, status: 'active' });
     if (!user) {
       throw new ApolloError('User not found', 'RESOURCE_NOT_FOUND',);
     }
@@ -97,10 +91,10 @@ async function GetUserById(parent, { id }) {
 async function CreateUser(parent, { first_name, last_name, email, password, role }) {
   try {
     // *************** Validate Input
-    ValidateCreateUserParameters({ first_name, last_name, email, password, role });
+    UserValidators.ValidateCreateUserParameters({ first_name, last_name, email, password, role });
 
     // *************** Create User
-    const user = await User.create({ first_name, last_name, email, password, role });
+    const user = await UserModel.create({ first_name, last_name, email, password, role });
     return user;
   } catch (error) {
     // ************** Log error to database
@@ -134,13 +128,13 @@ async function CreateUser(parent, { first_name, last_name, email, password, role
 async function UpdateUser(parent, { id, first_name, last_name, email, password, role }) {
   try {
     // *************** Validate Input
-    ValidateUpdateUserParameters({ id, first_name, last_name, email, password, role });
+    UserValidators.ValidateUpdateUserParameters({ id, first_name, last_name, email, password, role });
 
     // *************** Build update object with direct value assignment
     const updateData = { first_name, last_name, email, password, role };
 
     // *************** Update User
-    const user = await User.findByIdAndUpdate(id, updateData);
+    const user = await UserModel.findByIdAndUpdate(id, updateData);
     if (!user) {
       throw new ApolloError('User not found', 'RESOURCE_NOT_FOUND');
     }
@@ -150,7 +144,7 @@ async function UpdateUser(parent, { id, first_name, last_name, email, password, 
     // ************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/user/user.resolver.js',
-      parameter_input: JSON.stringify({ id, first_name, last_name, email, password: password ? '[REDACTED]' : undefined, role }),
+      parameter_input: JSON.stringify({ id, first_name, last_name, role }),
       function_name: 'UpdateUser',
       error: String(error.stack),
     });
@@ -173,10 +167,10 @@ async function UpdateUser(parent, { id, first_name, last_name, email, password, 
 async function DeleteUser(parent, { id }) {
   try {
     // *************** Validate Input
-    ValidateDeleteUserParameters({ id });
+    UserValidators.ValidateDeleteUserParameters({ id });
 
     // *************** Set status to deleted AND update deleted_at timestamp
-    const user = await User.findByIdAndUpdate(
+    const user = await UserModel.findByIdAndUpdate(
       id,
       { 
         status: 'deleted',

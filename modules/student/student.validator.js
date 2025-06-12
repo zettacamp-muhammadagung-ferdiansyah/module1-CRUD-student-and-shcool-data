@@ -69,22 +69,22 @@ function ValidateUpdateStudentParameters({ id, first_name, last_name, email, dat
   ValidateMongoId(id);
   
   // *************** Validate first_name if provided
-  if (first_name !== undefined && (!first_name || typeof first_name !== 'string')) {
+  if (first_name && (!first_name || typeof first_name !== 'string')) {
     throw new ApolloError('First name must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Validate last_name if provided
-  if (last_name !== undefined && (!last_name || typeof last_name !== 'string')) {
+  if (last_name && (!last_name || typeof last_name !== 'string')) {
     throw new ApolloError('Last name must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Validate email if provided
-  if (email !== undefined && email !== null && typeof email !== 'string') {
+  if (email && typeof email !== 'string') {
     throw new ApolloError('Email must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate date_of_birth if provided
-  if (date_of_birth !== undefined && typeof date_of_birth !== 'string') {
+  if (date_of_birth && typeof date_of_birth !== 'string') {
     throw new ApolloError('Date of birth must be a string', 'INVALID_INPUT');
   }
   
