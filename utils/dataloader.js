@@ -4,9 +4,6 @@ const DataLoader = require('dataloader');
 // *************** IMPORT MODULE ***************
 const Student = require('../modules/student/student.model');
 
-// *************** IMPORT UTILITIES ***************
-const { LogError } = require('./error-logger');
-
 /**
  * Batch function to efficiently load students by their school IDs
  * @async

@@ -2,13 +2,17 @@
 const User = require('./user.model');
 const { ApolloError } = require('apollo-server');
 const mongoose = require('mongoose');
-const validator = require('validator');
 
 // *************** IMPORT UTILITIES ***************
 const ErrorLogModel = require('../../error-logs/error-log.model');
 
 // *************** IMPORT VALIDATOR ***************
-const { IsRequiredString, IsValidObjectId, IsValidDateString, ErrorCode } = require('../../validation/validation');
+const {
+  ValidateGetUserByIdParameters,
+  ValidateCreateUserParameters,
+  ValidateUpdateUserParameters,
+  ValidateDeleteUserParameters
+} = require('./user.validator');
 
 // *************** QUERY ***************
 /**
@@ -54,25 +58,12 @@ async function GetAllUsers(parent, {}) {
 async function GetUserById(parent, { id }) {
   try {
     // *************** Validate Input
-    if (!id) {
-      throw new ApolloError('User ID is required', ErrorCode.INVALID_INPUT, {
-        field: 'id'
-      });
-    }
-    
-    // *************** Validate ID format
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new ApolloError('Invalid User ID format', ErrorCode.INVALID_INPUT, {
-        field: 'id'
-      });
-    }
+    ValidateGetUserByIdParameters({ id });
 
     // *************** Retrieve User using status instead of deleted_at
     const user = await User.findOne({ _id: id, status: 'active' });
     if (!user) {
-      throw new ApolloError('User not found', ErrorCode.RESOURCE_NOT_FOUND, {
-        field: 'id'
-      });
+      throw new ApolloError('User not found', 'RESOURCE_NOT_FOUND',);
     }
     return user;
   } catch (error) {
@@ -108,17 +99,7 @@ async function GetUserById(parent, { id }) {
 async function CreateUser(parent, { first_name, last_name, email, password, role }) {
   try {
     // *************** Validate Input
-    IsRequiredString(first_name, 'First name');
-    IsRequiredString(last_name, 'Last name');
-    IsRequiredString(password, 'Password');
-    IsRequiredString(role, 'Role');
-    
-    // *************** Validate email if provided
-    if (email && !validator.isEmail(email)) {
-      throw new ApolloError('Invalid email format', ErrorCode.INVALID_INPUT, {
-        field: 'email'
-      });
-    }
+    ValidateCreateUserParameters({ first_name, last_name, email, password, role });
 
     // *************** Create User
     const user = await User.create({ first_name, last_name, email, password, role });
@@ -157,77 +138,37 @@ async function CreateUser(parent, { first_name, last_name, email, password, role
 async function UpdateUser(parent, { id, first_name, last_name, email, password, role, status }) {
   try {
     // *************** Validate Input
-    if (!id) {
-      throw new ApolloError('User ID is required', ErrorCode.INVALID_INPUT, {
-        field: 'id'
-      });
-    }
-    
-    // *************** Validate ID format
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new ApolloError('Invalid User ID format', ErrorCode.INVALID_INPUT, {
-        field: 'id'
-      });
-    }
+    ValidateUpdateUserParameters({ id, first_name, last_name, email, password, role, status });
 
     // *************** Build update object with only provided fields
     const updateData = {};
-    
+    // *************** Add each field to the update object only if it was provided in the request
     if (first_name !== undefined) {
-      IsRequiredString(first_name, 'First name');
-      updateData.first_name = first_name;
+      updateData.first_name = first_name; // *************** Add first_name field if provided
     }
-
     if (last_name !== undefined) {
-      IsRequiredString(last_name, 'Last name');
-      updateData.last_name = last_name;
+      updateData.last_name = last_name; // *************** Add last_name field if provided
     }
-
     if (email !== undefined) {
-      if (email && !validator.isEmail(email)) {
-        throw new ApolloError('Invalid email format', ErrorCode.INVALID_INPUT, {
-          field: 'email'
-        });
-      }
-      updateData.email = email;
+      updateData.email = email; // *************** Add email field if provided
     }
-
     if (password !== undefined) {
-      IsRequiredString(password, 'Password');
-      updateData.password = password;
+      updateData.password = password; // *************** Add password field if provided
     }
-
     if (role !== undefined) {
-      IsRequiredString(role, 'Role');
-      updateData.role = role;
+      updateData.role = role; // *************** Add role field if provided
     }
-    
     if (status !== undefined) {
-      const validStatus = ['active', 'deleted'];
-      if (!validStatus.includes(status)) {
-        throw new ApolloError(
-          `Invalid status value. Must be one of: ${validStatus.join(', ')}`, 
-          ErrorCode.INVALID_INPUT, 
-          {
-            field: 'status',
-            allowedValues: validStatus
-          }
-        );
-      }
-      updateData.status = status;
+      updateData.status = status; // *************** Add status field if provided
     }
 
     // *************** Update User
     const user = await User.findByIdAndUpdate(id, updateData);
     if (!user) {
-      throw new ApolloError('User not found', ErrorCode.RESOURCE_NOT_FOUND, {
-        field: 'id'
-      });
+      throw new ApolloError('User not found', 'RESOURCE_NOT_FOUND');
     }
     
-    // *************** Retrieve updated user
-    const updatedUser = await User.findById(id);
-    return updatedUser;
+    return user;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -256,18 +197,7 @@ async function UpdateUser(parent, { id, first_name, last_name, email, password, 
 async function DeleteUser(parent, { id }) {
   try {
     // *************** Validate Input
-    if (!id) {
-      throw new ApolloError('User ID is required', ErrorCode.INVALID_INPUT, {
-        field: 'id'
-      });
-    }
-    
-    // *************** Validate ID format
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new ApolloError('Invalid User ID format', ErrorCode.INVALID_INPUT, {
-        field: 'id'
-      });
-    }
+    ValidateDeleteUserParameters({ id });
 
     // *************** Set status to deleted AND update deleted_at timestamp
     const user = await User.findByIdAndUpdate(
@@ -278,14 +208,10 @@ async function DeleteUser(parent, { id }) {
       }
     );
     if (!user) {
-      throw new ApolloError('User not found', ErrorCode.RESOURCE_NOT_FOUND, {
-        field: 'id'
-      });
+      throw new ApolloError('User not found', 'RESOURCE_NOT_FOUND');
     }
     
-    // *************** Retrieve updated user
-    const updatedUser = await User.findById(id);
-    return updatedUser;
+    return user;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({

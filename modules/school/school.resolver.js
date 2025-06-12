@@ -3,13 +3,17 @@ const School = require('./school.model');
 const Student = require('../student/student.model');
 const { ApolloError } = require('apollo-server');
 const mongoose = require('mongoose');
-const validator = require('validator');
 
 // *************** IMPORT UTILITIES ***************
 const ErrorLogModel = require('../../error-logs/error-log.model');
 
 // *************** IMPORT VALIDATOR ***************
-const { IsRequiredString, IsValidDateString, ErrorCode } = require('../../validation/validation');
+const { 
+  ValidateGetSchoolByIdParameters,
+  ValidateCreateSchoolParameters,
+  ValidateUpdateSchoolParameters,
+  ValidateDeleteSchoolParameters
+} = require('./school.validator');
 
 // *************** QUERY ***************
 /**
@@ -56,25 +60,12 @@ async function GetAllSchools() {
 async function GetSchoolById(parent, { id }) {
   try {
     // *************** Validate Input
-    if (!id) {
-      throw new ApolloError('School ID is required', 'INVALID_INPUT', {
-        field: 'id'
-      });
-    }
-    
-    // *************** Validate ID format
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new ApolloError('Invalid School ID format', 'INVALID_INPUT', {
-        field: 'id'
-      });
-    }
+    ValidateGetSchoolByIdParameters({ id });
 
     // *************** Retrieve School using status instead of deleted_at
     const school = await School.findOne({ _id: id, status: 'active' }); 
     if (!school) {
-      throw new ApolloError('School not found', 'RESOURCE_NOT_FOUND', {
-        field: 'id'
-      });
+      throw new ApolloError('School not found', 'RESOURCE_NOT_FOUND');
     }
     return school;
   } catch (error) {
@@ -107,11 +98,7 @@ async function GetSchoolById(parent, { id }) {
 async function CreateSchool(parent, { name, address }) {
   try {
     // *************** Validate Input
-    if (!name || validator.isEmpty(name, { ignore_whitespace: true })) {
-      throw new ApolloError('School name is required.', 'INVALID_INPUT', {
-        field: 'name'
-      });
-    }
+    ValidateCreateSchoolParameters({ name, address });
 
     // *************** Create School
     const school = await School.create({ name, address });
@@ -147,57 +134,22 @@ async function CreateSchool(parent, { name, address }) {
 async function UpdateSchool(parent, { id, name, address, status }) {
   try {
     // *************** Validate Input
-    if (!id) {
-      throw new ApolloError('School ID is required', 'INVALID_INPUT', {
-        field: 'id'
-      });
-    }
-    
-    // *************** Validate ID format
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new ApolloError('Invalid School ID format', 'INVALID_INPUT', {
-        field: 'id'
-      });
-    }
+    ValidateUpdateSchoolParameters({ id, name, address, status });
 
-    // *************** Build update object with only provided fields
-    const updateData = {};
-    
-    if (name !== undefined) {
-      if (!name || validator.isEmpty(name, { ignore_whitespace: true })) {
-        throw new ApolloError('School name is required.', 'INVALID_INPUT', {
-          field: 'name'
-        });
-      }
-      updateData.name = name;
-    }
-
-    if (address !== undefined) {
-      updateData.address = address;
-    }
-    
-    if (status !== undefined) {
-      const validStatus = ['active', 'deleted'];
-      if (!validStatus.includes(status)) {
-        throw new ApolloError(`Invalid status value. Must be one of: ${validStatus.join(', ')}`, 'INVALID_INPUT', {
-          field: 'status',
-          allowedValues: validStatus
-        });
-      }
-      updateData.status = status;
-    }
+    // *************** Build update object with pre-populated fields that have values
+    const updateData = {
+      ...(name !== undefined && { name }),
+      ...(address !== undefined && { address }),
+      ...(status !== undefined && { status })
+    };
 
     // *************** Update School
     const school = await School.findByIdAndUpdate(id, updateData);
     if (!school) {
-      throw new ApolloError('School not found', 'RESOURCE_NOT_FOUND', {
-        field: 'id'
-      });
-    }
+      throw new ApolloError('School not found', 'RESOURCE_NOT_FOUND');
+    } 
     
-    // *************** Retrieve updated school
-    const updatedSchool = await School.findById(id);
-    return updatedSchool;
+    return school;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -228,18 +180,7 @@ async function UpdateSchool(parent, { id, name, address, status }) {
 async function DeleteSchool(parent, { id }) {
   try {
     // *************** Validate Input
-    if (!id) {
-      throw new ApolloError('School ID is required', 'INVALID_INPUT', {
-        field: 'id'
-      });
-    }
-
-    // *************** Validate ID format
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new ApolloError('Invalid School ID format', 'INVALID_INPUT', {
-        field: 'id'
-      });
-    }
+    ValidateDeleteSchoolParameters({ id });
 
     // *************** Set status to deleted AND update deleted_at timestamp
     const school = await School.findByIdAndUpdate(
@@ -250,14 +191,10 @@ async function DeleteSchool(parent, { id }) {
       }
     );
     if (!school) {
-      throw new ApolloError('School not found', 'RESOURCE_NOT_FOUND', {
-        field: 'id'
-      });
+      throw new ApolloError('School not found', 'RESOURCE_NOT_FOUND');
     }
     
-    // *************** Retrieve updated school
-    const updatedSchool = await School.findById(id);
-    return updatedSchool;
+    return school;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -272,7 +209,7 @@ async function DeleteSchool(parent, { id }) {
   }
 }
 
-// *************** LOADER ***************
+// *************** LOADER *************** 
 /**
  * Retrieves all students associated with a specific school.
  *
@@ -286,13 +223,6 @@ async function DeleteSchool(parent, { id }) {
 
 async function GetStudentsBySchool(parent) {
   try {
-    // *************** Validate ID format
-    if (!mongoose.Types.ObjectId.isValid(parent.id)) {
-      throw new ApolloError('Invalid School ID format', 'INVALID_INPUT', {
-        field: 'school_id'
-      });
-    }
-    
     // *************** Get the status of the school first to make sure we only return students from active schools
     const school = await School.findById(parent.id);
     

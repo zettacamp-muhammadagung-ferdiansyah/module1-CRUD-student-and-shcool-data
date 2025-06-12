@@ -3,9 +3,8 @@ const mongoose = require('mongoose');
 
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
-const validator = require('validator');
 
-// *************** ERROR CODES
+// *************** Validation Error Codes
 const ErrorCode = {
   INVALID_INPUT: 'INVALID_INPUT',       // *************** For input validation errors 
   RESOURCE_NOT_FOUND: 'RESOURCE_NOT_FOUND',  // *************** For when resources aren't found
@@ -38,7 +37,7 @@ const ErrorCode = {
  * @returns {string} The validated and trimmed string value
  */
 function IsRequiredString(value, fieldName) {
-  if (!value || typeof value !== 'string' || validator.isEmpty(value, { ignore_whitespace: true })) {
+  if (!value || typeof value !== 'string' || value.trim() === '') {
     throw new ApolloError(
       `${fieldName} is required and must be a non-empty string.`,
       ErrorCode.INVALID_INPUT,
