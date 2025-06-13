@@ -15,7 +15,14 @@ function GetConfig() {
   if (!mongodbUri) {
     throw new ApolloError('Database configuration error: MONGODB_URI environment variable is not defined', 'CONFIG_ERROR');
   }
-  
+
+  // *************** START: URI Validation ***************
+  const isValidUri = mongodbUri.startsWith('mongodb://') || mongodbUri.startsWith('mongodb+srv://');
+  if (!isValidUri) {
+    throw new ApolloError('Invalid database Uniform Resource Identifier format: Must start with mongodb:// or mongodb+srv://', 'SERVER_ERROR'); 
+  }
+  // *************** END: URI Validation ***************
+
   // *************** Server Configuration ***************
   const port = process.env.PORT || 4000;
   
