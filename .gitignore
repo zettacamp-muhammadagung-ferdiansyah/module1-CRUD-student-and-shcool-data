@@ -1,7 +1,6 @@
 .DS_Store
 .env
 node_modules/
-System_Flow_Pseudocode.md
-Plan project.md
 package-lock.json
 .env.example
+.gitignore
