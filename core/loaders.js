@@ -9,7 +9,7 @@ const SchoolLoader = require('../modules/school/school.loader');
  * 
  * @returns {Object} - Object containing all initialized DataLoader instances
  */
-function CreateLoaders() {
+function LoaderModule() {
   return {
     UserLoader: UserLoader(),
     StudentLoader: StudentLoaders.StudentLoader(),
@@ -19,4 +19,4 @@ function CreateLoaders() {
 }
 
 // *************** EXPORT MODULE ***************
-module.exports = CreateLoaders;
+module.exports = LoaderModule;

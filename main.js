@@ -3,7 +3,7 @@ require('dotenv').config();
 
 // *************** IMPORT MODULE ***************
 const ConnectDatabase = require('./core/database');
-const config = require('./core/config');
+const GetConfig = require('./core/config');
 const CreateApolloServer = require('./core/apollo');
 
 /**
@@ -15,6 +15,9 @@ const CreateApolloServer = require('./core/apollo');
 async function StartServer() {
   // *************** START: Server initialization ***************
   try {
+    // *************** Get application configuration
+    const config = GetConfig();
+    
     // *************** Initialize database connection
     await ConnectDatabase();
 

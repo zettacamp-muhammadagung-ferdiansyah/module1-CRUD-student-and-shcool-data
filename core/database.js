@@ -1,7 +1,7 @@
 // *************** IMPORT LIBRARY ***************
 const mongoose = require('mongoose');
 const { ApolloError } = require('apollo-server');
-require('dotenv').config();
+const GetConfig = require('./config');
 
 /**
  * Establishes and configures the MongoDB database connection
@@ -9,15 +9,13 @@ require('dotenv').config();
  * @function ConnectDatabase
  * @returns {Promise<import('mongoose').Connection>} Resolves with the Mongoose connection object
  * @throws {Error} If database URI is invalid or connection fails
- * @throws {Error} If MONGODB_URI environment variable is not defined
  */
 async function ConnectDatabase() {
+  // *************** Get configuration settings
+  const config = GetConfig();
+  
   // *************** START: URI Validation ***************
-  const databaseUniformResourceIdentifier = process.env.MONGODB_URI;
-  if (!databaseUniformResourceIdentifier) {
-    throw new ApolloError('Database configuration error: MONGODB_URI environment variable is not defined', 'SERVER_ERROR'); 
-  }
-
+  const databaseUniformResourceIdentifier = config.database.uri;
   const isValidUri = databaseUniformResourceIdentifier.startsWith('mongodb://') || databaseUniformResourceIdentifier.startsWith('mongodb+srv://');
   if (!isValidUri) {
     throw new ApolloError('Invalid database Uniform Resource Identifier format: Must start with mongodb:// or mongodb+srv://', 'SERVER_ERROR'); 

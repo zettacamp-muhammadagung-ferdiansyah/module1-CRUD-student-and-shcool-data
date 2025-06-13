@@ -31,4 +31,4 @@ function GetConfig() {
 }
 
 // *************** EXPORT MODULE ***************
-module.exports = GetConfig();
+module.exports = GetConfig;

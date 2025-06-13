@@ -4,7 +4,7 @@ const { ApolloServer } = require('apollo-server');
 // *************** IMPORT MODULE ***************
 const typeDefs = require('./typedef');
 const resolvers = require('./resolvers');
-const CreateLoaders = require('./loaders');
+const LoaderModule = require('./loaders');
 
 /**
  * Initializes and starts the Apollo GraphQL server
