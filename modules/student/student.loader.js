@@ -16,9 +16,23 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
 function StudentLoader() {
   return new DataLoader(async function(studentIds) {
     try {
+      // *************** Validate input array
+      if (!Array.isArray(studentIds) || !studentIds.length) {
+        return [];
+      }
+
+      // *************** Filter for valid MongoDB ObjectIDs
+      const validIds = studentIds.filter(function(id) {
+        return id && id.toString().match(/^[0-9a-fA-F]{24}$/);
+      });
+      
+      if (!validIds.length) {
+        return studentIds.map(() => null);
+      }
+
       // *************** Fetch only active students with matching IDs
       const students = await StudentModel.find({
-        _id: { $in: studentIds },
+        _id: { $in: validIds },
         status: 'active'
       });
 
@@ -58,9 +72,23 @@ function StudentLoader() {
 function StudentsBySchoolLoader() {
   return new DataLoader(async function(schoolIds) {
     try {
+      // *************** Validate input array
+      if (!Array.isArray(schoolIds) || !schoolIds.length) {
+        return schoolIds.map(function() { return []; });
+      }
+
+      // *************** Filter for valid MongoDB ObjectIDs
+      const validIds = schoolIds.filter(function(id) {
+        return id && id.toString().match(/^[0-9a-fA-F]{24}$/);
+      });
+      
+      if (!validIds.length) {
+        return schoolIds.map(function() { return []; });
+      }
+
       // *************** Fetch students for all schools in one query
       const students = await StudentModel.find({ 
-        school_id: { $in: schoolIds },
+        school_id: { $in: validIds },
         status: 'active' 
       });
 

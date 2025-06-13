@@ -16,9 +16,23 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
 function SchoolLoader() {
   return new DataLoader(async function(schoolIds) {
     try {
+      // *************** Validate input array
+      if (!Array.isArray(schoolIds) || !schoolIds.length) {
+        return [];
+      }
+
+      // *************** Filter for valid MongoDB ObjectIDs
+      const validIds = schoolIds.filter(function(id) {
+        return id && id.toString().match(/^[0-9a-fA-F]{24}$/);
+      });
+      
+      if (!validIds.length) {
+        return schoolIds.map(() => null);
+      }
+
       // *************** Fetch active schools with matching IDs
       const schools = await SchoolModel.find({
-        _id: { $in: schoolIds },
+        _id: { $in: validIds },
         status: 'active'
       });
 
