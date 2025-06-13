@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 
 // *************** IMPORT MODULE ***************
 const StudentModel = require('./student.model');
-const ErrorLogModel = require('../../error-logs/error-log.model');
+const ErrorLogModel = require('../errorLogs/error_logs.model');
 
 // *************** IMPORT VALIDATOR ***************
 const StudentValidators = require('./student.validator');
@@ -193,6 +193,40 @@ async function DeleteStudent(parent, { id }) {
   }
 }
 
+// *************** LOADER *************** 
+/**
+ * Retrieves the school associated with a specific student using DataLoader.
+ *
+ * @async
+ * @function GetSchoolByStudent
+ * @param {Object} parent - The parent resolver object containing the student data.
+ * @param {Object} _ - The arguments parameter (unused in this resolver).
+ * @param {Object} context - The context object containing loaders.
+ * @returns {Promise<Object>} A promise that resolves to the school document.
+ */
+async function GetSchoolByStudent(parent, _, context) {
+  try {
+    // *************** If there's no school_id in parent, return null
+    if (!parent.school_id) {
+      return null;
+    }
+    
+    // *************** Use the SchoolLoader from context to load the school
+    return await context.loaders.SchoolLoader.load(parent.school_id);
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/student/student.resolver.js',
+      parameter_input: JSON.stringify({ school_id: parent.school_id }),
+      function_name: 'GetSchoolByStudent',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
+  }
+}
+
 // *************** EXPORT MODULE ***************
 module.exports = {
   Query: {
@@ -203,5 +237,8 @@ module.exports = {
     CreateStudent,
     UpdateStudent,
     DeleteStudent,
+  },
+  Student: {
+    school: GetSchoolByStudent,
   },
 };

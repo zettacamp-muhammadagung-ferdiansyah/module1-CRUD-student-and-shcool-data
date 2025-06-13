@@ -1,12 +1,10 @@
 // *************** IMPORT LIBRARY ***************
-const { ApolloServer } = require('apollo-server');
-const { typeDefs, resolvers } = require('./schema');
+require('dotenv').config();
 
 // *************** IMPORT MODULE ***************
-const ConnectDatabase = require('./config/database');
-
-// *************** IMPORT UTILS ***************
-const { StudentsBySchoolIdLoader } = require('./utils/dataloader');
+const ConnectDatabase = require('./core/database');
+const config = require('./core/config');
+const CreateApolloServer = require('./core/apollo');
 
 /**
  * Initializes and starts the Apollo GraphQL server
@@ -20,27 +18,9 @@ async function StartServer() {
     // *************** Initialize database connection
     await ConnectDatabase();
 
-    // ***************  Configure Apollo Server
-    const server = new ApolloServer({
-      typeDefs,
-      resolvers,
-      context: () => ({
-        loaders: {
-          StudentsBySchoolIdLoader,
-        },
-      }),
-      formatError: (error) => {
-        // *************** Return a clean error for the client
-        return {
-          message: error.message,
-          code: error.extensions && error.extensions.code ? error.extensions.code : 'INTERNAL_SERVER_ERROR',
-          path: error.path
-        };
-      }
-    });
-
-    // *************** Start the server
-    const { url } = await server.listen();
+    // *************** Create and start the Apollo Server
+    const server = CreateApolloServer();
+    const { url } = await server.listen(config.server.port);
     console.log(`Server ready at ${url}`);
   } catch (error) {
     console.error('Failed to start server:', error);

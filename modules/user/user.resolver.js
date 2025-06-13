@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 
 // *************** IMPORT MODULE ***************
 const UserModel = require('./user.model');
-const ErrorLogModel = require('../../error-logs/error-log.model');
+const ErrorLogModel = require('../errorLogs/error_logs.model');
 
 // *************** IMPORT VALIDATOR ***************
 const UserValidators = require('./user.validator');

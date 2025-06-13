@@ -1,10 +1,7 @@
 .DS_Store
 .env
-Plan\ project.md
-System_Flow_Pseudocode.md
-code_convention.md
-project_details.md
 node_modules/
 System_Flow_Pseudocode.md
 Plan project.md
 package-lock.json
+.env.example

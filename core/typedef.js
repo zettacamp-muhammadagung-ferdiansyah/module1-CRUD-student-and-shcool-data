@@ -1,0 +1,22 @@
+// *************** IMPORT LIBRARY ***************
+const { gql } = require('apollo-server');
+const { mergeTypeDefs } = require('@graphql-tools/merge');
+
+// *************** IMPORT MODULES ***************
+const UserModule = require('../modules/user');
+const StudentModule = require('../modules/student');
+const SchoolModule = require('../modules/school');
+
+// *************** BASE TYPES ***************
+const BaseTypeDefs = gql`
+  type Query
+  type Mutation
+`;
+
+// *************** EXPORT MODULE ***************
+module.exports = mergeTypeDefs([
+  BaseTypeDefs,
+  UserModule.typeDefs,
+  StudentModule.typeDefs,
+  SchoolModule.typeDefs
+]);

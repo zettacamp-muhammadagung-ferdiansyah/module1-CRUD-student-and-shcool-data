@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 // *************** IMPORT MODULE ***************
 const SchoolModel = require('./school.model');
 const StudentModel = require('../student/student.model');
-const ErrorLogModel = require('../../error-logs/error-log.model');
+const ErrorLogModel = require('../errorLogs/error_logs.model');
 
 // *************** IMPORT VALIDATOR ***************
 const SchoolValidators = require('./school.validator');
@@ -214,7 +214,7 @@ async function GetStudentsBySchool(parent, _, context) {
     }
     
     // *************** Use the dataloader from context to load students by school ID
-    return await context.loaders.StudentsBySchoolIdLoader.load(parent.id);
+    return await context.loaders.StudentsBySchoolLoader.load(parent.id);
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
