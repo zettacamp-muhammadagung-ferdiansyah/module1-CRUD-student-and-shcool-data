@@ -19,7 +19,7 @@ function CreateApolloServer() {
     resolvers,
     context: () => {
       return {
-        loaders: CreateLoaders()
+        loaders: LoaderModule()
       };
     },
     formatError: (error) => {
