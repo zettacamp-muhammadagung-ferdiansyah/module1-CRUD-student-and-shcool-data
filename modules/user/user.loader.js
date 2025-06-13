@@ -16,23 +16,9 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
 function UserLoader() {
   return new DataLoader(async function(userIds) {
     try {
-      // *************** Validate input array
-      if (!Array.isArray(userIds) || !userIds.length) {
-        return [];
-      }
-
-      // *************** Filter for valid MongoDB ObjectIDs
-      const validIds = userIds.filter(function(id) {
-        return id && id.toString().match(/^[0-9a-fA-F]{24}$/);
-      });
-      
-      if (!validIds.length) {
-        return userIds.map(() => null);
-      }
-
       // *************** Fetch active users with matching IDs
       const users = await UserModel.find({
-        _id: { $in: validIds },
+        _id: { $in: userIds },
         status: 'active'
       });
 
