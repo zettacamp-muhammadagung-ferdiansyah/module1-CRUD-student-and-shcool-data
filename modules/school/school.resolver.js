@@ -214,7 +214,7 @@ async function GetStudentsBySchool(parent, _, context) {
     }
     
     // *************** Use the dataloader from context to load students by school ID
-    return await context.loaders.StudentsBySchoolLoader.load(parent.id);
+    return await context.loaders.StudentLoader.bySchool.load(parent.id);
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({

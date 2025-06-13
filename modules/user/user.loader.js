@@ -16,37 +16,19 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
 function UserLoader() {
   return new DataLoader(async function(userIds) {
     try {
-      // *************** Validate input array
-      if (!Array.isArray(userIds) || !userIds.length) {
-        return [];
-      }
-
-      // *************** Filter for valid MongoDB ObjectIDs
-      const validIds = userIds.filter(function(id) {
-        return id && id.toString().match(/^[0-9a-fA-F]{24}$/);
-      });
-      
-      if (!validIds.length) {
-        return userIds.map(() => null);
-      }
-
       // *************** Fetch active users with matching IDs
       const users = await UserModel.find({
-        _id: { $in: validIds },
+        _id: { $in: userIds },
         status: 'active'
       });
 
       // *************** Map results to maintain original order
       const usersById = new Map(
-        users.map(function(user) {
-          return [String(user._id), user];
-        })
+        users.map(user => [String(user._id), user])
       );
 
       // *************** Return users in the same order as requested IDs
-      return userIds.map(function(id) {
-        return usersById.get(String(id)) || null;
-      });
+      return userIds.map(id => usersById.get(String(id)) || null);
     } catch (error) {
       // *************** Log error for debugging
       await ErrorLogModel.create({

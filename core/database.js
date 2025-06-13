@@ -18,9 +18,15 @@ async function ConnectDatabase() {
   
   // *************** START: URI Validation ***************
   const databaseUniformResourceIdentifier = config.database.uri;
+  
+  // *************** Validate URI format
+  if (!databaseUniformResourceIdentifier) {
+    throw new ApolloError('Database configuration error: MongoDB URI is not defined', 'CONFIG_ERROR');
+  }
+  
   const isValidUri = databaseUniformResourceIdentifier.startsWith('mongodb://') || databaseUniformResourceIdentifier.startsWith('mongodb+srv://');
   if (!isValidUri) {
-    throw new ApolloError('Invalid database Uniform Resource Identifier format: Must start with mongodb:// or mongodb+srv://', 'SERVER_ERROR'); 
+    throw new ApolloError('Database configuration error: Invalid MongoDB URI format. URI must start with mongodb:// or mongodb+srv://', 'CONFIG_ERROR');
   }
   // *************** END: URI Validation ***************
 

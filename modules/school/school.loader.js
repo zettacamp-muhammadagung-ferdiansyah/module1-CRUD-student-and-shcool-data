@@ -16,37 +16,19 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
 function SchoolLoader() {
   return new DataLoader(async function(schoolIds) {
     try {
-      // *************** Validate input array
-      if (!Array.isArray(schoolIds) || !schoolIds.length) {
-        return [];
-      }
-
-      // *************** Filter for valid MongoDB ObjectIDs
-      const validIds = schoolIds.filter(function(id) {
-        return id && id.toString().match(/^[0-9a-fA-F]{24}$/);
-      });
-      
-      if (!validIds.length) {
-        return schoolIds.map(() => null);
-      }
-
       // *************** Fetch active schools with matching IDs
       const schools = await SchoolModel.find({
-        _id: { $in: validIds },
+        _id: { $in: schoolIds },
         status: 'active'
       });
 
       // *************** Map results to maintain original order
       const schoolsById = new Map(
-        schools.map(function(school) {
-          return [String(school._id), school];
-        })
+        schools.map(school => [String(school._id), school])
       );
 
       // *************** Return schools in the same order as requested IDs
-      return schoolIds.map(function(id) {
-        return schoolsById.get(String(id)) || null;
-      });
+      return schoolIds.map(id => schoolsById.get(String(id)) || null);
     } catch (error) {
       // *************** Log error for debugging
       await ErrorLogModel.create({

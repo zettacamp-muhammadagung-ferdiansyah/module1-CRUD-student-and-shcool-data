@@ -16,37 +16,19 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
 function StudentLoader() {
   return new DataLoader(async function(studentIds) {
     try {
-      // *************** Validate input array
-      if (!Array.isArray(studentIds) || !studentIds.length) {
-        return [];
-      }
-
-      // *************** Filter for valid MongoDB ObjectIDs
-      const validIds = studentIds.filter(function(id) {
-        return id && id.toString().match(/^[0-9a-fA-F]{24}$/);
-      });
-      
-      if (!validIds.length) {
-        return studentIds.map(() => null);
-      }
-
       // *************** Fetch only active students with matching IDs
       const students = await StudentModel.find({
-        _id: { $in: validIds },
+        _id: { $in: studentIds },
         status: 'active'
       });
 
       // *************** Map results to maintain original order
       const studentsById = new Map(
-        students.map(function(student) {
-          return [String(student._id), student];
-        })
+        students.map(student => [String(student._id), student])
       );
 
       // *************** Return students in the same order as requested IDs
-      return studentIds.map(function(id) {
-        return studentsById.get(String(id)) || null;
-      });
+      return studentIds.map(id => studentsById.get(String(id)) || null);
     } catch (error) {
       // *************** Log error for debugging
       await ErrorLogModel.create({
@@ -72,32 +54,18 @@ function StudentLoader() {
 function StudentsBySchoolLoader() {
   return new DataLoader(async function(schoolIds) {
     try {
-      // *************** Validate input array
-      if (!Array.isArray(schoolIds) || !schoolIds.length) {
-        return schoolIds.map(function() { return []; });
-      }
-
-      // *************** Filter for valid MongoDB ObjectIDs
-      const validIds = schoolIds.filter(function(id) {
-        return id && id.toString().match(/^[0-9a-fA-F]{24}$/);
-      });
-      
-      if (!validIds.length) {
-        return schoolIds.map(function() { return []; });
-      }
-
       // *************** Fetch students for all schools in one query
       const students = await StudentModel.find({ 
-        school_id: { $in: validIds },
+        school_id: { $in: schoolIds },
         status: 'active' 
       });
 
       // *************** Group students by school_id
-      return schoolIds.map(function(schoolId) {
-        return students.filter(function(student) {
-          return student.school_id.toString() === schoolId.toString();
-        });
-      });
+      return schoolIds.map(schoolId => 
+        students.filter(student => 
+          student.school_id.toString() === schoolId.toString()
+        )
+      );
     } catch (error) {
       // *************** Log error for debugging
       await ErrorLogModel.create({

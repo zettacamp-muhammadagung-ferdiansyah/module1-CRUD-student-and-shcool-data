@@ -1,4 +1,4 @@
-// *************** IMPORT CORE ***************Add commentMore actions
+// *************** IMPORT CORE ***************
 const mongoose = require('mongoose');
 
 const errorLogSchema = new mongoose.Schema({
