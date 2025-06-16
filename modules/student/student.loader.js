@@ -14,7 +14,7 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
  * @returns {DataLoader} - An instance of DataLoader for fetching students by ID
  */
 function StudentLoader() {
-  return new DataLoader(async function(studentIds) {
+  const loader = new DataLoader(async (studentIds) => {
     try {
       // *************** Fetch only active students with matching IDs
       const students = await StudentModel.find({
@@ -42,6 +42,10 @@ function StudentLoader() {
       throw new ApolloError(`Failed to batch load students: ${error.message}`, 'DATALOADER_ERROR');
     }
   });
+  
+  //*************** Attach bySchool property for use in school resolvers
+  loader.bySchool = StudentsBySchoolLoader();
+  return loader;
 }
 
 /**
@@ -52,7 +56,7 @@ function StudentLoader() {
  * @returns {DataLoader} - A DataLoader instance for fetching students by school ID
  */
 function StudentsBySchoolLoader() {
-  return new DataLoader(async function(schoolIds) {
+  return new DataLoader(async (schoolIds) => {
     try {
       // *************** Fetch students for all schools in one query
       const students = await StudentModel.find({ 

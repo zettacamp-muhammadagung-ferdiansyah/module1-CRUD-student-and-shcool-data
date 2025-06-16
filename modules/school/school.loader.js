@@ -14,7 +14,7 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
  * @returns {DataLoader} - An instance of DataLoader for fetching schools by ID
  */
 function SchoolLoader() {
-  return new DataLoader(async function(schoolIds) {
+  return new DataLoader(async (schoolIds) => {
     try {
       // *************** Fetch active schools with matching IDs
       const schools = await SchoolModel.find({
@@ -45,4 +45,6 @@ function SchoolLoader() {
 }
 
 // *************** EXPORT MODULE ***************
-module.exports = SchoolLoader;
+module.exports = {
+  SchoolLoader
+};

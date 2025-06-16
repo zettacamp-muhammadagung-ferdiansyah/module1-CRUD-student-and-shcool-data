@@ -1,7 +1,7 @@
 // *************** IMPORT MODULE ***************
-const UserLoader = require('../modules/user/user.loader');
-const StudentLoaders = require('../modules/student/student.loader');
-const SchoolLoader = require('../modules/school/school.loader');
+const UserLoader = require('../modules/user').UserLoader;
+const StudentLoader = require('../modules/student').StudentLoader;
+const SchoolLoader = require('../modules/school').SchoolLoader;
 
 /**
  * Creates and initializes all DataLoader instances for the application
@@ -10,21 +10,10 @@ const SchoolLoader = require('../modules/school/school.loader');
  * @returns {Object} - Object containing all initialized DataLoader instances
  */
 function LoaderModule() {
-  // *************** INITIALIZE STUDENT LOADER
-  // *************** Store the StudentLoader instance in a variable so we can add properties to it
-  // *************** This allows us to access StudentLoaders.StudentLoader() once and then extend it
-  const studentLoader = StudentLoaders.StudentLoader();
-  
-  // *************** EXTEND STUDENT LOADER
-  // *************** Attach the StudentsBySchoolLoader as a property of the StudentLoader object
-  // *************** This maintains the functionality while keeping the main loader object clean
-  // *************** Now it can be accessed through context.loaders.StudentLoader.bySchool
-  studentLoader.bySchool = StudentLoaders.StudentsBySchoolLoader();
-  
-  // *************** Return main loader
+  // *************** RETURN MAIN LOADERS
   return {
     UserLoader: UserLoader(),
-    StudentLoader: studentLoader,
+    StudentLoader: StudentLoader(),
     SchoolLoader: SchoolLoader(),
   };
 }

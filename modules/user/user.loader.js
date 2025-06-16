@@ -14,7 +14,7 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
  * @returns {DataLoader} - An instance of DataLoader for fetching users by ID
  */
 function UserLoader() {
-  return new DataLoader(async function(userIds) {
+  return new DataLoader(async (userIds) => {
     try {
       // *************** Fetch active users with matching IDs
       const users = await UserModel.find({
@@ -45,4 +45,6 @@ function UserLoader() {
 }
 
 // *************** EXPORT MODULE ***************
-module.exports = UserLoader;
+module.exports = {
+  UserLoader
+};

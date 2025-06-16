@@ -21,7 +21,7 @@ const SchoolValidators = require('./school.validator');
  * @returns {Promise<Array>} Array of active school objects
  */
 async function GetAllSchools() {
-  try {
+  try {console.log('GetAllSchools called');
     // *************** Retrieve Schools with active status directly
     return await SchoolModel.find({ status: 'active' });
   } catch (error) {

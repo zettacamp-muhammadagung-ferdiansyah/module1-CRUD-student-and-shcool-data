@@ -1,6 +1,7 @@
 // *************** IMPORT MODULE ***************
 const StudentTypeDefs = require('./student.typedef');
 const StudentResolvers = require('./student.resolver');
+const { StudentLoader, StudentsBySchoolLoader } = require('./student.loader');
 
 // *************** EXPORT MODULE ***************
 module.exports = {
@@ -8,5 +9,7 @@ module.exports = {
   resolvers: {
     Query: StudentResolvers.Query,
     Mutation: StudentResolvers.Mutation
-  }
+  },
+  studentLoader: StudentLoader,
+  studentsBySchoolLoader: StudentsBySchoolLoader
 };
