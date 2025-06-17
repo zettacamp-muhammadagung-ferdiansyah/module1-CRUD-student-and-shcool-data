@@ -1,5 +1,5 @@
 // *************** IMPORT LIBRARY ***************
-const mongoose = require('mongoose');
+const Mongoose = require('mongoose'); // update capital M
 const { ApolloError } = require('apollo-server');
 
 // *************** IMPORT Module ***************
@@ -33,7 +33,7 @@ async function ConnectDatabase() {
   try {
     // *************** START: Database Connection Setup ***************
     console.log('Attempting database connection...');
-    const connection = await mongoose.connect(databaseUniformResourceIdentifier, {
+    const connection = await Mongoose.connect(databaseUniformResourceIdentifier, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });

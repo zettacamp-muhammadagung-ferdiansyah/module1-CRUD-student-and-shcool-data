@@ -1,6 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
-const mongoose = require('mongoose');
+const Mongoose = require('mongoose');
 
 /**
  * *************** Validates if the provided ID is a valid MongoDB ObjectId
@@ -13,7 +13,7 @@ function ValidateMongoId(id) {
     throw new ApolloError('ID is required', 'INVALID_INPUT');
   }
   // *************** Check if ID is a valid MongoDB ObjectId
-  if (!mongoose.Types.ObjectId.isValid(id)) {
+  if (!Mongoose.Types.ObjectId.isValid(id)) {
     throw new ApolloError('Invalid ID format', 'INVALID_INPUT');
   }
 }

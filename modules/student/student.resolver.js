@@ -1,6 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
-const mongoose = require('mongoose');
+const Mongoose = require('mongoose');
 
 // *************** IMPORT MODULE ***************
 const StudentModel = require('./student.model');
@@ -142,15 +142,39 @@ async function UpdateStudent(parent, { id, first_name, last_name, email, date_of
     // *************** Validate Input
     StudentValidators.ValidateUpdateStudentParameters({ id, first_name, last_name, email, date_of_birth, school_id });
 
+    // *************** First, get the current student to check if school_id is changing
+    const currentStudent = await StudentModel.findById(id);
+    if (!currentStudent) {
+      throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND');
+    }
+
+    // *************** Handle school change if school_id is provided and different
+    if (school_id && currentStudent.school_id.toString() !== school_id) {
+      // *************** 1. Remove student from old school's students array
+      await SchoolModel.findByIdAndUpdate(
+        currentStudent.school_id,
+        { $pull: { students: currentStudent._id } }
+      );
+      
+      // *************** 2. Add student to new school's students array
+      await SchoolModel.findByIdAndUpdate(
+        school_id,
+        { $addToSet: { students: currentStudent._id } }
+      );
+    }
+
     // *************** Build update object with direct value assignment
     const updateData = { first_name, last_name, email, date_of_birth, school_id };
 
     // *************** Update Student
-    const student = await StudentModel.findByIdAndUpdate(id, updateData);
-    if (!student) {
-      throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND');
-    }
-    return student;
+    const updatedStudent = await StudentModel.findByIdAndUpdate(
+      id,
+      updateData,
+      //***************  Return the updated document
+      { new: true } 
+    );
+
+    return updatedStudent;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -179,18 +203,30 @@ async function DeleteStudent(parent, { id }) {
     // *************** Validate Input
     StudentValidators.ValidateDeleteStudentParameters({ id });
 
+    // *************** Get the student first to get the school_id
+    const student = await StudentModel.findById(id);
+    if (!student) {
+      throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND');
+    }
+
+    // *************** Remove student from school's students array
+    if (student.school_id) {
+      await SchoolModel.findByIdAndUpdate(
+        student.school_id,
+        { $pull: { students: student._id } }
+      );
+    }
+
     // *************** Set status to deleted AND update deleted_at timestamp
-    const student = await StudentModel.findByIdAndUpdate(
+    const updatedStudent = await StudentModel.findByIdAndUpdate(
       id,
       {
         status: 'deleted',
         deleted_at: new Date().toISOString()
       }
     );
-    if (!student) {
-      throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND');
-    }
-    return student;
+    
+    return updatedStudent;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({

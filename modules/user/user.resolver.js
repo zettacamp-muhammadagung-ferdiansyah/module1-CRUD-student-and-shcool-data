@@ -1,6 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
-const mongoose = require('mongoose');
+const Mongoose = require('mongoose');
 
 // *************** IMPORT MODULE ***************
 const UserModel = require('./user.model');

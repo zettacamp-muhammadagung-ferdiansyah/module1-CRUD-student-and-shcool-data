@@ -1,6 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
-const mongoose = require('mongoose');
+const Mongoose = require('mongoose');
 
 // *************** IMPORT VALIDATOR ***************
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
@@ -26,13 +26,12 @@ function ValidateGetSchoolByIdParameters({ id }) {
  * @param {string} [params.address] - School address
  */
 function ValidateCreateSchoolParameters({ name, address }) {
-  // ***************  Check if name exists and is a string
-  if (!name || typeof name !== 'string' || name === '') {
+  // ***************  Check if name is a string or exists
+  if (!name || typeof name !== 'string') {
     throw new ApolloError('School name is required and must be a non-empty string', 'INVALID_INPUT');
   }
-  
-  // ***************  Check if address is a string when provided
-  if (address != null && (typeof address !== 'string')) {
+  // ***************  Check if address is a string or exists
+  if (!address || typeof address !== 'string') {
     throw new ApolloError('School address must be a string', 'INVALID_INPUT');
   }
 }
@@ -49,15 +48,13 @@ function ValidateCreateSchoolParameters({ name, address }) {
 function ValidateUpdateSchoolParameters({ id, name, address }) {
   // *************** Check if ID exists and is valid
   ValidateMongoId(id);
-  
-  // ***************Check if name is a non-empty string when provided
-  if (name != null && (typeof name !== 'string' || name === '')) {
-    throw new ApolloError('School name must be a non-empty string', 'INVALID_INPUT');
+  // *************** Check if name is a string or exists
+  if (!name || typeof name !== 'string') {
+    throw new ApolloError('School name must be a string', 'INVALID_INPUT');
   }
-  
-  // *************** Check if address is a non-empty string when provided
-  if (address != null && (typeof address !== 'string' || address === '')) {
-    throw new ApolloError('School address must be a non-empty string', 'INVALID_INPUT');
+  // *************** Check if address is a string or exists
+  if (!address || typeof address !== 'string') {
+    throw new ApolloError('School address must be a string', 'INVALID_INPUT');
   }
 }
 

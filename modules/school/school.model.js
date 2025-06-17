@@ -1,13 +1,13 @@
 // *************** IMPORT CORE ***************
-const mongoose = require('mongoose');
+const Mongoose = require('mongoose');
 
-const schoolSchema = new mongoose.Schema({
+const schoolSchema = new Mongoose.Schema({
   // School's name 
   name: { type: String, required: true },
   // School's address 
   address: { type: String },
   //  List of enrolled students 
-  students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }],
+  students: [{ type: Mongoose.Schema.Types.ObjectId, ref: 'Student' }],
   // Status of the school (active or deleted)
   status: { type: String, enum: ['active', 'deleted'], default: 'active' },
   //  Soft delete timestamp 
@@ -18,4 +18,4 @@ const schoolSchema = new mongoose.Schema({
 });
 
 // *************** EXPORT MODULE ***************
-module.exports = mongoose.model('School', schoolSchema);
+module.exports = Mongoose.model('School', schoolSchema);

@@ -1,6 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
-const mongoose = require('mongoose');
+const Mongoose = require('mongoose');
 
 // *************** IMPORT VALIDATOR ***************
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
@@ -31,21 +31,21 @@ function ValidateGetStudentByIdParameters({ id }) {
 function ValidateCreateStudentParameters({ first_name, last_name, email, date_of_birth, school_id }) {
   // *************** Validate required fields
   if (!first_name || typeof first_name !== 'string') {
-    throw new ApolloError('First name is required and must be a non-empty string', 'INVALID_INPUT');
+    throw new ApolloError('First name must be a string', 'INVALID_INPUT');
   }
   
   if (!last_name || typeof last_name !== 'string') {
-    throw new ApolloError('Last name is required and must be a non-empty string', 'INVALID_INPUT');
+    throw new ApolloError('Last name must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate email
-  if (email != null && (typeof email !== 'string' || email === '')) {
-    throw new ApolloError('Email must be a string and not empty', 'INVALID_INPUT');
+  if (!email || typeof email !== 'string') {
+    throw new ApolloError('Email must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate date_of_birth if provided
-  if (date_of_birth != null && (typeof date_of_birth !== 'string' || date_of_birth === '')) {
-    throw new ApolloError('Date of birth must be a string and not empty', 'INVALID_INPUT');
+  if (!date_of_birth || typeof date_of_birth !== 'string') {
+    throw new ApolloError('Date of birth must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate school_id
@@ -69,23 +69,23 @@ function ValidateUpdateStudentParameters({ id, first_name, last_name, email, dat
   ValidateMongoId(id);
   
   // *************** Validate first_name if provided
-  if (first_name != null && (typeof first_name !== 'string' || first_name === '')) {
-    throw new ApolloError('First name must be a non-empty string', 'INVALID_INPUT');
+  if (!first_name || typeof first_name !== 'string') {
+    throw new ApolloError('First name must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate last_name if provided
-  if (last_name != null && (typeof last_name !== 'string' || last_name === '')) {
-    throw new ApolloError('Last name must be a non-empty string', 'INVALID_INPUT');
+  if (!last_name || typeof last_name !== 'string') {
+    throw new ApolloError('Last name must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate email if provided
-  if (email != null && (typeof email !== 'string' || email === '')) {
-    throw new ApolloError('Email must be a string and not empty', 'INVALID_INPUT');
+  if (!email || typeof email !== 'string') {
+    throw new ApolloError('Email must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate date_of_birth if provided
-  if (date_of_birth != null && (typeof date_of_birth !== 'string' || date_of_birth === '')) {
-    throw new ApolloError('Date of birth must be a string and not empty', 'INVALID_INPUT');
+  if (!date_of_birth || typeof date_of_birth !== 'string') {
+    throw new ApolloError('Date of birth must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate school_id

@@ -1,7 +1,7 @@
 // *************** IMPORT CORE ***************
-const mongoose = require('mongoose');
+const Mongoose = require('mongoose');
 
-const errorLogSchema = new mongoose.Schema({
+const errorLogSchema = new Mongoose.Schema({
   // Path to the file where the error occurred
   path: { type: String, required: true },
   
@@ -19,4 +19,4 @@ const errorLogSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // *************** EXPORT MODULE ***************
-module.exports = mongoose.model('ErrorLog', errorLogSchema);
+module.exports = Mongoose.model('ErrorLog', errorLogSchema);

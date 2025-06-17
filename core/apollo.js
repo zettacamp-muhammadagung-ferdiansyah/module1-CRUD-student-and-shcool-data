@@ -15,8 +15,8 @@ const LoaderModule = require('./loaders');
 function CreateApolloServer() {
   // *************** Configure Apollo Server ***************
   const server = new ApolloServer({
-    TypeDefs,
-    Resolvers,
+    typeDefs: TypeDefs,
+    resolvers: Resolvers,
     context: () => {
       return {
         loaders: LoaderModule()

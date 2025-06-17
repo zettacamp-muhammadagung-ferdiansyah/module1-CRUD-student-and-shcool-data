@@ -1,7 +1,7 @@
 // *************** IMPORT CORE ***************
-const mongoose = require('mongoose');
+const Mongoose = require('mongoose');
 
-const userSchema = new mongoose.Schema({
+const userSchema = new Mongoose.Schema({
   //  User's first name 
   first_name: { type: String, required: true },
   //  User's last name 
@@ -22,4 +22,4 @@ const userSchema = new mongoose.Schema({
 });
  
 // *************** EXPORT MODULE ***************
-module.exports = mongoose.model('User', userSchema);
+module.exports = Mongoose.model('User', userSchema);

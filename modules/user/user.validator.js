@@ -1,6 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
-const mongoose = require('mongoose');
+const Mongoose = require('mongoose');
 
 // *************** IMPORT VALIDATOR ***************
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
@@ -31,23 +31,23 @@ function ValidateGetUserByIdParameters({ id }) {
 function ValidateCreateUserParameters({ first_name, last_name, email, password, role }) {
   // *************** Validate required fields
   if (!first_name || typeof first_name !== 'string') {
-    throw new ApolloError('First name is required and must be a non-empty string', 'INVALID_INPUT');
+    throw new ApolloError('First name must be a string', 'INVALID_INPUT');
   }
   
   if (!last_name || typeof last_name !== 'string') {
-    throw new ApolloError('Last name is required and must be a non-empty string', 'INVALID_INPUT');
+    throw new ApolloError('Last name must be a string', 'INVALID_INPUT');
   }
   
   if (!password || typeof password !== 'string') {
-    throw new ApolloError('Password is required and must be a non-empty string', 'INVALID_INPUT');
+    throw new ApolloError('Password must be a string', 'INVALID_INPUT');
   }
   
   if (!role || typeof role !== 'string') {
-    throw new ApolloError('Role is required and must be a non-empty string', 'INVALID_INPUT');
+    throw new ApolloError('Role must be a string', 'INVALID_INPUT');
   }
 
-  if (email != null && (typeof email !== 'string' || email === '')) {
-    throw new ApolloError('Email must be a string and not empty', 'INVALID_INPUT');
+  if (!email || typeof email !== 'string') {
+    throw new ApolloError('Email must be a string', 'INVALID_INPUT');
   }
 }
 
@@ -68,28 +68,28 @@ function ValidateUpdateUserParameters({ id, first_name, last_name, email, passwo
   ValidateMongoId(id);
   
   // *************** Validate first_name if provided
-  if (first_name != null && (typeof first_name !== 'string' || first_name === '')) {
-    throw new ApolloError('First name must be a non-empty string', 'INVALID_INPUT');
+  if (!first_name || typeof first_name !== 'string') {
+    throw new ApolloError('First name must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate last_name if provided
-  if (last_name != null && (typeof last_name !== 'string' || last_name === '')) {
-    throw new ApolloError('Last name must be a non-empty string', 'INVALID_INPUT');
+  if (!last_name || typeof last_name !== 'string') {
+    throw new ApolloError('Last name must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate email if provided
-  if (email != null && (typeof email !== 'string' || email === '')) {
-    throw new ApolloError('Email must be a string and not empty', 'INVALID_INPUT');
+  if (!email || typeof email !== 'string') {
+    throw new ApolloError('Email must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate password if provided
-  if (password != null && (typeof password !== 'string' || password === '')) {
-    throw new ApolloError('Password must be a non-empty string', 'INVALID_INPUT');
+  if (!password || typeof password !== 'string') {
+    throw new ApolloError('Password must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate role if provided
-  if (role != null && (typeof role !== 'string' || role === '')) {
-    throw new ApolloError('Role must be a non-empty string', 'INVALID_INPUT');
+  if (!role || typeof role !== 'string') {
+    throw new ApolloError('Role must be a string', 'INVALID_INPUT');
   }
 }
 
