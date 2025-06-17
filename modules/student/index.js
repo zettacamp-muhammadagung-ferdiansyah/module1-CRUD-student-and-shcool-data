@@ -10,6 +10,5 @@ module.exports = {
     Query: StudentResolvers.Query,
     Mutation: StudentResolvers.Mutation
   },
-  studentLoader: StudentLoader,
-  studentsBySchoolLoader: StudentsBySchoolLoader
+  StudentLoader
 };
