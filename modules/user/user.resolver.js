@@ -81,28 +81,28 @@ async function GetUserById(parent, { id }) {
  * @async
  * @function CreateUser
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args.input - Input object containing user data
- * @param {string} args.input.first_name - User's first name
- * @param {string} args.input.last_name - User's last name
- * @param {string} args.input.email - User's email
- * @param {string} args.input.password - User's password
- * @param {string} args.input.role - User's role
+ * @param {object} args.userInput - Input object containing user data
+ * @param {string} args.userInput.first_name - User's first name
+ * @param {string} args.userInput.last_name - User's last name
+ * @param {string} args.userInput.email - User's email
+ * @param {string} args.userInput.password - User's password
+ * @param {string} args.userInput.role - User's role
  * @throws {ApolloError} Throws ApolloError if validation fails or creation error occurs
  * @returns {Promise<object>} The created user object
  */
-async function CreateUser(parent, { input }) {
+async function CreateUser(parent, { userInput }) {
   try {
     // *************** Validate Input
-    UserValidators.ValidateCreateUserParameters(input);
+    UserValidators.ValidateCreateUserParameters(userInput);
 
     // *************** Create User
-    const user = await UserModel.create(input);
+    const user = await UserModel.create(userInput);
     return user;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/user/user.resolver.js',
-      parameter_input: JSON.stringify(input),
+      parameter_input: JSON.stringify(userInput),
       function_name: 'CreateUser',
       error: String(error.stack),
     });
@@ -119,22 +119,22 @@ async function CreateUser(parent, { input }) {
  * @function UpdateUser
  * @param {object} parent - The parent object (unused in this function)
  * @param {string} args.id - User ID to update
- * @param {object} args.input - Input object with fields to update
- * @param {string} [args.input.first_name] - Updated first name
- * @param {string} [args.input.last_name] - Updated last name
- * @param {string} [args.input.email] - Updated email
- * @param {string} [args.input.password] - Updated password
- * @param {string} [args.input.role] - Updated role
+ * @param {object} args.userInput - Input object with fields to update
+ * @param {string} [args.userInput.first_name] - Updated first name
+ * @param {string} [args.userInput.last_name] - Updated last name
+ * @param {string} [args.userInput.email] - Updated email
+ * @param {string} [args.userInput.password] - Updated password
+ * @param {string} [args.userInput.role] - Updated role
  * @throws {ApolloError} Throws ApolloError if validation fails or update error occurs
  * @returns {Promise<object|null>} The updated user object or null if not found
  */
-async function UpdateUser(parent, { id, input }) {
+async function UpdateUser(parent, { id, userInput }) {
   try {
     // *************** Validate Input
-    UserValidators.ValidateUpdateUserParameters({ id, input });
+    UserValidators.ValidateUpdateUserParameters({ id, userInput });
 
     // *************** Update User
-    const user = await UserModel.findByIdAndUpdate(id, input);
+    const user = await UserModel.findByIdAndUpdate(id, userInput);
     if (!user) {
       throw new ApolloError('User not found', 'RESOURCE_NOT_FOUND');
     }
@@ -144,7 +144,7 @@ async function UpdateUser(parent, { id, input }) {
     // ************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/user/user.resolver.js',
-      parameter_input: JSON.stringify({ id, input }),
+      parameter_input: JSON.stringify({ id, userInput }),
       function_name: 'UpdateUser',
       error: String(error.stack),
     });

@@ -26,8 +26,8 @@ const SchoolTypeDefs = gql`
     GetSchoolById(id: ID!): School
   }
   extend type Mutation {
-    CreateSchool(input: SchoolInput!): School
-    UpdateSchool(id: ID!, input: SchoolInput!): School
+    CreateSchool(schoolInput: SchoolInput!): School
+    UpdateSchool(id: ID!, schoolInput: SchoolInput!): School
     DeleteSchool(id: ID!): School
   }
 `;

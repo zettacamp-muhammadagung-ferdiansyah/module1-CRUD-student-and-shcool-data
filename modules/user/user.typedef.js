@@ -38,8 +38,8 @@ const UserTypeDefs = gql`
     GetUserById(id: ID!): User
   }
   extend type Mutation {
-    CreateUser(input: CreateUserInput!): User
-    UpdateUser(id: ID!, input: UpdateUserInput!): User
+    CreateUser(userInput: CreateUserInput!): User
+    UpdateUser(id: ID!, userInput: UpdateUserInput!): User
     DeleteUser(id: ID!): User
   }
 `;
