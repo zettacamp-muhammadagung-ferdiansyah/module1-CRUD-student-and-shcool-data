@@ -1,5 +1,5 @@
 // *************** IMPORT LIBRARY ***************
-const Mongoose = require('mongoose'); // update capital M
+const Mongoose = require('mongoose'); 
 const { ApolloError } = require('apollo-server');
 
 // *************** IMPORT Module ***************
