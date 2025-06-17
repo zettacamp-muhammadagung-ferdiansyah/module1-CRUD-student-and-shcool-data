@@ -22,40 +22,40 @@ function ValidateGetStudentByIdParameters({ id }) {
  * 
  * @function ValidateCreateStudentParameters
  * @param {object} params - Parameters to validate
- * @param {object} studentInput - Input object containing student data
- * @param {string} studentInput.first_name - Student's first name
- * @param {string} studentInput.last_name - Student's last name
- * @param {string} studentInput.email - Student's email
- * @param {string} [studentInput.date_of_birth] - Student's date of birth
- * @param {string} studentInput.school_id - School ID
+ * @param {object} student_input - Input object containing student data
+ * @param {string} student_input.first_name - Student's first name
+ * @param {string} student_input.last_name - Student's last name
+ * @param {string} student_input.email - Student's email
+ * @param {string} [student_input.date_of_birth] - Student's date of birth
+ * @param {string} student_input.school_id - School ID
  */
-function ValidateCreateStudentParameters(studentInput) {
+function ValidateCreateStudentParameters(student_input) {
   // ***************  Check if input is provided
-  if (!studentInput) {
+  if (!student_input) {
     throw new ApolloError('Input object must be provided', 'INVALID_INPUT');
   }
 
   // *************** Validate required fields
-  if (!studentInput.first_name || typeof studentInput.first_name !== 'string') {
+  if (!student_input.first_name || typeof student_input.first_name !== 'string') {
     throw new ApolloError('First name must be a string', 'INVALID_INPUT');
   }
   
-  if (!studentInput.last_name || typeof studentInput.last_name !== 'string') {
+  if (!student_input.last_name || typeof student_input.last_name !== 'string') {
     throw new ApolloError('Last name must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate email
-  if (!studentInput.email || typeof studentInput.email !== 'string') {
+  if (!student_input.email || typeof student_input.email !== 'string') {
     throw new ApolloError('Email must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate date_of_birth if provided
-  if (studentInput.date_of_birth && typeof studentInput.date_of_birth !== 'string') {
+  if (student_input.date_of_birth && typeof student_input.date_of_birth !== 'string') {
     throw new ApolloError('Date of birth must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate school_id
-  ValidateMongoId(studentInput.school_id);
+  ValidateMongoId(student_input.school_id);
 }
 
 /**
@@ -64,45 +64,45 @@ function ValidateCreateStudentParameters(studentInput) {
  * @function ValidateUpdateStudentParameters
  * @param {object} params - Parameters to validate
  * @param {string} params.id - Student ID
- * @param {object} params.studentInput - Input object with fields to update
- * @param {string} [params.studentInput.first_name] - Updated first name
- * @param {string} [params.studentInput.last_name] - Updated last name
- * @param {string} [params.studentInput.email] - Updated email
- * @param {string} [params.studentInput.date_of_birth] - Updated date of birth
- * @param {string} [params.studentInput.school_id] - Updated school ID
+ * @param {object} params.student_input - Input object with fields to update
+ * @param {string} [params.student_input.first_name] - Updated first name
+ * @param {string} [params.student_input.last_name] - Updated last name
+ * @param {string} [params.student_input.email] - Updated email
+ * @param {string} [params.student_input.date_of_birth] - Updated date of birth
+ * @param {string} [params.student_input.school_id] - Updated school ID
  */
-function ValidateUpdateStudentParameters({ id, studentInput }) {
+function ValidateUpdateStudentParameters({ id, student_input }) {
   // *************** Check if ID exists and is valid
   ValidateMongoId(id);
   
   // *************** Check if input is provided
-  if (!studentInput) {
+  if (!student_input) {
     throw new ApolloError('Input object must be provided for update', 'INVALID_INPUT');
   }
   
   // *************** Validate first_name if provided
-  if (studentInput.first_name && typeof studentInput.first_name !== 'string') {
+  if (student_input.first_name && typeof student_input.first_name !== 'string') {
     throw new ApolloError('First name must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate last_name if provided
-  if (studentInput.last_name && typeof studentInput.last_name !== 'string') {
+  if (student_input.last_name && typeof student_input.last_name !== 'string') {
     throw new ApolloError('Last name must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate email if provided
-  if (studentInput.email && typeof studentInput.email !== 'string') {
+  if (student_input.email && typeof student_input.email !== 'string') {
     throw new ApolloError('Email must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate date_of_birth if provided
-  if (studentInput.date_of_birth && typeof studentInput.date_of_birth !== 'string') {
+  if (student_input.date_of_birth && typeof student_input.date_of_birth !== 'string') {
     throw new ApolloError('Date of birth must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate school_id if provided
-  if (studentInput.school_id) {
-    ValidateMongoId(studentInput.school_id);
+  if (student_input.school_id) {
+    ValidateMongoId(student_input.school_id);
   }
 }
 

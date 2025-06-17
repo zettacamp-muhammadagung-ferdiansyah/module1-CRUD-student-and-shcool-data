@@ -81,22 +81,22 @@ async function GetUserById(parent, { id }) {
  * @async
  * @function CreateUser
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args.userInput - Input object containing user data
- * @param {string} args.userInput.first_name - User's first name
- * @param {string} args.userInput.last_name - User's last name
- * @param {string} args.userInput.email - User's email
- * @param {string} args.userInput.password - User's password
- * @param {string} args.userInput.role - User's role
+ * @param {object} args.user_input - Input object containing user data
+ * @param {string} args.user_input.first_name - User's first name
+ * @param {string} args.user_input.last_name - User's last name
+ * @param {string} args.user_input.email - User's email
+ * @param {string} args.user_input.password - User's password
+ * @param {string} args.user_input.role - User's role
  * @throws {ApolloError} Throws ApolloError if validation fails or creation error occurs
  * @returns {Promise<object>} The created user object
  */
-async function CreateUser(parent, { userInput }) {
+async function CreateUser(parent, { user_input }) {
   try {
     // *************** Validate Input
-    UserValidators.ValidateCreateUserParameters(userInput);
+    UserValidators.ValidateCreateUserParameters(user_input);
 
     // *************** Create User
-    const user = await UserModel.create(userInput);
+    const user = await UserModel.create(user_input);
     return user;
   } catch (error) {
     // ************** Log error to database
@@ -119,22 +119,22 @@ async function CreateUser(parent, { userInput }) {
  * @function UpdateUser
  * @param {object} parent - The parent object (unused in this function)
  * @param {string} args.id - User ID to update
- * @param {object} args.userInput - Input object with fields to update
- * @param {string} [args.userInput.first_name] - Updated first name
- * @param {string} [args.userInput.last_name] - Updated last name
- * @param {string} [args.userInput.email] - Updated email
- * @param {string} [args.userInput.password] - Updated password
- * @param {string} [args.userInput.role] - Updated role
+ * @param {object} args.user_input - Input object with fields to update
+ * @param {string} [args.user_input.first_name] - Updated first name
+ * @param {string} [args.user_input.last_name] - Updated last name
+ * @param {string} [args.user_input.email] - Updated email
+ * @param {string} [args.user_input.password] - Updated password
+ * @param {string} [args.user_input.role] - Updated role
  * @throws {ApolloError} Throws ApolloError if validation fails or update error occurs
  * @returns {Promise<object|null>} The updated user object or null if not found
  */
-async function UpdateUser(parent, { id, userInput }) {
+async function UpdateUser(parent, { id, user_input }) {
   try {
     // *************** Validate Input
-    UserValidators.ValidateUpdateUserParameters({ id, userInput });
+    UserValidators.ValidateUpdateUserParameters({ id, user_input });
 
     // *************** Update User
-    const user = await UserModel.findByIdAndUpdate(id, userInput);
+    const user = await UserModel.findByIdAndUpdate(id, user_input);
     if (!user) {
       throw new ApolloError('User not found', 'RESOURCE_NOT_FOUND');
     }

@@ -84,27 +84,27 @@ async function GetStudentById(parent, { id }) {
  * @async
  * @function CreateStudent
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args.studentInput - Input object containing student data
- * @param {string} args.studentInput.first_name - Student's first name
- * @param {string} args.studentInput.last_name - Student's last name
- * @param {string} args.studentInput.email - Student's email
- * @param {Date} [args.studentInput.date_of_birth] - Student's date of birth
- * @param {string} args.studentInput.school_id - ID of the school the student belongs to
+ * @param {object} args.student_input - Input object containing student data
+ * @param {string} args.student_input.first_name - Student's first name
+ * @param {string} args.student_input.last_name - Student's last name
+ * @param {string} args.student_input.email - Student's email
+ * @param {Date} [args.student_input.date_of_birth] - Student's date of birth
+ * @param {string} args.student_input.school_id - ID of the school the student belongs to
  * @throws {ApolloError} Throws ApolloError if validation fails or creation error occurs
  * @returns {Promise<object>} The created student object
  */
-async function CreateStudent(parent, { studentInput }) {
+async function CreateStudent(parent, { student_input }) {
   try {
     // *************** Validate Input
-    StudentValidators.ValidateCreateStudentParameters(studentInput);
+    StudentValidators.ValidateCreateStudentParameters(student_input);
 
     // *************** Create Student
-    const student = await StudentModel.create(studentInput);
+    const student = await StudentModel.create(student_input);
     
     // *************** Update School with new student ID
-    if (studentInput.school_id) {
+    if (student_input.school_id) {
       await SchoolModel.findByIdAndUpdate(
-        studentInput.school_id,
+        student_input.school_id,
         { $addToSet: { students: student._id } }
       );
     }
@@ -130,19 +130,19 @@ async function CreateStudent(parent, { studentInput }) {
  * @function UpdateStudent
  * @param {object} parent - The parent object (unused in this function)
  * @param {string} args.id - Student ID to update
- * @param {object} args.studentInput - Input object with fields to update
- * @param {string} [args.studentInput.first_name] - Updated first name
- * @param {string} [args.studentInput.last_name] - Updated last name
- * @param {string} [args.studentInput.email] - Updated email
- * @param {Date} [args.studentInput.date_of_birth] - Updated date of birth
- * @param {string} [args.studentInput.school_id] - Updated school ID
+ * @param {object} args.student_input - Input object with fields to update
+ * @param {string} [args.student_input.first_name] - Updated first name
+ * @param {string} [args.student_input.last_name] - Updated last name
+ * @param {string} [args.student_input.email] - Updated email
+ * @param {Date} [args.student_input.date_of_birth] - Updated date of birth
+ * @param {string} [args.student_input.school_id] - Updated school ID
  * @throws {ApolloError} Throws ApolloError if validation fails or update error occurs
  * @returns {Promise<object|null>} The updated student object or null if not found
  */
-async function UpdateStudent(parent, { id, studentInput }) {
+async function UpdateStudent(parent, { id, student_input }) {
   try {
     // *************** Validate Input
-    StudentValidators.ValidateUpdateStudentParameters({ id, studentInput });
+    StudentValidators.ValidateUpdateStudentParameters({ id, student_input });
 
     // *************** First, get the current student to check if school_id is changing
     const currentStudent = await StudentModel.findById(id);
@@ -151,7 +151,7 @@ async function UpdateStudent(parent, { id, studentInput }) {
     }
 
     // *************** Handle school change if school_id is provided and different
-    if (studentInput.school_id && currentStudent.school_id.toString() !== studentInput.school_id) {
+    if (student_input.school_id && currentStudent.school_id.toString() !== student_input.school_id) {
       // *************** 1. Remove student from old school's students array
       await SchoolModel.findByIdAndUpdate(
         currentStudent.school_id,
@@ -160,7 +160,7 @@ async function UpdateStudent(parent, { id, studentInput }) {
       
       // *************** 2. Add student to new school's students array
       await SchoolModel.findByIdAndUpdate(
-        studentInput.school_id,
+        student_input.school_id,
         { $addToSet: { students: currentStudent._id } }
       );
     }
@@ -170,7 +170,7 @@ async function UpdateStudent(parent, { id, studentInput }) {
     // *************** Update Student
     const updatedStudent = await StudentModel.findByIdAndUpdate(
       id,
-      studentInput,
+      student_input,
       //***************  Return the updated document
       { new: true } 
     );
@@ -180,7 +180,7 @@ async function UpdateStudent(parent, { id, studentInput }) {
     // ************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/student/student.resolver.js',
-      parameter_input: JSON.stringify({ id, studentInput }),
+      parameter_input: JSON.stringify({ id, student_input }),
       function_name: 'UpdateStudent',
       error: String(error.stack),
     });

@@ -84,19 +84,19 @@ async function GetSchoolById(parent, { id }) {
  * @async
  * @function CreateSchool
  * @param {object} parent - The parent object (unused in this function)
- * @param {object} args.schoolInput - Input object containing school data
- * @param {string} args.schoolInput.name - Name of the school (required)
- * @param {string} [args.schoolInput.address] - Address of the school (optional)
+ * @param {object} args.school_input - Input object containing school data
+ * @param {string} args.school_input.name - Name of the school (required)
+ * @param {string} [args.school_input.address] - Address of the school (optional)
  * @throws {ApolloError} Throws ApolloError if validation fails or creation error occurs
  * @returns {Promise<object>} The created school object
  */
-async function CreateSchool(parent, { schoolInput }) {
+async function CreateSchool(parent, { school_input }) {
   try {
     // *************** Validate Input
-    SchoolValidators.ValidateCreateSchoolParameters(schoolInput);
+    SchoolValidators.ValidateCreateSchoolParameters(school_input);
 
     // *************** Create School
-    const school = await SchoolModel.create(schoolInput);
+    const school = await SchoolModel.create(school_input);
     return school;
   } catch (error) {
     // ************** Log error to database
@@ -119,19 +119,19 @@ async function CreateSchool(parent, { schoolInput }) {
  * @function UpdateSchool
  * @param {object} parent - The parent object (unused in this function)
  * @param {string} args.id - School ID to update
- * @param {object} args.schoolInput - Input object containing updated school data
- * @param {string} [args.schoolInput.name] - Updated school name
- * @param {string} [args.schoolInput.address] - Updated school address
+ * @param {object} args.school_input - Input object containing updated school data
+ * @param {string} [args.school_input.name] - Updated school name
+ * @param {string} [args.school_input.address] - Updated school address
  * @throws {ApolloError} Throws ApolloError if validation fails or update error occurs
  * @returns {Promise<object|null>} The updated school object or null if not found
  */
-async function UpdateSchool(parent, { id, schoolInput }) {
+async function UpdateSchool(parent, { id, school_input }) {
   try {
     // *************** Validate Input
-    SchoolValidators.ValidateUpdateSchoolParameters({ id, schoolInput });
+    SchoolValidators.ValidateUpdateSchoolParameters({ id, school_input });
 
     // *************** Update School
-    const school = await SchoolModel.findByIdAndUpdate(id, schoolInput);
+    const school = await SchoolModel.findByIdAndUpdate(id, school_input);
     if (!school) {
       throw new ApolloError('School not found', 'RESOURCE_NOT_FOUND');
     } 
