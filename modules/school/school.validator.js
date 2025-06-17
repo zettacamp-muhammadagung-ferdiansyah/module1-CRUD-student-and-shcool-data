@@ -27,12 +27,12 @@ function ValidateGetSchoolByIdParameters({ id }) {
  */
 function ValidateCreateSchoolParameters({ name, address }) {
   // ***************  Check if name exists and is a string
-  if (!name || typeof name !== 'string') {
+  if (!name || typeof name !== 'string' || name === '') {
     throw new ApolloError('School name is required and must be a non-empty string', 'INVALID_INPUT');
   }
   
   // ***************  Check if address is a string when provided
-  if (address && typeof address !== 'string') {
+  if (address != null && (typeof address !== 'string')) {
     throw new ApolloError('School address must be a string', 'INVALID_INPUT');
   }
 }
@@ -51,12 +51,12 @@ function ValidateUpdateSchoolParameters({ id, name, address }) {
   ValidateMongoId(id);
   
   // ***************Check if name is a non-empty string when provided
-  if (name && (!name || typeof name !== 'string')) {
+  if (name != null && (typeof name !== 'string' || name === '')) {
     throw new ApolloError('School name must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Check if address is a non-empty string when provided
-  if (address && (!address || typeof address !== 'string')) {
+  if (address != null && (typeof address !== 'string' || address === '')) {
     throw new ApolloError('School address must be a non-empty string', 'INVALID_INPUT');
   }
 }

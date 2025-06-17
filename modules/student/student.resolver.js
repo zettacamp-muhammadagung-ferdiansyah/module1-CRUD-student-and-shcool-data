@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 // *************** IMPORT MODULE ***************
 const StudentModel = require('./student.model');
 const ErrorLogModel = require('../errorLogs/error_logs.model');
+const SchoolModel = require('../school/school.model');
 
 // *************** IMPORT VALIDATOR ***************
 const StudentValidators = require('./student.validator');
@@ -23,7 +24,8 @@ const StudentValidators = require('./student.validator');
 async function GetAllStudents() {
   try {
     // *************** Query to retrieve only active students
-    return await StudentModel.find({ status: 'active' });
+    const students = await StudentModel.find({ status: 'active' });
+    return students;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -97,6 +99,15 @@ async function CreateStudent(parent, { first_name, last_name, email, date_of_bir
 
     // *************** Create Student
     const student = await StudentModel.create({ first_name, last_name, email, date_of_birth, school_id });
+    
+    // *************** Update School with new student ID
+    if (school_id) {
+      await SchoolModel.findByIdAndUpdate(
+        school_id,
+        { $addToSet: { students: student._id } }
+      );
+    }
+    
     return student;
   } catch (error) {
     // ************** Log error to database

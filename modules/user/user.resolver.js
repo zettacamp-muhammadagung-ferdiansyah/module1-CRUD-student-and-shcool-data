@@ -23,7 +23,8 @@ const UserValidators = require('./user.validator');
 async function GetAllUsers() {
   try {
     // *************** Query to retrieve only active users
-    return await UserModel.find({ status: 'active' });
+    const users = await UserModel.find({ status: 'active' });
+    return users;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({

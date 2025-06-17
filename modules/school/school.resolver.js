@@ -21,9 +21,10 @@ const SchoolValidators = require('./school.validator');
  * @returns {Promise<Array>} Array of active school objects
  */
 async function GetAllSchools() {
-  try {console.log('GetAllSchools called');
+  try {
     // *************** Retrieve Schools with active status directly
-    return await SchoolModel.find({ status: 'active' });
+    const schools = await SchoolModel.find({ status: 'active' });
+    return schools;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -208,13 +209,14 @@ async function DeleteSchool(parent, { id }) {
  */
 async function GetStudentsBySchool(parent, _, context) {
   try {
-    // *************** If there's no ID in parent, return null
-    if (!parent.id) {
-      return null;
+    // ************** Return empty array if no students are associated with the school
+    if (!parent.students || !parent.students.length) {
+      return [];
     }
     
-    // *************** Use the dataloader from context to load students by school ID
-    return await context.loaders.StudentLoader.bySchool.load(parent.id);
+    //************** Use the StudentLoader to load each student by ID
+    const students = await context.loaders.StudentLoader.loadMany(parent.students);
+    return students;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -241,7 +243,7 @@ module.exports = {
     UpdateSchool,
     DeleteSchool,
   },
-  School: {
+  School: { //harusnya manggil 
     students: GetStudentsBySchool,
   },
 };

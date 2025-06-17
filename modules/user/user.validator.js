@@ -46,8 +46,8 @@ function ValidateCreateUserParameters({ first_name, last_name, email, password, 
     throw new ApolloError('Role is required and must be a non-empty string', 'INVALID_INPUT');
   }
 
-  if (email && typeof email !== 'string') {
-    throw new ApolloError('Email must be a string', 'INVALID_INPUT');
+  if (email != null && (typeof email !== 'string' || email === '')) {
+    throw new ApolloError('Email must be a string and not empty', 'INVALID_INPUT');
   }
 }
 
@@ -68,27 +68,27 @@ function ValidateUpdateUserParameters({ id, first_name, last_name, email, passwo
   ValidateMongoId(id);
   
   // *************** Validate first_name if provided
-  if (first_name && (!first_name || typeof first_name !== 'string')) {
+  if (first_name != null && (typeof first_name !== 'string' || first_name === '')) {
     throw new ApolloError('First name must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Validate last_name if provided
-  if (last_name && (!last_name || typeof last_name !== 'string')) {
+  if (last_name != null && (typeof last_name !== 'string' || last_name === '')) {
     throw new ApolloError('Last name must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Validate email if provided
-  if (email && typeof email !== 'string') {
-    throw new ApolloError('Email must be a string', 'INVALID_INPUT');
+  if (email != null && (typeof email !== 'string' || email === '')) {
+    throw new ApolloError('Email must be a string and not empty', 'INVALID_INPUT');
   }
   
   // *************** Validate password if provided
-  if (password && (!password || typeof password !== 'string')) {
+  if (password != null && (typeof password !== 'string' || password === '')) {
     throw new ApolloError('Password must be a non-empty string', 'INVALID_INPUT');
   }
   
   // *************** Validate role if provided
-  if (role && (!role || typeof role !== 'string')) {
+  if (role != null && (typeof role !== 'string' || role === '')) {
     throw new ApolloError('Role must be a non-empty string', 'INVALID_INPUT');
   }
 }

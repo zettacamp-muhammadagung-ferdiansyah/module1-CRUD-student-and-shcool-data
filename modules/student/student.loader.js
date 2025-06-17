@@ -43,50 +43,10 @@ function StudentLoader() {
     }
   });
   
-  //*************** Attach bySchool property for use in school resolvers
-  loader.bySchool = StudentsBySchoolLoader();
   return loader;
-}
-
-/**
- * Creates a DataLoader for efficiently fetching students by their school ID.
- * This optimizes GraphQL resolvers that need to load all students for multiple schools
- * by batching the requests into a single database query.
- * 
- * @returns {DataLoader} - A DataLoader instance for fetching students by school ID
- */
-function StudentsBySchoolLoader() {
-  return new DataLoader(async (schoolIds) => {
-    try {
-      // *************** Fetch students for all schools in one query
-      const students = await StudentModel.find({ 
-        school_id: { $in: schoolIds },
-        status: 'active' 
-      });
-
-      // *************** Group students by school_id
-      return schoolIds.map(schoolId => 
-        students.filter(student => 
-          student.school_id.toString() === schoolId.toString()
-        )
-      );
-    } catch (error) {
-      // *************** Log error for debugging
-      await ErrorLogModel.create({
-        path: 'modules/student/student.loader.js',
-        parameter_input: JSON.stringify({ schoolIds }),
-        function_name: 'StudentsBySchoolLoader',
-        error: String(error.stack),
-      });
-
-      // *************** Throw error with context
-      throw new ApolloError(`Failed to batch load students by school: ${error.message}`, 'DATALOADER_ERROR');
-    }
-  });
 }
 
 // *************** EXPORT MODULE ***************
 module.exports = {
   StudentLoader,
-  StudentsBySchoolLoader,
 };
