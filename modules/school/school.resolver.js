@@ -243,7 +243,7 @@ module.exports = {
     UpdateSchool,
     DeleteSchool,
   },
-  School: { //harusnya manggil 
+  School: { 
     students: GetStudentsBySchool,
   },
 };
