@@ -21,32 +21,37 @@ function ValidateGetUserByIdParameters({ id }) {
  * Validates parameters for CreateUser resolver
  * 
  * @function ValidateCreateUserParameters
- * @param {object} params - Parameters to validate
- * @param {string} params.first_name - User's first name
- * @param {string} params.last_name - User's last name
- * @param {string} params.email - User's email
- * @param {string} params.password - User's password
- * @param {string} params.role - User's role
+ * @param {object} input - Input object containing user data
+ * @param {string} input.first_name - User's first name
+ * @param {string} input.last_name - User's last name
+ * @param {string} input.email - User's email
+ * @param {string} input.password - User's password
+ * @param {string} input.role - User's role
  */
-function ValidateCreateUserParameters({ first_name, last_name, email, password, role }) {
+function ValidateCreateUserParameters(input) {
+  // ***************  Check if input is provided
+  if (!input) {
+    throw new ApolloError('Input object must be provided', 'INVALID_INPUT');
+  }
+
   // *************** Validate required fields
-  if (!first_name || typeof first_name !== 'string') {
+  if (!input.first_name || typeof input.first_name !== 'string') {
     throw new ApolloError('First name must be a string', 'INVALID_INPUT');
   }
   
-  if (!last_name || typeof last_name !== 'string') {
+  if (!input.last_name || typeof input.last_name !== 'string') {
     throw new ApolloError('Last name must be a string', 'INVALID_INPUT');
   }
   
-  if (!password || typeof password !== 'string') {
+  if (!input.password || typeof input.password !== 'string') {
     throw new ApolloError('Password must be a string', 'INVALID_INPUT');
   }
   
-  if (!role || typeof role !== 'string') {
+  if (!input.role || typeof input.role !== 'string') {
     throw new ApolloError('Role must be a string', 'INVALID_INPUT');
   }
 
-  if (!email || typeof email !== 'string') {
+  if (!input.email || typeof input.email !== 'string') {
     throw new ApolloError('Email must be a string', 'INVALID_INPUT');
   }
 }
@@ -57,38 +62,44 @@ function ValidateCreateUserParameters({ first_name, last_name, email, password, 
  * @function ValidateUpdateUserParameters
  * @param {object} params - Parameters to validate
  * @param {string} params.id - User ID
- * @param {string} [params.first_name] - Updated first name
- * @param {string} [params.last_name] - Updated last name
- * @param {string} [params.email] - Updated email
- * @param {string} [params.password] - Updated password
- * @param {string} [params.role] - Updated role
+ * @param {object} params.input - Input object with fields to update
+ * @param {string} [params.input.first_name] - Updated first name
+ * @param {string} [params.input.last_name] - Updated last name
+ * @param {string} [params.input.email] - Updated email
+ * @param {string} [params.input.password] - Updated password
+ * @param {string} [params.input.role] - Updated role
  */
-function ValidateUpdateUserParameters({ id, first_name, last_name, email, password, role }) {
+function ValidateUpdateUserParameters({ id, input }) {
   // *************** Check if ID exists and is valid
   ValidateMongoId(id);
   
+  // ***************  Check if input is provided
+  if (!input) {
+    throw new ApolloError('Input object must be provided for update', 'INVALID_INPUT');
+  }
+  
   // *************** Validate first_name if provided
-  if (!first_name || typeof first_name !== 'string') {
+  if (input.first_name && typeof input.first_name !== 'string') {
     throw new ApolloError('First name must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate last_name if provided
-  if (!last_name || typeof last_name !== 'string') {
+  if (input.last_name && typeof input.last_name !== 'string') {
     throw new ApolloError('Last name must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate email if provided
-  if (!email || typeof email !== 'string') {
+  if (input.email && typeof input.email !== 'string') {
     throw new ApolloError('Email must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate password if provided
-  if (!password || typeof password !== 'string') {
+  if (input.password && typeof input.password !== 'string') {
     throw new ApolloError('Password must be a string', 'INVALID_INPUT');
   }
   
   // *************** Validate role if provided
-  if (!role || typeof role !== 'string') {
+  if (input.role && typeof input.role !== 'string') {
     throw new ApolloError('Role must be a string', 'INVALID_INPUT');
   }
 }

@@ -21,17 +21,22 @@ function ValidateGetSchoolByIdParameters({ id }) {
  * Validates parameters for CreateSchool resolver
  * 
  * @function ValidateCreateSchoolParameters
- * @param {object} params - Parameters to validate
- * @param {string} params.name - School name
- * @param {string} [params.address] - School address
+ * @param {object} input - Input object containing school data
+ * @param {string} input.name - School name
+ * @param {string} [input.address] - School address
  */
-function ValidateCreateSchoolParameters({ name, address }) {
+function ValidateCreateSchoolParameters(input) {
+  // ***************  Check if input is provided
+  if (!input) {
+    throw new ApolloError('Input object must be provided', 'INVALID_INPUT');
+  }
+
   // ***************  Check if name is a string or exists
-  if (!name || typeof name !== 'string') {
+  if (!input.name || typeof input.name !== 'string') {
     throw new ApolloError('School name is required and must be a non-empty string', 'INVALID_INPUT');
   }
-  // ***************  Check if address is a string or exists
-  if (!address || typeof address !== 'string') {
+  // ***************  Check if address is a string if provided
+  if (input.address && typeof input.address !== 'string') {
     throw new ApolloError('School address must be a string', 'INVALID_INPUT');
   }
 }
@@ -42,18 +47,25 @@ function ValidateCreateSchoolParameters({ name, address }) {
  * @function ValidateUpdateSchoolParameters
  * @param {object} params - Parameters to validate
  * @param {string} params.id - School ID
- * @param {string} [params.name] - Updated school name
- * @param {string} [params.address] - Updated school address
+ * @param {object} params.input - Input object with fields to update
+ * @param {string} [params.input.name] - Updated school name
+ * @param {string} [params.input.address] - Updated school address
  */
-function ValidateUpdateSchoolParameters({ id, name, address }) {
+function ValidateUpdateSchoolParameters({ id, input }) {
   // *************** Check if ID exists and is valid
   ValidateMongoId(id);
-  // *************** Check if name is a string or exists
-  if (!name || typeof name !== 'string') {
+  
+  // *************** Check if input is provided
+  if (!input) {
+    throw new ApolloError('Input object must be provided for update', 'INVALID_INPUT');
+  }
+  
+  // *************** Check if name is a string if provided
+  if (input.name && typeof input.name !== 'string') {
     throw new ApolloError('School name must be a string', 'INVALID_INPUT');
   }
-  // *************** Check if address is a string or exists
-  if (!address || typeof address !== 'string') {
+  // *************** Check if address is a string if provided
+  if (input.address && typeof input.address !== 'string') {
     throw new ApolloError('School address must be a string', 'INVALID_INPUT');
   }
 }

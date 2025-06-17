@@ -19,13 +19,29 @@ const StudentTypeDefs = gql`
     deleted
   }
   
+  input CreateStudentInput {
+    first_name: String!
+    last_name: String!
+    email: String!
+    date_of_birth: String
+    school_id: ID!
+  }
+  
+  input UpdateStudentInput {
+    first_name: String
+    last_name: String
+    email: String
+    date_of_birth: String
+    school_id: ID
+  }
+  
   extend type Query {
     GetAllStudents: [Student]
     GetStudentById(id: ID!): Student
   }
   extend type Mutation {
-    CreateStudent(first_name: String!, last_name: String!, email: String!, date_of_birth: String, school_id: ID!): Student
-    UpdateStudent(id: ID!, first_name: String, last_name: String, email: String, date_of_birth: String, school_id: ID): Student
+    CreateStudent(input: CreateStudentInput!): Student
+    UpdateStudent(id: ID!, input: UpdateStudentInput!): Student
     DeleteStudent(id: ID!): Student
   }
 `;

@@ -17,13 +17,29 @@ const UserTypeDefs = gql`
     deleted
   }
   
+  input CreateUserInput {
+    first_name: String!
+    last_name: String!
+    email: String!
+    password: String!
+    role: String!
+  }
+  
+  input UpdateUserInput {
+    first_name: String
+    last_name: String
+    email: String
+    password: String
+    role: String
+  }
+  
   extend type Query {
     GetAllUsers: [User]
     GetUserById(id: ID!): User
   }
   extend type Mutation {
-    CreateUser(first_name: String!, last_name: String!, email: String!, password: String!, role: String!): User
-    UpdateUser(id: ID!, first_name: String, last_name: String, email: String, password: String, role: String): User
+    CreateUser(input: CreateUserInput!): User
+    UpdateUser(id: ID!, input: UpdateUserInput!): User
     DeleteUser(id: ID!): User
   }
 `;
