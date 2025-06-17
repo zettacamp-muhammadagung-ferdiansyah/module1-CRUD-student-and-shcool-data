@@ -96,7 +96,7 @@ async function GetStudentById(parent, { id }) {
 async function CreateStudent(parent, { student_input }) {
   try {
     // *************** Validate Input
-    StudentValidators.ValidateCreateStudentParameters(student_input);
+    StudentValidators.ValidateCreateStudentParameters({ studentInput: student_input });
 
     // *************** Create Student
     const student = await StudentModel.create(student_input);
@@ -114,7 +114,7 @@ async function CreateStudent(parent, { student_input }) {
     // ************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/student/student.resolver.js',
-      parameter_input: JSON.stringify(studentInput),
+      parameter_input: JSON.stringify(student_input),
       function_name: 'CreateStudent',
       error: String(error.stack),
     });
@@ -142,7 +142,7 @@ async function CreateStudent(parent, { student_input }) {
 async function UpdateStudent(parent, { id, student_input }) {
   try {
     // *************** Validate Input
-    StudentValidators.ValidateUpdateStudentParameters({ id, student_input });
+    StudentValidators.ValidateUpdateStudentParameters({ id, studentInput: student_input });
 
     // *************** First, get the current student to check if school_id is changing
     const currentStudent = await StudentModel.findById(id);
@@ -165,14 +165,11 @@ async function UpdateStudent(parent, { id, student_input }) {
       );
     }
 
-    // *************** Use input object directly as update data
-
     // *************** Update Student
     const updatedStudent = await StudentModel.findByIdAndUpdate(
       id,
       student_input,
-      //***************  Return the updated document
-      { new: true } 
+      { new: true }
     );
 
     return updatedStudent;

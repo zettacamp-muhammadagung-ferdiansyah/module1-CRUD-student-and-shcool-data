@@ -93,7 +93,7 @@ async function GetSchoolById(parent, { id }) {
 async function CreateSchool(parent, { school_input }) {
   try {
     // *************** Validate Input
-    SchoolValidators.ValidateCreateSchoolParameters(school_input);
+    SchoolValidators.ValidateCreateSchoolParameters({ schoolInput: school_input });
 
     // *************** Create School
     const school = await SchoolModel.create(school_input);
@@ -102,7 +102,7 @@ async function CreateSchool(parent, { school_input }) {
     // ************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/school/school.resolver.js',
-      parameter_input: JSON.stringify(schoolInput),
+      parameter_input: JSON.stringify(school_input),
       function_name: 'CreateSchool',
       error: String(error.stack),
     });
@@ -128,7 +128,7 @@ async function CreateSchool(parent, { school_input }) {
 async function UpdateSchool(parent, { id, school_input }) {
   try {
     // *************** Validate Input
-    SchoolValidators.ValidateUpdateSchoolParameters({ id, school_input });
+    SchoolValidators.ValidateUpdateSchoolParameters({ id, schoolInput: school_input });
 
     // *************** Update School
     const school = await SchoolModel.findByIdAndUpdate(id, school_input);
@@ -141,7 +141,7 @@ async function UpdateSchool(parent, { id, school_input }) {
     // ************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/school/school.resolver.js',
-      parameter_input: JSON.stringify({ id, schoolInput }),
+      parameter_input: JSON.stringify({ id, school_input }),
       function_name: 'UpdateSchool',
       error: String(error.stack),
     });

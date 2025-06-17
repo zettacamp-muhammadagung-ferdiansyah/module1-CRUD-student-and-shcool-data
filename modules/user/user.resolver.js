@@ -93,7 +93,7 @@ async function GetUserById(parent, { id }) {
 async function CreateUser(parent, { user_input }) {
   try {
     // *************** Validate Input
-    UserValidators.ValidateCreateUserParameters(user_input);
+    UserValidators.ValidateCreateUserParameters({ userInput: user_input });
 
     // *************** Create User
     const user = await UserModel.create(user_input);
@@ -102,7 +102,7 @@ async function CreateUser(parent, { user_input }) {
     // ************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/user/user.resolver.js',
-      parameter_input: JSON.stringify(userInput),
+      parameter_input: JSON.stringify(user_input),
       function_name: 'CreateUser',
       error: String(error.stack),
     });
@@ -131,7 +131,7 @@ async function CreateUser(parent, { user_input }) {
 async function UpdateUser(parent, { id, user_input }) {
   try {
     // *************** Validate Input
-    UserValidators.ValidateUpdateUserParameters({ id, user_input });
+    UserValidators.ValidateUpdateUserParameters({ id, userInput: user_input });
 
     // *************** Update User
     const user = await UserModel.findByIdAndUpdate(id, user_input);
@@ -144,7 +144,7 @@ async function UpdateUser(parent, { id, user_input }) {
     // ************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/user/user.resolver.js',
-      parameter_input: JSON.stringify({ id, userInput }),
+      parameter_input: JSON.stringify({ id, user_input }),
       function_name: 'UpdateUser',
       error: String(error.stack),
     });
