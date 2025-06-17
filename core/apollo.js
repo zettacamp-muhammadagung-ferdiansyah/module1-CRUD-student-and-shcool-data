@@ -2,8 +2,8 @@
 const { ApolloServer } = require('apollo-server');
 
 // *************** IMPORT MODULE ***************
-const typeDefs = require('./typedef');
-const resolvers = require('./resolvers');
+const TypeDefs = require('./typedef');
+const Resolvers = require('./resolvers');
 const LoaderModule = require('./loaders');
 
 /**
@@ -15,8 +15,8 @@ const LoaderModule = require('./loaders');
 function CreateApolloServer() {
   // *************** Configure Apollo Server ***************
   const server = new ApolloServer({
-    typeDefs,
-    resolvers,
+    TypeDefs,
+    Resolvers,
     context: () => {
       return {
         loaders: LoaderModule()
