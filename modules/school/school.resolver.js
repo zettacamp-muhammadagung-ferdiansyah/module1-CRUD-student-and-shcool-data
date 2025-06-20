@@ -3,7 +3,6 @@ const { ApolloError } = require('apollo-server');
 
 // *************** IMPORT MODULE ***************
 const SchoolModel = require('./school.model');
-const StudentModel = require('../student/student.model'); //NOT IMPORT,
 const ErrorLogModel = require('../errorLogs/error_logs.model');
 
 // *************** IMPORT VALIDATOR ***************
