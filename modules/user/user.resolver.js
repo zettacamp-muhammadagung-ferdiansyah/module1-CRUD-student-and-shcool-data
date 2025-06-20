@@ -1,6 +1,5 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
-const Mongoose = require('mongoose');
 
 // *************** IMPORT MODULE ***************
 const UserModel = require('./user.model');
@@ -8,6 +7,7 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
 
 // *************** IMPORT VALIDATOR ***************
 const UserValidators = require('./user.validator');
+const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 
 // *************** QUERY ***************
 /**
@@ -16,14 +16,13 @@ const UserValidators = require('./user.validator');
  *
  * @async
  * @function GetAllUsers
- * @param {object} parent - The parent object (unused in this function)
- * @throws {ApolloError} Throws ApolloError if an error occurs during retrieval
+ * @throws {ApolloError} Throws ApolloError with the original error message if retrieval fails
  * @returns {Promise<Array>} Array of active user objects
  */
 async function GetAllUsers() {
   try {
     // *************** Query to retrieve only active users
-    const users = await UserModel.find({ status: 'active' });
+    const users = await UserModel.find({ status: 'active' }).lean();
     return users;
   } catch (error) {
     // ************** Log error to database
@@ -44,18 +43,18 @@ async function GetAllUsers() {
  *
  * @async
  * @function GetUserById
- * @param {object} parent - The parent object (unused in this function)
  * @param {string} args.id - The ID of the user to retrieve
- * @throws {ApolloError} Throws ApolloError if user ID is not provided or an error occurs
+ * @throws {ApolloError} Throws 'INVALID_INPUT' if ID is not provided or has invalid format
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if user with given ID doesn't exist or is not active
  * @returns {Promise<object|null>} The user object or null if not found
  */
-async function GetUserById(parent, { id }) {
+async function GetUserById(_, { id }) {
   try {
-    // *************** Validate Input
-    UserValidators.ValidateGetUserByIdParameters({ id });
+    // *************** Validate MongoDB ID
+    ValidateMongoId(id);
 
     // *************** Retrieve User using status active
-    const user = await UserModel.findOne({ _id: id, status: 'active' });
+    const user = await UserModel.findOne({ _id: id, status: 'active' }).lean();
     if (!user) {
       throw new ApolloError('User not found', 'RESOURCE_NOT_FOUND',);
     }
@@ -80,23 +79,31 @@ async function GetUserById(parent, { id }) {
  *
  * @async
  * @function CreateUser
- * @param {object} parent - The parent object (unused in this function)
  * @param {object} args.user_input - Input object containing user data
  * @param {string} args.user_input.first_name - User's first name
  * @param {string} args.user_input.last_name - User's last name
  * @param {string} args.user_input.email - User's email
  * @param {string} args.user_input.password - User's password
  * @param {string} args.user_input.role - User's role
- * @throws {ApolloError} Throws ApolloError if validation fails or creation error occurs
  * @returns {Promise<object>} The created user object
  */
-async function CreateUser(parent, { user_input }) {
+async function CreateUser(_, { user_input }) {
   try {
     // *************** Validate Input
-    UserValidators.ValidateCreateUserParameters({ userInput: user_input });
+    UserValidators.ValidateCreateUpdateUserParameters({ userInput: user_input });
+
+    // *************** Create sanitized user object with only allowed fields
+    const userData = {
+      first_name: user_input.first_name,
+      last_name: user_input.last_name,
+      email: user_input.email,
+      password: user_input.password,
+      role: user_input.role,
+      status: 'active'
+    };
 
     // *************** Create User
-    const user = await UserModel.create(user_input);
+    const user = await UserModel.create(userData);
     return user;
   } catch (error) {
     // ************** Log error to database
@@ -117,7 +124,6 @@ async function CreateUser(parent, { user_input }) {
  *
  * @async
  * @function UpdateUser
- * @param {object} parent - The parent object (unused in this function)
  * @param {string} args.id - User ID to update
  * @param {object} args.user_input - Input object with fields to update
  * @param {string} [args.user_input.first_name] - Updated first name
@@ -125,16 +131,26 @@ async function CreateUser(parent, { user_input }) {
  * @param {string} [args.user_input.email] - Updated email
  * @param {string} [args.user_input.password] - Updated password
  * @param {string} [args.user_input.role] - Updated role
- * @throws {ApolloError} Throws ApolloError if validation fails or update error occurs
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if user with given ID doesn't exist
  * @returns {Promise<object|null>} The updated user object or null if not found
  */
-async function UpdateUser(parent, { id, user_input }) {
+async function UpdateUser(_, { id, user_input }) {
   try {
     // *************** Validate Input
-    UserValidators.ValidateUpdateUserParameters({ id, userInput: user_input });
+    UserValidators.ValidateCreateUpdateUserParameters({ id, userInput: user_input });
+
+    // *************** Create sanitized user object with only allowed fields
+    const updateData = {
+      first_name: user_input.first_name,
+      last_name: user_input.last_name,
+      email: user_input.email,
+      password: user_input.password,
+      role: user_input.role,
+      status: 'active'
+    };
 
     // *************** Update User
-    const user = await UserModel.findByIdAndUpdate(id, user_input);
+    const user = await UserModel.findByIdAndUpdate(id, updateData, { new: true }).lean();
     if (!user) {
       throw new ApolloError('User not found', 'RESOURCE_NOT_FOUND');
     }
@@ -155,44 +171,44 @@ async function UpdateUser(parent, { id, user_input }) {
 }
 
 /**
- * Soft deletes a user by setting status to 'deleted' and updating deleted_at timestamp
- *
+ * Deletes (soft delete) a user by ID
+ * 
  * @async
  * @function DeleteUser
- * @param {object} parent - The parent object (unused in this function)
- * @param {string} args.id - User ID to delete
- * @throws {ApolloError} Throws ApolloError if user ID is not provided or deletion error occurs
- * @returns {Promise<object|null>} The deleted user object or null if not found
+ * @param {object} args - GraphQL arguments
+ * @param {string} args.id - MongoDB ObjectId of the user to delete
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if user with given ID doesn't exist
+ * @throws {ApolloError} Throws 'ALREADY_DELETED' if user is already deleted
+ * @returns {Promise<object>} The deleted user object
  */
-async function DeleteUser(parent, { id }) {
+async function DeleteUser(_, { id }) {
   try {
-    // *************** Validate Input
-    UserValidators.ValidateDeleteUserParameters({ id });
+    // *************** Validate MongoDB ID
+    ValidateMongoId(id);
 
-    // *************** Set status to deleted AND update deleted_at timestamp
-    const user = await UserModel.findByIdAndUpdate(
-      id,
-      { 
-        status: 'deleted',
-        deleted_at: new Date().toISOString() 
-      }
-    );
+    // *************** Get the user first to check if it exists
+    const user = await UserModel.findById(id).lean();
     if (!user) {
       throw new ApolloError('User not found', 'RESOURCE_NOT_FOUND');
     }
     
-    return user;
-  } catch (error) {
-    // ************** Log error to database
-    await ErrorLogModel.create({
-      path: 'modules/user/user.resolver.js',
-      parameter_input: JSON.stringify({ id }),
-      function_name: 'DeleteUser',
-      error: String(error.stack),
-    });
+    // *************** Check if user is already deleted
+    if (user.status === 'deleted') {
+      throw new ApolloError('User is already deleted', 'ALREADY_DELETED');
+    }
 
-    // ************** Throw error message
-    throw new ApolloError(error.message);
+    // *************** Set status to deleted AND update deleted_at timestamp
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      id,
+      { 
+        status: 'deleted',
+        deleted_at: new Date()
+      }
+    ).lean();
+
+    return updatedUser;
+  } catch (error) {
+    throw new ApolloError(error.message, error.code || 'DELETE_ERROR');
   }
 }
 

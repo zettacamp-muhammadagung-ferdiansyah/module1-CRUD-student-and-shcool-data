@@ -1,6 +1,5 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
-const Mongoose = require('mongoose');
 
 // *************** IMPORT VALIDATOR ***************
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
@@ -18,51 +17,11 @@ function ValidateGetUserByIdParameters({ id }) {
 }
 
 /**
- * Validates parameters for CreateUser resolver
- * 
- * @function ValidateCreateUserParameters
- * @param {object} params - Parameters to validate
- * @param {object} params.userInput - Input object containing user data
- * @param {string} params.userInput.first_name - User's first name
- * @param {string} params.userInput.last_name - User's last name
- * @param {string} params.userInput.email - User's email
- * @param {string} params.userInput.password - User's password
- * @param {string} params.userInput.role - User's role
- */
-function ValidateCreateUserParameters({ userInput }) {
-  // ***************  Check if input is provided
-  if (!userInput) {
-    throw new ApolloError('Input object must be provided', 'INVALID_INPUT');
-  }
-
-  // *************** Validate required fields
-  if (!userInput.first_name || typeof userInput.first_name !== 'string') {
-    throw new ApolloError('First name must be a string', 'INVALID_INPUT');
-  }
-  
-  if (!userInput.last_name || typeof userInput.last_name !== 'string') {
-    throw new ApolloError('Last name must be a string', 'INVALID_INPUT');
-  }
-  
-  if (!userInput.password || typeof userInput.password !== 'string') {
-    throw new ApolloError('Password must be a string', 'INVALID_INPUT');
-  }
-  
-  if (!userInput.role || typeof userInput.role !== 'string') {
-    throw new ApolloError('Role must be a string', 'INVALID_INPUT');
-  }
-
-  if (!userInput.email || typeof userInput.email !== 'string') {
-    throw new ApolloError('Email must be a string', 'INVALID_INPUT');
-  }
-}
-
-/**
  * Validates parameters for UpdateUser resolver
  * 
- * @function ValidateUpdateUserParameters
+ * @function ValidateCreateUpdateUserParameters
  * @param {object} params - Parameters to validate
- * @param {string} params.id - User ID
+ * @param {string} [params.id] - User ID
  * @param {object} params.userInput - Input object with fields to update
  * @param {string} [params.userInput.first_name] - Updated first name
  * @param {string} [params.userInput.last_name] - Updated last name
@@ -70,9 +29,11 @@ function ValidateCreateUserParameters({ userInput }) {
  * @param {string} [params.userInput.password] - Updated password
  * @param {string} [params.userInput.role] - Updated role
  */
-function ValidateUpdateUserParameters({ id, userInput }) {
+function ValidateCreateUpdateUserParameters({ id, userInput }) {
   // *************** Check if ID exists and is valid
-  ValidateMongoId(id);
+  if (id) {
+      ValidateMongoId(id);
+    }
   
   // ***************  Check if input is provided
   if (!userInput) {
@@ -120,7 +81,6 @@ function ValidateDeleteUserParameters({ id }) {
 // *************** EXPORT MODULE ***************
 module.exports = {
   ValidateGetUserByIdParameters,
-  ValidateCreateUserParameters,
-  ValidateUpdateUserParameters,
+  ValidateCreateUpdateUserParameters,
   ValidateDeleteUserParameters
 };

@@ -9,7 +9,7 @@ const UserTypeDefs = gql`
     email: String!
     role: String!
     status: UserStatus
-    deleted_at: String
+    deleted_at: Date
   }
   
   enum UserStatus {

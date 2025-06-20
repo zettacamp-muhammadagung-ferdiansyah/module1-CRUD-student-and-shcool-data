@@ -8,7 +8,8 @@ module.exports = {
   typeDefs: StudentTypeDefs,
   resolvers: {
     Query: StudentResolvers.Query,
-    Mutation: StudentResolvers.Mutation
+    Mutation: StudentResolvers.Mutation,
+    Student: StudentResolvers.Student
   },
   StudentLoader: StudentLoaderModule.StudentLoader
 };

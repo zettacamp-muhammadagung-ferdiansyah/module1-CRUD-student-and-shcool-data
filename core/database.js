@@ -1,53 +1,46 @@
 // *************** IMPORT LIBRARY ***************
 const Mongoose = require('mongoose'); 
-const { ApolloError } = require('apollo-server');
 
-// *************** IMPORT Module ***************
+// *************** IMPORT MODULE ***************
 const GetConfig = require('./config');
 
 /**
  * Establishes and configures the MongoDB database connection
  * @async
  * @function ConnectDatabase
- * @returns {Promise<import('mongoose').Connection>} Resolves with the Mongoose connection object
- * @throws {Error} If database URI is invalid or connection fails
+ * @returns {Promise<void>} Resolves when the database connection is established
  */
 async function ConnectDatabase() {
   // *************** Get configuration settings
   const config = GetConfig();
-  
-  // *************** START: URI Validation ***************
-  const databaseUniformResourceIdentifier = config.database.uri;
+  const databaseUri = config.database.uri;
   
   // *************** Validate URI format
-  if (!databaseUniformResourceIdentifier) {
-    throw new ApolloError('Database configuration error: MongoDB URI is not defined', 'CONFIG_ERROR');
+  if (!databaseUri) {
+    console.error('Database configuration error: MongoDB URI is not defined');
+    return null;
   }
   
-  const isValidUri = databaseUniformResourceIdentifier.startsWith('mongodb://') || databaseUniformResourceIdentifier.startsWith('mongodb+srv://');
-  if (!isValidUri) {
-    throw new ApolloError('Database configuration error: Invalid MongoDB URI format. URI must start with mongodb:// or mongodb+srv://', 'CONFIG_ERROR');
+  if (!databaseUri.startsWith('mongodb://') && !databaseUri.startsWith('mongodb+srv://')) {
+    console.error('Database configuration error: Invalid MongoDB URI format. URI must start with mongodb:// or mongodb+srv://');
+    return null;
   }
-  // *************** END: URI Validation ***************
 
   try {
     // *************** START: Database Connection Setup ***************
     console.log('Attempting database connection...');
-    const connection = await Mongoose.connect(databaseUniformResourceIdentifier, {
+    await Mongoose.connect(databaseUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    
-    console.log('Connected to MongoDB at:', databaseUniformResourceIdentifier);
-    // *************** END: Database Connection Setup ***************
 
-    // *************** Return the actual Connection object
-    return connection.connection; 
+    console.log('Connected to MongoDB successfully');
+    // *************** END: Database Connection Setup ***************
 
   } catch (error) {
     // *************** START: Error Handling ***************
     console.error('Database connection failed:', error.message);
-    throw new ApolloError(`Failed to connect to database: ${error.message}`, 'SERVER_ERROR');
+    return null;
     // *************** END: Error Handling ***************
   }
 }

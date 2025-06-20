@@ -3,15 +3,15 @@ const { gql } = require('apollo-server');
 
 const StudentTypeDefs = gql`
   type Student {
-    id: ID!
+    _id: ID!
     first_name: String!
     last_name: String!
     email: String!
-    date_of_birth: String
+    date_of_birth: String!
     school_id: ID!
     school: School
     status: StudentStatus
-    deleted_at: String
+    deleted_at: Date
   }
   
   enum StudentStatus {

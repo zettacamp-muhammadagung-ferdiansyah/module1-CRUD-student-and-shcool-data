@@ -11,6 +11,7 @@ const SchoolModule = require('../modules/school');
 const BaseTypeDefs = gql`
   type Query
   type Mutation
+  scalar Date
 `;
 
 // *************** EXPORT MODULE ***************

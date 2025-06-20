@@ -10,7 +10,6 @@ const CreateApolloServer = require('./core/apollo');
  * Initializes and starts the Apollo GraphQL server
  * Sets up database connection and context
  * @returns {Promise<void>} 
- * @throws {Error} If server fails to start
  */
 async function StartServer() {
   // *************** START: Server initialization ***************

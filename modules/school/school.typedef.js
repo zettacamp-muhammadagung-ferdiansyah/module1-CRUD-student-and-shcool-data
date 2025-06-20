@@ -3,12 +3,17 @@ const { gql } = require('apollo-server');
 
 const SchoolTypeDefs = gql`
   type School {
-    id: ID!
+    _id: ID!
     name: String!
-    address: String
+    commercial_name: String!
+    address: String!
+    city: String!
+    country: String!
+    zipcode: String!
+    logo: String!
     students: [Student]
     status: SchoolStatus
-    deleted_at: String
+    deleted_at: Date
   }
   
   enum SchoolStatus {
@@ -17,8 +22,13 @@ const SchoolTypeDefs = gql`
   }
   
   input SchoolInput {
-    name: String
-    address: String
+    name: String!
+    commercial_name: String!
+    address: String!
+    city: String!
+    country: String!
+    zipcode: String!
+    logo: String
   }
   
   extend type Query {

@@ -10,7 +10,6 @@ const LoaderModule = require('./loaders');
  * Initializes and starts the Apollo GraphQL server
  * Sets up database connection and context
  * @returns {Promise<ApolloServer>} The configured Apollo server instance
- * @throws {Error} If server fails to initialize
  */
 function CreateApolloServer() {
   // *************** Configure Apollo Server ***************

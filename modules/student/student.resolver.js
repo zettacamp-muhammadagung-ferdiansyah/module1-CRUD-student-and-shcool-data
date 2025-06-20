@@ -1,6 +1,5 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
-const Mongoose = require('mongoose');
 
 // *************** IMPORT MODULE ***************
 const StudentModel = require('./student.model');
@@ -9,6 +8,7 @@ const SchoolModel = require('../school/school.model');
 
 // *************** IMPORT VALIDATOR ***************
 const StudentValidators = require('./student.validator');
+const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 
 // *************** QUERY ***************
 /**
@@ -16,15 +16,13 @@ const StudentValidators = require('./student.validator');
  *
  * @async
  * @function GetAllStudents
- * @param {object} parent - The parent object (unused in this function)
- * @param {object} args - The arguments object
- * @throws {ApolloError} Throws ApolloError if an error occurs during retrieval
+ * @throws {ApolloError} Throws ApolloError with the original error message if retrieval fails
  * @returns {Promise<Array>} Array of student objects
  */
 async function GetAllStudents() {
   try {
     // *************** Query to retrieve only active students
-    const students = await StudentModel.find({ status: 'active' });
+    const students = await StudentModel.find({ status: 'active' }).lean();
     return students;
   } catch (error) {
     // ************** Log error to database
@@ -46,20 +44,18 @@ async function GetAllStudents() {
  *
  * @async
  * @function GetStudentById
- * @param {object} parent - The parent object (unused in this function)
  * @param {string} args.id - MongoDB ObjectId of the student to retrieve
  * @throws {ApolloError} Throws 'INVALID_INPUT' if ID is not provided or has invalid format
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if student with given ID doesn't exist or is not active
- * @throws {ApolloError} Throws 'DATABASE_ERROR' if a database error occurs
  * @returns {Promise<object>} The student object with matching ID and active status
  */
-async function GetStudentById(parent, { id }) {
+async function GetStudentById(_, { id }) {
   try {
-    // *************** Validate Input
-    StudentValidators.ValidateGetStudentByIdParameters({ id });
+    // *************** Validate MongoDB ID
+    ValidateMongoId(id);
 
     // *************** Retrieve Student using status active
-    const student = await StudentModel.findOne({ _id: id, status: 'active' });
+    const student = await StudentModel.findOne({ _id: id, status: 'active' }).lean();
     if (!student) {
       throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND');
     }
@@ -83,30 +79,40 @@ async function GetStudentById(parent, { id }) {
  *
  * @async
  * @function CreateStudent
- * @param {object} parent - The parent object (unused in this function)
  * @param {object} args.student_input - Input object containing student data
  * @param {string} args.student_input.first_name - Student's first name
  * @param {string} args.student_input.last_name - Student's last name
  * @param {string} args.student_input.email - Student's email
  * @param {Date} [args.student_input.date_of_birth] - Student's date of birth
  * @param {string} args.student_input.school_id - ID of the school the student belongs to
- * @throws {ApolloError} Throws ApolloError if validation fails or creation error occurs
  * @returns {Promise<object>} The created student object
  */
-async function CreateStudent(parent, { student_input }) {
+async function CreateStudent(_, { student_input }) {
   try {
     // *************** Validate Input
-    StudentValidators.ValidateCreateStudentParameters({ studentInput: student_input });
+    StudentValidators.ValidateCreateUpdateStudentParameters({ studentInput: student_input });
+
+    // *************** Create sanitized student object with only allowed fields
+    const studentData = {
+      first_name: student_input.first_name,
+      last_name: student_input.last_name,
+      email: student_input.email,
+      school_id: student_input.school_id,
+      status: 'active'
+    };
+
+    // *************** Add optional fields if they exist
+    if (student_input.date_of_birth) studentData.date_of_birth = student_input.date_of_birth;
 
     // *************** Create Student
-    const student = await StudentModel.create(student_input);
+    const student = await StudentModel.create(studentData);
     
     // *************** Update School with new student ID
     if (student_input.school_id) {
       await SchoolModel.findByIdAndUpdate(
         student_input.school_id,
         { $addToSet: { students: student._id } }
-      );
+      ).lean();
     }
     
     return student;
@@ -128,7 +134,6 @@ async function CreateStudent(parent, { student_input }) {
  *
  * @async
  * @function UpdateStudent
- * @param {object} parent - The parent object (unused in this function)
  * @param {string} args.id - Student ID to update
  * @param {object} args.student_input - Input object with fields to update
  * @param {string} [args.student_input.first_name] - Updated first name
@@ -136,19 +141,31 @@ async function CreateStudent(parent, { student_input }) {
  * @param {string} [args.student_input.email] - Updated email
  * @param {Date} [args.student_input.date_of_birth] - Updated date of birth
  * @param {string} [args.student_input.school_id] - Updated school ID
- * @throws {ApolloError} Throws ApolloError if validation fails or update error occurs
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if student with given ID doesn't exist
  * @returns {Promise<object|null>} The updated student object or null if not found
  */
-async function UpdateStudent(parent, { id, student_input }) {
+async function UpdateStudent(_, { id, student_input }) {
   try {
     // *************** Validate Input
-    StudentValidators.ValidateUpdateStudentParameters({ id, studentInput: student_input });
+    StudentValidators.ValidateCreateUpdateStudentParameters({ id, studentInput: student_input });
 
     // *************** First, get the current student to check if school_id is changing
-    const currentStudent = await StudentModel.findById(id);
+    const currentStudent = await StudentModel.findById(id).lean();
     if (!currentStudent) {
       throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND');
     }
+
+    // *************** Create sanitized student object with only allowed fields
+    const updateData = {
+      first_name: student_input.first_name,
+      last_name: student_input.last_name,
+      email: student_input.email,
+      school_id: student_input.school_id,
+      status: 'active'
+    };
+
+    // *************** Add optional fields if they exist
+    if (student_input.date_of_birth) updateData.date_of_birth = student_input.date_of_birth;
 
     // *************** Handle school change if school_id is provided and different
     if (student_input.school_id && currentStudent.school_id.toString() !== student_input.school_id) {
@@ -156,21 +173,21 @@ async function UpdateStudent(parent, { id, student_input }) {
       await SchoolModel.findByIdAndUpdate(
         currentStudent.school_id,
         { $pull: { students: currentStudent._id } }
-      );
+      ).lean();
       
       // *************** 2. Add student to new school's students array
       await SchoolModel.findByIdAndUpdate(
         student_input.school_id,
         { $addToSet: { students: currentStudent._id } }
-      );
+      ).lean();
     }
 
     // *************** Update Student
     const updatedStudent = await StudentModel.findByIdAndUpdate(
       id,
-      student_input,
+      updateData,
       { new: true }
-    );
+    ).lean();
 
     return updatedStudent;
   } catch (error) {
@@ -191,20 +208,25 @@ async function UpdateStudent(parent, { id, student_input }) {
  *
  * @async
  * @function DeleteStudent
- * @param {object} parent - The parent object (unused in this function)
  * @param {string} args.id - Student ID to delete
- * @throws {ApolloError} Throws ApolloError if student ID is not provided or deletion error occurs
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if student with given ID doesn't exist
+ * @throws {ApolloError} Throws 'ALREADY_DELETED' if student is already deleted
  * @returns {Promise<object|null>} The deleted student object or null if not found
  */
-async function DeleteStudent(parent, { id }) {
+async function DeleteStudent(_, { id }) {
   try {
-    // *************** Validate Input
-    StudentValidators.ValidateDeleteStudentParameters({ id });
+    // *************** Validate MongoDB ID
+    ValidateMongoId(id);
 
     // *************** Get the student first to get the school_id
-    const student = await StudentModel.findById(id);
+    const student = await StudentModel.findById(id).lean();
     if (!student) {
       throw new ApolloError('Student not found', 'RESOURCE_NOT_FOUND');
+    }
+    
+    // *************** Check if student is already deleted
+    if (student.status === 'deleted') {
+      throw new ApolloError('Student is already deleted', 'ALREADY_DELETED');
     }
 
     // *************** Remove student from school's students array
@@ -212,7 +234,7 @@ async function DeleteStudent(parent, { id }) {
       await SchoolModel.findByIdAndUpdate(
         student.school_id,
         { $pull: { students: student._id } }
-      );
+      ).lean();
     }
 
     // *************** Set status to deleted AND update deleted_at timestamp
@@ -220,9 +242,9 @@ async function DeleteStudent(parent, { id }) {
       id,
       {
         status: 'deleted',
-        deleted_at: new Date().toISOString()
+        deleted_at: new Date()
       }
-    );
+    ).lean();
     
     return updatedStudent;
   } catch (error) {
@@ -245,14 +267,25 @@ async function DeleteStudent(parent, { id }) {
  * @async
  * @function GetSchoolByStudent
  * @param {Object} parent - The parent resolver object containing the student data.
- * @param {Object} _ - The arguments parameter (unused in this resolver).
  * @param {Object} context - The context object containing loaders.
+ * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
  * @returns {Promise<Object>} A promise that resolves to the school document.
  */
 async function GetSchoolByStudent(parent, _, context) {
   try {
+    // *************** Guard against null parent or context
+    if (!parent || !context) {
+      return null;
+    }
+    
     // *************** If there's no school_id in parent, return null
     if (!parent.school_id) {
+      return null;
+    }
+    
+    // *************** Guard against missing loader
+    if (!context.loaders || !context.loaders.SchoolLoader) {
+      console.error('SchoolLoader is not available in the context');
       return null;
     }
     

@@ -1,22 +1,22 @@
 // *************** IMPORT LIBRARY ***************
 require('dotenv').config();
-const { ApolloError } = require('apollo-server');
 
 /**
- * Validates and provides access to environment configuration variables
- * Ensures all required variables are present before application start
+ * Provides access to environment configuration variables with validation
  * 
- * @returns {Object} - Object containing validated configuration values
- * @throws {ApolloError} - If required environment variables are missing
+ * @returns {Object} - Object containing configuration values
  */
 function GetConfig() {
-  // *************** Database Configuration ***************
+  // *************** Database Configuration
   const mongodbUri = process.env.MONGODB_URI;
+  if (!mongodbUri) {
+    console.error('MONGODB_URI environment variable is required but not defined');
+  }
   
-  // *************** Server Configuration ***************
+  // *************** Server Configuration 
   const port = process.env.PORT || 4000;
   
-  // *************** Return validated configuration ***************
+  // *************** Return configuration object
   return {
     database: {
       uri: mongodbUri
