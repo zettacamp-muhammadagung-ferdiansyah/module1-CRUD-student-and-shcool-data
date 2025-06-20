@@ -210,13 +210,12 @@ async function DeleteSchool(_, { id }) {
     }
 
     // *************** Set status to deleted AND update deleted_at timestamp
-    const updatedSchool = await SchoolModel.findByIdAndUpdate(
+    await SchoolModel.findByIdAndUpdate(
       id,
       { 
         status: 'deleted',
         deleted_at: new Date()
-      },
-      { new: true }
+      }
     ).lean();
     
     return updatedSchool;

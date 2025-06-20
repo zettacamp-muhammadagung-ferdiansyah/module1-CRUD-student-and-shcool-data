@@ -5,18 +5,6 @@ const { ApolloError } = require('apollo-server');
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 
 /**
- * Validates parameters for GetSchoolById resolver
- * 
- * @function ValidateGetSchoolByIdParameters
- * @param {object} params - Parameters to validate
- * @param {string} params.id - School ID
- */
-function ValidateGetSchoolByIdParameters({ id }) {
-  // *************** Check if ID exists and is valid
-  ValidateMongoId(id);
-}
-
-/**
  * Validates parameters for UpdateSchool resolver
  * 
  * @function ValidateCreateUpdateSchoolParameters
@@ -78,21 +66,7 @@ function ValidateCreateUpdateSchoolParameters({ id, schoolInput }) {
   }
 }
 
-/**
- * *************** Validates parameters for DeleteSchool resolver
- * 
- * @function ValidateDeleteSchoolParameters
- * @param {object} params - Parameters to validate
- * @param {string} params.id - School ID
- */
-function ValidateDeleteSchoolParameters({ id }) {
-  // *************** check if ID exists and is valid
-  ValidateMongoId(id);
-}
-
 // *************** EXPORT MODULE ***************
 module.exports = {
-  ValidateGetSchoolByIdParameters,
-  ValidateCreateUpdateSchoolParameters,
-  ValidateDeleteSchoolParameters
+  ValidateCreateUpdateSchoolParameters
 };

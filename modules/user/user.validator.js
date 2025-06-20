@@ -5,18 +5,6 @@ const { ApolloError } = require('apollo-server');
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 
 /**
- * Validates parameters for GetUserById resolver
- * 
- * @function ValidateGetUserByIdParameters
- * @param {object} params - Parameters to validate
- * @param {string} params.id - User IDa
- */
-function ValidateGetUserByIdParameters({ id }) {
-  // *************** Check if ID exists and is valid
-  ValidateMongoId(id);
-}
-
-/**
  * Validates parameters for UpdateUser resolver
  * 
  * @function ValidateCreateUpdateUserParameters
@@ -66,21 +54,7 @@ function ValidateCreateUpdateUserParameters({ id, userInput }) {
   }
 }
 
-/**
- * *************** Validates parameters for DeleteUser resolver
- * 
- * @function ValidateDeleteUserParameters
- * @param {object} params - Parameters to validate
- * @param {string} params.id - User ID
- */
-function ValidateDeleteUserParameters({ id }) {
-  // *************** check if ID exists and is valid
-  ValidateMongoId(id);
-}
-
 // *************** EXPORT MODULE ***************
 module.exports = {
-  ValidateGetUserByIdParameters,
   ValidateCreateUpdateUserParameters,
-  ValidateDeleteUserParameters
 };
