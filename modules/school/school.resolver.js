@@ -45,7 +45,6 @@ async function GetAllSchools() {
  * @async
  * @function GetSchoolById
  * @param {string} args.id - MongoDB ObjectId of the school to retrieve
- * @throws {ApolloError} Throws 'INVALID_INPUT' if ID is not provided or has invalid format
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if school with given ID doesn't exist or is not active
  * @returns {Promise<object>} The school object with matching ID and active status
  */
@@ -88,7 +87,7 @@ async function GetSchoolById(_, { id }) {
  * @param {string} args.school_input.country - Country where the school operates (required)
  * @param {string} args.school_input.zipcode - Postal code of the school's location (required)
  * @param {string} [args.school_input.logo] - URL or path to the school's logo (optional)
- * @throws {ApolloError} Throws 'INVALID_INPUT' if validation fails for any required field
+ * @throws {ApolloError} If an error occurs during school creation
  * @returns {Promise<object>} The created school object
  */
 async function CreateSchool(_, { school_input }) {

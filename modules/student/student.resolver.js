@@ -45,7 +45,6 @@ async function GetAllStudents() {
  * @async
  * @function GetStudentById
  * @param {string} args.id - MongoDB ObjectId of the student to retrieve
- * @throws {ApolloError} Throws 'INVALID_INPUT' if ID is not provided or has invalid format
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if student with given ID doesn't exist or is not active
  * @returns {Promise<object>} The student object with matching ID and active status
  */

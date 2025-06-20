@@ -44,7 +44,6 @@ async function GetAllUsers() {
  * @async
  * @function GetUserById
  * @param {string} args.id - The ID of the user to retrieve
- * @throws {ApolloError} Throws 'INVALID_INPUT' if ID is not provided or has invalid format
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if user with given ID doesn't exist or is not active
  * @returns {Promise<object|null>} The user object or null if not found
  */
