@@ -174,7 +174,6 @@ async function UpdateUser(_, { id, user_input }) {
  * 
  * @async
  * @function DeleteUser
- * @param {object} args - GraphQL arguments
  * @param {string} args.id - MongoDB ObjectId of the user to delete
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if user with given ID doesn't exist
  * @throws {ApolloError} Throws 'ALREADY_DELETED' if user is already deleted
