@@ -17,7 +17,6 @@ const TestTypeDefs = gql`
     max_points: Float!
   }
 
-  "Type definition for Test"
   type Test {
     _id: ID!
     test_id: String!
@@ -35,9 +34,7 @@ const TestTypeDefs = gql`
     deleted_by: String
   }
 
-  "Input type for creating/updating tests"
   input TestInput {
-    test_id: String!
     subject_id: ID!
     name: String!
     description: String
@@ -45,7 +42,6 @@ const TestTypeDefs = gql`
     notations: [NotationInput!]!
   }
 
-  "Paginated response type for tests"
   type PaginatedTest {
     data: [Test]
     total: Int
