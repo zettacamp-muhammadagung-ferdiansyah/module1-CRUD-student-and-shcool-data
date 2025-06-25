@@ -27,7 +27,6 @@ const SubjectTypeDefs = gql`
   }
 
   input SubjectInput {
-    subject_id: String!
     block_id: ID!
     name: String!
     description: String
