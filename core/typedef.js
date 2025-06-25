@@ -6,6 +6,9 @@ const { mergeTypeDefs } = require('@graphql-tools/merge');
 const UserModule = require('../modules/user');
 const StudentModule = require('../modules/student');
 const SchoolModule = require('../modules/school');
+const BlockModule = require('../modules/block');
+const SubjectModule = require('../modules/subject');
+const TestModule = require('../modules/test');
 
 // *************** Base Type Declarations
 const BaseTypeDefs = gql`
@@ -19,5 +22,8 @@ module.exports = mergeTypeDefs([
   BaseTypeDefs,
   UserModule.typeDefs,
   StudentModule.typeDefs,
-  SchoolModule.typeDefs
+  SchoolModule.typeDefs,
+  BlockModule.typeDefs,
+  SubjectModule.typeDefs,
+  TestModule.typeDefs
 ]);

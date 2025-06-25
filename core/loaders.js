@@ -2,6 +2,7 @@
 const UserLoader = require('../modules/user').UserLoader;
 const StudentLoader = require('../modules/student').StudentLoader;
 const SchoolLoader = require('../modules/school').SchoolLoader;
+const BlockLoader = require('../modules/block').BlockLoader;
 
 /**
  * Creates and initializes all DataLoader instances for the application
@@ -15,6 +16,7 @@ function LoaderModule() {
     UserLoader: UserLoader(),
     StudentLoader: StudentLoader(),
     SchoolLoader: SchoolLoader(),
+    BlockLoader: BlockLoader(),
   };
 }
 
