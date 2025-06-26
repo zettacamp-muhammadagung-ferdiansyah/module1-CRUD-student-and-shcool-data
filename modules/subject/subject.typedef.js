@@ -34,7 +34,6 @@ const SubjectTypeDefs = gql`
     test_ids: [ID!]
   }
 
-  "Paginated response type for subjects"
   type PaginatedSubject {
     data: [Subject]
     total: Int
