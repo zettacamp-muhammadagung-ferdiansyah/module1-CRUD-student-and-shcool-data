@@ -51,7 +51,28 @@ function ValidateCreateUpdateBlockParameters({ id, blockInput }) {
   }
 }
 
+/**
+ * Validates pagination parameters
+ *
+ * @function ValidatePaginationParameters
+ * @param {Object} params - Parameters object
+ * @param {number} params.page - Page number (0-based, where 0 is the first page)
+ * @param {number} params.limit - Number of items per page
+ * @throws {ApolloError} Throws error if validation fails
+ */
+function ValidatePaginationParameters({ page, limit }) {
+  // *************** Check if page is a number
+  if (typeof page !== 'number') {
+    throw new ApolloError('Page must be a number', 'INVALID_PAGINATION');
+  }
+  // *************** Check if limit is a number
+  if (typeof limit !== 'number') {
+    throw new ApolloError('Limit must be a number', 'INVALID_PAGINATION');
+  }
+}
+
 // *************** EXPORT MODULE ***************
 module.exports = {
   ValidateCreateUpdateBlockParameters,
+  ValidatePaginationParameters,
 };

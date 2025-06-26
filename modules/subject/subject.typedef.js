@@ -9,8 +9,7 @@ const SubjectTypeDefs = gql`
   }
 
   type Subject {
-
-    subject_id: String!
+    _id: ID!
     block_id: ID!
     name: String!
     description: String
@@ -18,9 +17,9 @@ const SubjectTypeDefs = gql`
     test_ids: [ID!]
     tests: [Test]
     status: SubjectStatus!
-    created_at: Date!
+    createdAt: Date!
     created_by: String
-    updated_at: Date!
+    updatedAt: Date!
     updated_by: String
     deleted_at: Date
     deleted_by: String

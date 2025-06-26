@@ -19,16 +19,16 @@ const TestTypeDefs = gql`
 
   type Test {
     _id: ID!
-    test_id: String!
     subject_id: ID!
     name: String!
     description: String
     weight: Float!
     notations: [Notation!]!
     status: TestStatus!
-    created_at: Date!
+    published_date: Date
+    createdAt: Date!
     created_by: String
-    updated_at: Date!
+    updatedAt: Date!
     updated_by: String
     deleted_at: Date
     deleted_by: String

@@ -2,9 +2,6 @@
 const Mongoose = require('mongoose');
 
 const testSchema = new Mongoose.Schema({
-  // Custom unique identifier for the test
-  test_id: { type: String, required: true, unique: true },
-  
   // Reference to the Subject this test belongs to
   subject_id: { 
       type: Mongoose.Schema.Types.ObjectId, 
@@ -43,6 +40,12 @@ const testSchema = new Mongoose.Schema({
   
   // Current status of the test
   status: { type: String, enum: ['active', 'deleted'], default: 'active' },
+  
+  // Date when the test was published
+  published_date: {
+    type: Date,
+    default: null,
+  },
   
   // The user ID of the person who created the test
   created_by: { type: String, required: true },

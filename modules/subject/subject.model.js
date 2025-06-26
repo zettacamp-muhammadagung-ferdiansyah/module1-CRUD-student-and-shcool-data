@@ -2,8 +2,6 @@
 const Mongoose = require('mongoose');
 
 const subjectSchema = new Mongoose.Schema({
-  // Custom unique identifier for the subject
-  subject_id: { type: String, required: true, unique: true },
   
   // Reference to the Block this subject belongs to
   block_id: { type: Mongoose.Schema.Types.ObjectId, ref: 'Block' },

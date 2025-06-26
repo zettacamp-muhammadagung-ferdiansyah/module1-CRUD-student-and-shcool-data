@@ -15,7 +15,7 @@ const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
  *
  * @async
  * @function GetAllBlocks
- * @param {number} args.page - Page number for pagination (1-based)
+ * @param {number} args.page - Page number for pagination (0-based, where 0 is the first page)
  * @param {number} args.limit - Number of blocks per page
  * @throws {ApolloError} If query fails or pagination parameters are invalid
  * @returns {Promise<Object>} Paginated result with blocks data, total count, page, and limit
@@ -23,11 +23,10 @@ const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 async function GetAllBlocks(_, { page, limit }) {
   try {
     // *************** Validate pagination parameters
-    if (page < 1) throw new Error('Page must be greater than 0');
-    if (limit < 1) throw new Error('Limit must be greater than 0');
+    BlockValidators.ValidatePaginationParameters({ page, limit });
 
     // *************** Calculate skip value for pagination
-    const skip = (page - 1) * limit;
+    const skip = page * limit;
 
     // *************** Execute queries in parallel
     const [blocks, total] = await Promise.all([
