@@ -1,0 +1,403 @@
+// *************** IMPORT LIBRARY ***************
+const { ApolloError } = require('apollo-server');
+
+// *************** IMPORT MODULE ***************
+const StudentTestResultModel = require('./student_test_result.model');
+const ErrorLogModel = require('../errorLogs/error_logs.model');
+
+// *************** IMPORT VALIDATOR ***************
+const StudentTestResultValidators = require('./student_test_result.validator');
+const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
+
+// *************** QUERY ***************
+/**
+ * Retrieves a paginated list of active student test results.
+ *
+ * @async
+ * @function GetAllStudentTestResults
+ * @param {number} args.page - Page number for pagination (0-based, where 0 is the first page)
+ * @param {number} args.limit - Number of student test results per page
+ * @throws {ApolloError} If query fails or pagination parameters are invalid
+ * @returns {Promise<Object>} Paginated result with student test results data, total count, page, and limit
+ */
+async function GetAllStudentTestResults(_, { page, limit }) {
+  try {
+    // *************** Validate pagination parameters
+    StudentTestResultValidators.ValidatePaginationParameters({ page, limit });
+
+    // *************** Calculate skip value for pagination
+    const skip = page * limit;
+
+    // *************** Execute queries in parallel
+    const [studentTestResults, total] = await Promise.all([
+      StudentTestResultModel.find({ student_test_result_status: 'ACTIVE' })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      StudentTestResultModel.countDocuments({ student_test_result_status: 'ACTIVE' })
+    ]);
+
+    // *************** Return paginated result
+    return {
+      data: studentTestResults,
+      total,
+      page,
+      limit
+    };
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ page, limit }),
+      function_name: 'GetAllStudentTestResults',
+      error: String(error.stack),
+    });
+
+    // *************** Throw error with context
+    throw new ApolloError(error.message);
+  }
+}
+
+/**
+ * Retrieves a single active student test result by ID.
+ *
+ * @async
+ * @function GetStudentTestResultById
+ * @param {string} args.id - MongoDB ObjectId of the student test result to retrieve
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if student test result doesn't exist or is not active
+ * @returns {Promise<Object>} The student test result object
+ */
+async function GetStudentTestResultById(_, { id }) {
+  try {
+    // *************** Validate ID
+    ValidateMongoId(id);
+
+    // *************** Find student test result by ID
+    const studentTestResult = await StudentTestResultModel.findOne({
+      _id: id,
+      student_test_result_status: 'ACTIVE'
+    }).lean();
+
+    // *************** Check if student test result exists
+    if (!studentTestResult) {
+      throw new ApolloError('Student test result not found', 'RESOURCE_NOT_FOUND');
+    }
+
+    // *************** Return the student test result
+    return studentTestResult;
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ id }),
+      function_name: 'GetStudentTestResultById',
+      error: String(error.stack),
+    });
+
+    // *************** Throw error with context
+    throw new ApolloError(error.message);
+  }
+}
+
+// *************** MUTATION ***************
+/**
+ * Creates a new student test result
+ *
+ * @async
+ * @function CreateStudentTestResult
+ * @param {Object} args.student_test_result_input - Input containing student test result data
+ * @param {string} args.student_test_result_input.student_id - ID of the student this result belongs to
+ * @param {string} args.student_test_result_input.test_id - ID of the test being evaluated
+ * @param {Array<Object>} args.student_test_result_input.marks - Array of mark objects with notation_text and mark
+ * @throws {ApolloError} If validation fails or creation error occurs
+ * @returns {Promise<Object>} The created student test result object
+ */
+async function CreateStudentTestResult(_, { student_test_result_input }) {
+  try {
+    // *************** Validate input parameters
+    StudentTestResultValidators.ValidateCreateUpdateStudentTestResultParameters({ 
+      studentTestResultInput: student_test_result_input 
+    });
+
+    // *************** Create sanitized student test result object with only required fields from input
+    const studentTestResultData = {
+      student_id: student_test_result_input.student_id,
+      test_id: student_test_result_input.test_id,
+      marks: student_test_result_input.marks,
+      student_test_result_status: 'ACTIVE'
+    };
+    
+    // *************** Calculate average mark from the provided marks
+    const sum = student_test_result_input.marks.reduce((acc, mark) => acc + mark.mark, 0);
+    studentTestResultData.average_mark = sum / student_test_result_input.marks.length;
+    studentTestResultData.mark_entry_date = new Date();
+    
+    // *************** Add optional fields if they exist
+    if (student_test_result_input.created_by) {
+      studentTestResultData.created_by = student_test_result_input.created_by;
+    }
+
+    // *************** Create student test result
+    const newStudentTestResult = await StudentTestResultModel.create(studentTestResultData);
+
+    // *************** Return the created student test result
+    return newStudentTestResult.toObject();
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ student_test_result_input }),
+      function_name: 'CreateStudentTestResult',
+      error: String(error.stack),
+    });
+
+    // *************** Throw error with context
+    throw new ApolloError(error.message);
+  }
+}
+
+/**
+ * Updates an existing student test result
+ *
+ * @async
+ * @function UpdateStudentTestResult
+ * @param {string} args.id - Student test result ID to update
+ * @param {Object} args.student_test_result_input - Input containing updated student test result data
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if student test result doesn't exist
+ * @returns {Promise<Object>} The updated student test result object
+ */
+async function UpdateStudentTestResult(_, { id, student_test_result_input }) {
+  try {
+    // *************** Validate input parameters
+    StudentTestResultValidators.ValidateCreateUpdateStudentTestResultParameters({ 
+      id, 
+      studentTestResultInput: student_test_result_input 
+    });
+
+    // *************** Find student test result by ID
+    const existingStudentTestResult = await StudentTestResultModel.findOne({
+      _id: id,
+      student_test_result_status: 'ACTIVE'
+    });
+
+    // *************** Check if student test result exists
+    if (!existingStudentTestResult) {
+      throw new ApolloError('Student test result not found', 'RESOURCE_NOT_FOUND');
+    }
+
+    // *************** Calculate average mark if marks are provided
+    if (student_test_result_input.marks && student_test_result_input.marks.length > 0) {
+      const sum = student_test_result_input.marks.reduce((acc, mark) => acc + mark.mark, 0);
+      existingStudentTestResult.average_mark = sum / student_test_result_input.marks.length;
+      existingStudentTestResult.marks = student_test_result_input.marks;
+    }
+
+    // *************** Update fields if provided
+    if (student_test_result_input.student_id) {
+      existingStudentTestResult.student_id = student_test_result_input.student_id;
+    }
+
+    if (student_test_result_input.test_id) {
+      existingStudentTestResult.test_id = student_test_result_input.test_id;
+    }
+
+    // *************** Update mark entry date and updated_by
+    existingStudentTestResult.mark_entry_date = new Date();
+    
+    if (student_test_result_input.updated_by) {
+      existingStudentTestResult.updated_by = student_test_result_input.updated_by;
+    }
+
+    // *************** Save changes
+    await existingStudentTestResult.save();
+
+    // *************** Return updated student test result
+    return existingStudentTestResult.toObject();
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ id, student_test_result_input }),
+      function_name: 'UpdateStudentTestResult',
+      error: String(error.stack),
+    });
+
+    // *************** Throw error with context
+    throw new ApolloError(error.message);
+  }
+}
+
+/**
+ * Soft deletes a student test result by setting status to 'DELETED'
+ *
+ * @async
+ * @function DeleteStudentTestResult
+ * @param {string} args.id - Student test result ID to delete
+ * @param {string} args.deleted_by - User ID performing the deletion
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if student test result doesn't exist
+ * @throws {ApolloError} Throws 'ALREADY_DELETED' if student test result is already deleted
+ * @returns {Promise<Object>} The deleted student test result object
+ */
+async function DeleteStudentTestResult(_, { id, deleted_by }) {
+  try {
+    // *************** Validate parameters
+    ValidateMongoId(id);
+    
+    // *************** Find student test result by ID
+    const studentTestResult = await StudentTestResultModel.findById(id);
+
+    // *************** Check if student test result exists
+    if (!studentTestResult) {
+      throw new ApolloError('Student test result not found', 'RESOURCE_NOT_FOUND');
+    }
+
+    // *************** Check if student test result is already deleted
+    if (studentTestResult.student_test_result_status === 'DELETED') {
+      throw new ApolloError('Student test result is already deleted', 'ALREADY_DELETED');
+    }
+
+    // *************** Update status to 'DELETED'
+    studentTestResult.student_test_result_status = 'DELETED';
+    studentTestResult.deleted_by = deleted_by;
+    studentTestResult.deleted_at = new Date();
+
+    // *************** Save changes
+    await studentTestResult.save();
+
+    // *************** Return deleted student test result
+    return studentTestResult.toObject();
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ id, deleted_by }),
+      function_name: 'DeleteStudentTestResult',
+      error: String(error.stack),
+    });
+
+    // *************** Throw error with context
+    throw new ApolloError(error.message);
+  }
+}
+
+// *************** LOADER ***************
+/**
+ * Loads the student associated with a test result using DataLoader.
+ *
+ * @async
+ * @function GetStudentByStudentTestResult
+ * @param {Object} parent - The parent resolver object containing the student test result data
+ * @param {Object} _ - The arguments (unused)
+ * @param {Object} context - The context object containing loaders
+ * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
+ * @returns {Promise<Object>} A promise that resolves to a student document
+ */
+async function GetStudentByStudentTestResult(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) {
+      return null;
+    }
+    
+    // ************** Return null if no student_id is associated
+    if (!parent.student_id) {
+      return null;
+    }
+    
+    // ************** Guard against missing loader
+    if (!context.dataLoaders || !context.dataLoaders.StudentLoader) {
+      console.error('StudentLoader is not available in the context');
+      return null;
+    }
+
+    // *************** Load student using DataLoader
+    const student = await context.dataLoaders.StudentLoader.load(parent.student_id);
+    
+    // *************** Check if student exists
+    if (!student) {
+      throw new ApolloError('Student not found', 'RELATED_RESOURCE_NOT_FOUND');
+    }
+    
+    return student;
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'GetStudentByStudentTestResult',
+      error: String(error.stack),
+    });
+    
+    // *************** Throw error with context
+    throw new ApolloError(`Failed to load student: ${error.message}`);
+  }
+}
+
+/**
+ * Loads the test associated with a student test result using DataLoader.
+ *
+ * @async
+ * @function GetTestByStudentTestResult
+ * @param {Object} parent - The parent resolver object containing the student test result data
+ * @param {Object} _ - The arguments (unused)
+ * @param {Object} context - The context object containing loaders
+ * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
+ * @returns {Promise<Object>} A promise that resolves to a test document
+ */
+async function GetTestByStudentTestResult(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) {
+      return null;
+    }
+    
+    // ************** Return null if no test_id is associated
+    if (!parent.test_id) {
+      return null;
+    }
+    
+    // ************** Guard against missing loader
+    if (!context.dataLoaders || !context.dataLoaders.TestLoader) {
+      console.error('TestLoader is not available in the context');
+      return null;
+    }
+
+    // *************** Load test using DataLoader
+    const test = await context.dataLoaders.TestLoader.load(parent.test_id);
+    
+    // *************** Check if test exists
+    if (!test) {
+      throw new ApolloError('Test not found', 'RELATED_RESOURCE_NOT_FOUND');
+    }
+    
+    return test;
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'GetTestByStudentTestResult',
+      error: String(error.stack),
+    });
+    
+    // *************** Throw error with context
+    throw new ApolloError(`Failed to load test: ${error.message}`);
+  }
+}
+
+// *************** EXPORT MODULE ***************
+module.exports = {
+  Query: {
+    GetAllStudentTestResults,
+    GetStudentTestResultById
+  },
+  Mutation: {
+    CreateStudentTestResult,
+    UpdateStudentTestResult,
+    DeleteStudentTestResult
+  },
+  StudentTestResult: {
+    student: GetStudentByStudentTestResult,
+    test: GetTestByStudentTestResult
+  }
+};

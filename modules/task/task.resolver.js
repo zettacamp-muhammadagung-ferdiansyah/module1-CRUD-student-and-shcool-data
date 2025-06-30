@@ -1,0 +1,430 @@
+// *************** IMPORT LIBRARY ***************
+const { ApolloError } = require('apollo-server');
+
+// *************** IMPORT MODULE ***************
+const TaskModel = require('./task.model');
+const ErrorLogModel = require('../errorLogs/error_logs.model');
+
+// *************** IMPORT VALIDATOR ***************
+const TaskValidators = require('./task.validator');
+const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
+
+// *************** QUERY ***************
+/**
+ * Retrieves a paginated list of active tasks
+ *
+ * @async
+ * @function GetAllTasks
+ * @param {Object} args - The query arguments
+ * @param {number} args.page - Page number for pagination (0-based, where 0 is the first page)
+ * @param {number} args.limit - Number of tasks per page
+ * @throws {ApolloError} If query fails or pagination parameters are invalid
+ * @returns {Promise<Object>} Paginated result with tasks data, total count, page, and limit
+ */
+async function GetAllTasks(_, { page, limit }) {
+  try {
+    // *************** Validate pagination parameters
+    TaskValidators.ValidatePaginationParameters({ page, limit });
+
+    // *************** Calculate skip value for pagination
+    const skip = page * limit;
+
+    // *************** Execute queries in parallel
+    const [tasks, total] = await Promise.all([
+      TaskModel.find({ status: 'ACTIVE' })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      TaskModel.countDocuments({ status: 'ACTIVE' })
+    ]);
+
+    // *************** Return paginated result
+    return {
+      data: tasks,
+      total,
+      page,
+      limit
+    };
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/task/task.resolver.js',
+      parameter_input: JSON.stringify({ page, limit }),
+      function_name: 'GetAllTasks',
+      error: String(error.stack),
+    });
+
+    // *************** Throw error with context
+    throw new ApolloError(error.message);
+  }
+}
+
+/**
+ * Retrieves a single task by ID
+ *
+ * @async
+ * @function GetTaskById
+ * @param {Object} args - The query arguments
+ * @param {string} args.id - MongoDB ObjectId of the task
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if task doesn't exist or is deleted
+ * @returns {Promise<Object>} The task object
+ */
+async function GetTaskById(_, { id }) {
+  try {
+    // *************** Validate ID
+    ValidateMongoId(id);
+
+    // *************** Find task by ID
+    const task = await TaskModel.findOne({
+      _id: id,
+      status: 'ACTIVE'
+    }).lean();
+
+    // *************** Check if task exists
+    if (!task) {
+      throw new ApolloError('Task not found', 'RESOURCE_NOT_FOUND');
+    }
+
+    // *************** Return the task
+    return task;
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/task/task.resolver.js',
+      parameter_input: JSON.stringify({ id }),
+      function_name: 'GetTaskById',
+      error: String(error.stack),
+    });
+
+    // *************** Throw error with context
+    throw new ApolloError(error.message);
+  }
+}
+
+// *************** MUTATION ***************
+/**
+ * Creates a new task
+ *
+ * @async
+ * @function CreateTask
+ * @param {Object} args - The mutation arguments
+ * @param {Object} args.task_input - Input containing task data
+ * @param {string} args.task_input.test_id - ID of the test this task belongs to
+ * @param {string} args.task_input.user_id - ID of the user this task belongs to
+ * @param {string} args.task_input.title - Title of the task
+ * @param {string} args.task_input.description - Description of the task
+ * @param {string} args.task_input.task_type - Type of the task
+ * @param {Date} [args.task_input.due_date] - Due date for the task
+ * @param {string} args.task_input.created_by - User ID of creator
+ * @param {string} args.task_input.updated_by - User ID of updater
+ * @throws {ApolloError} If validation fails or creation error occurs
+ * @returns {Promise<Object>} The created task object
+ */
+async function CreateTask(_, { task_input }) {
+  try {
+    // *************** Validate input parameters
+    TaskValidators.ValidateCreateUpdateTaskParameters({ taskInput: task_input });
+
+    // *************** Create task object with input data
+    const taskData = {
+      test_id: task_input.test_id,
+      user_id: task_input.user_id,
+      title: task_input.title,
+      description: task_input.description,
+      task_type: task_input.task_type,
+      status: 'ACTIVE',
+      created_by: task_input.created_by,
+      updated_by: task_input.updated_by
+    };
+
+    // *************** Add optional fields if they exist
+    if (task_input.due_date) {
+      taskData.due_date = task_input.due_date;
+    }
+    if (task_input.created_by) {
+      taskData.created_by = task_input.created_by;
+    }
+
+    // *************** Create task
+    const newTask = await TaskModel.create(taskData);
+
+    // *************** Return the created task
+    return newTask.toObject();
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/task/task.resolver.js',
+      parameter_input: JSON.stringify({ task_input }),
+      function_name: 'CreateTask',
+      error: String(error.stack),
+    });
+
+    // *************** Throw error with context
+    throw new ApolloError(error.message);
+  }
+}
+
+/**
+ * Updates an existing task
+ *
+ * @async
+ * @function UpdateTask
+ * @param {string} args.id - Task ID to update
+ * @param {Object} args.task_input - Input containing updated task data
+ * @param {string} [args.task_input.test_id] - Updated test ID
+ * @param {string} [args.task_input.user_id] - Updated user ID
+ * @param {string} [args.task_input.title] - Updated title
+ * @param {string} [args.task_input.description] - Updated description
+ * @param {string} [args.task_input.task_type] - Updated task type
+ * @param {string} [args.task_input.status] - Updated status
+ * @param {Date} [args.task_input.due_date] - Updated due date
+ * @param {string} args.task_input.updated_by - User ID of updater
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if task doesn't exist
+ * @returns {Promise<Object>} The updated task object
+ */
+async function UpdateTask(_, { id, task_input }) {
+  try {
+    // *************** Validate input parameters
+    TaskValidators.ValidateCreateUpdateTaskParameters({ id, taskInput: task_input });
+
+    // *************** Find task by ID
+    const existingTask = await TaskModel.findOne({
+      _id: id,
+      status: 'ACTIVE'
+    });
+
+    // *************** Check if task exists
+    if (!existingTask) {
+      throw new ApolloError('Task not found', 'RESOURCE_NOT_FOUND');
+    }
+
+    // *************** Update required fields
+    existingTask.test_id = task_input.test_id;
+    existingTask.user_id = task_input.user_id;
+    existingTask.title = task_input.title;
+    existingTask.description = task_input.description;
+    existingTask.task_type = task_input.task_type;
+
+    // *************** Update optional fields
+    if (task_input.status) {
+      existingTask.status = task_input.status;
+      
+      // *************** If status is changed to COMPLETED, set completed information
+      if (task_input.status === 'COMPLETED' && existingTask.status !== 'COMPLETED') {
+        existingTask.completed_by = task_input.updated_by;
+        existingTask.completed_at = new Date();
+      }
+    }
+
+    if (task_input.due_date) {
+      existingTask.due_date = task_input.due_date;
+    }
+
+    // *************** Update updated_by if provided
+    if (task_input.updated_by) {
+      existingTask.updated_by = task_input.updated_by;
+    }
+
+    // *************** Save changes
+    await existingTask.save();
+
+    // *************** Return updated task
+    return existingTask.toObject();
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/task/task.resolver.js',
+      parameter_input: JSON.stringify({ id, task_input }),
+      function_name: 'UpdateTask',
+      error: String(error.stack),
+    });
+
+    // *************** Throw error with context
+    throw new ApolloError(error.message);
+  }
+}
+
+/**
+ * Soft deletes a task by setting status to 'DELETED'
+ *
+ * @async
+ * @function DeleteTask
+ * @param {Object} _ - The parent object (unused)
+ * @param {Object} args - The mutation arguments
+ * @param {string} args.id - Task ID to delete
+ * @param {string} args.deleted_by - User ID performing the deletion
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if task doesn't exist
+ * @throws {ApolloError} Throws 'ALREADY_DELETED' if task is already deleted
+ * @returns {Promise<Object>} The deleted task object
+ */
+async function DeleteTask(_, { id, deleted_by }) {
+  try {
+    // *************** Validate MongoDB ID
+    ValidateMongoId(id);
+
+    // *************** Validate deleted_by
+    if (!deleted_by) {
+      throw new ApolloError('Deleted by is required', 'INVALID_INPUT');
+    }
+    if (typeof deleted_by !== 'string') {
+      throw new ApolloError('Deleted by must be a string', 'INVALID_INPUT');
+    };
+    
+    // *************** Find task by ID
+    const task = await TaskModel.findById(id);
+
+    // *************** Check if task exists
+    if (!task) {
+      throw new ApolloError('Task not found', 'RESOURCE_NOT_FOUND');
+    }
+
+    // *************** Check if task is already deleted
+    if (task.status === 'DELETED') {
+      throw new ApolloError('Task is already deleted', 'ALREADY_DELETED');
+    }
+
+    // *************** Update status to 'DELETED'
+    task.status = 'DELETED';
+    task.deleted_by = deleted_by;
+    task.deleted_at = new Date();
+
+    // *************** Save changes
+    await task.save();
+
+    // *************** Return deleted task
+    return task.toObject();
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/task/task.resolver.js',
+      parameter_input: JSON.stringify({ id, deleted_by }),
+      function_name: 'DeleteTask',
+      error: String(error.stack),
+    });
+
+    // *************** Throw error with context
+    throw new ApolloError(error.message);
+  }
+}
+
+// *************** LOADER ***************
+/**
+ * Retrieves the test associated with a task using DataLoader
+ *
+ * @async
+ * @function GetTestByTask
+ * @param {Object} parent - The parent resolver object containing the task data
+ * @param {Object} _ - The arguments (unused)
+ * @param {Object} context - The context object containing loaders
+ * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
+ * @returns {Promise<Object>} A promise that resolves to the test document
+ */
+async function GetTestByTask(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) {
+      return null;
+    }
+    
+    // ************** Return null if no test_id is associated
+    if (!parent.test_id) {
+      return null;
+    }
+    
+    // ************** Guard against missing loader
+    if (!context.dataLoaders || !context.dataLoaders.TestLoader) {
+      console.error('TestLoader is not available in the context');
+      return null;
+    }
+
+    // *************** Load test using DataLoader
+    const test = await context.dataLoaders.TestLoader.load(parent.test_id);
+    
+    // *************** Check if test exists
+    if (!test) {
+      throw new ApolloError('Test not found', 'RELATED_RESOURCE_NOT_FOUND');
+    }
+    
+    return test;
+  } catch (error) {
+    // ***************  Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/task/task.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'GetTestByTask',
+      error: String(error.stack),
+    });
+    
+    // ***************  Throw error with context
+    throw new ApolloError(`Failed to load test: ${error.message}`);
+  }
+}
+
+/**
+ * Retrieves the user associated with a task using DataLoader
+ *
+ * @async
+ * @function GetUserByTask
+ * @param {Object} parent - The parent resolver object containing the task data
+ * @param {Object} _ - The arguments (unused)
+ * @param {Object} context - The context object containing loaders
+ * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
+ * @returns {Promise<Object>} A promise that resolves to the user document
+ */
+async function GetUserByTask(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) {
+      return null;
+    }
+    
+    // ************** Return null if no user_id is associated
+    if (!parent.user_id) {
+      return null;
+    }
+    
+    // ************** Guard against missing loader
+    if (!context.dataLoaders || !context.dataLoaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+
+    // *************** Load user using DataLoader
+    const user = await context.dataLoaders.UserLoader.load(parent.user_id);
+    
+    // *************** Check if user exists
+    if (!user) {
+      throw new ApolloError('User not found', 'RELATED_RESOURCE_NOT_FOUND');
+    }
+    
+    return user;
+  } catch (error) {
+    // Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/task/task.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'GetUserByTask',
+      error: String(error.stack),
+    });
+    
+    // Throw error with context
+    throw new ApolloError(`Failed to load user: ${error.message}`);
+  }
+}
+
+// *************** EXPORT MODULE ***************
+module.exports = {
+  Query: {
+    GetAllTasks,
+    GetTaskById,
+  },
+  Mutation: {
+    CreateTask,
+    UpdateTask,
+    DeleteTask,
+  },
+  Task: {
+    test: GetTestByTask,
+    user: GetUserByTask,
+  }
+};

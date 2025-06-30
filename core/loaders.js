@@ -5,6 +5,8 @@ const SchoolLoader = require('../modules/school').SchoolLoader;
 const BlockLoader = require('../modules/block').BlockLoader;
 const SubjectLoader = require('../modules/subject').SubjectLoader;
 const TestLoader = require('../modules/test').TestLoader;
+const StudentTestResultLoader = require('../modules/studentTestResult').StudentTestResultLoader;
+const TaskLoader = require('../modules/task').TaskLoader;
 
 /**
  * Creates and initializes all DataLoader instances for the application
@@ -21,6 +23,8 @@ function LoaderModule() {
     BlockLoader: BlockLoader(),
     SubjectLoader: SubjectLoader(),
     TestLoader: TestLoader(),
+    StudentTestResultLoader: StudentTestResultLoader(),
+    TaskLoader: TaskLoader()
   };
 }
 

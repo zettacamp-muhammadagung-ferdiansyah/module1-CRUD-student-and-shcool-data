@@ -32,6 +32,8 @@ const StudentTestResultTypeDefs = gql`
     deleted_at: Date
     createdAt: Date
     updatedAt: Date
+    student: Student
+    test: Test
   }
 
   input StudentTestResultInput {

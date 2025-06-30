@@ -8,6 +8,8 @@ const SchoolModule = require('../modules/school');
 const BlockModule = require('../modules/block');
 const SubjectModule = require('../modules/subject');
 const TestModule = require('../modules/test');
+const StudentTestResultModule = require('../modules/studentTestResult');
+const TaskModule = require('../modules/task');
 
 // *************** EXPORT MODULE ***************
 module.exports = mergeResolvers([
@@ -16,5 +18,7 @@ module.exports = mergeResolvers([
   SchoolModule.resolvers,
   BlockModule.resolvers,
   SubjectModule.resolvers,
-  TestModule.resolvers
+  TestModule.resolvers,
+  StudentTestResultModule.resolvers,
+  TaskModule.resolvers
 ]);
