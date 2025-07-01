@@ -16,10 +16,10 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
 function TestLoader() {
   return new DataLoader(async (testIds) => {
     try {
-      // *************** Fetch active tests with matching IDs 
+      // *************** Fetch tests with matching IDs and accept multiple status values (case-insensitive)
       const tests = await TestModel.find({
         _id: { $in: testIds },
-        test_status: 'active'
+        test_status: { $in: ['ACTIVE', 'active', 'PUBLISHED'] }
       }).lean();
 
       // *************** Map results to maintain original order

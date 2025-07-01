@@ -423,13 +423,13 @@ async function GetTestByTask(parent, _, context) {
     }
     
     // ************** Guard against missing loader
-    if (!context.dataLoaders || !context.dataLoaders.TestLoader) {
+    if (!context.loaders || !context.loaders.TestLoader) {
       console.error('TestLoader is not available in the context');
       return null;
     }
 
     // *************** Load test using DataLoader
-    const test = await context.dataLoaders.TestLoader.load(parent.test_id);
+    const test = await context.loaders.TestLoader.load(parent.test_id);
     
     // *************** Check if test exists
     if (!test) {
@@ -475,13 +475,13 @@ async function GetUserByTask(parent, _, context) {
     }
     
     // ************** Guard against missing loader
-    if (!context.dataLoaders || !context.dataLoaders.UserLoader) {
+    if (!context.loaders || !context.loaders.UserLoader) {
       console.error('UserLoader is not available in the context');
       return null;
     }
 
     // *************** Load user using DataLoader
-    const user = await context.dataLoaders.UserLoader.load(parent.user_id);
+    const user = await context.loaders.UserLoader.load(parent.user_id);
     
     // *************** Check if user exists
     if (!user) {
