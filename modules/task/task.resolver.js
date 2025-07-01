@@ -490,7 +490,7 @@ async function GetUserByTask(parent, _, context) {
     
     return user;
   } catch (error) {
-    // Log error to database
+    //************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/task/task.resolver.js',
       parameter_input: JSON.stringify({ parent_id: parent._id }),
@@ -498,7 +498,7 @@ async function GetUserByTask(parent, _, context) {
       error: String(error.stack),
     });
     
-    // Throw error with context
+    // ************** Throw error with context
     throw new ApolloError(`Failed to load user: ${error.message}`);
   }
 }
