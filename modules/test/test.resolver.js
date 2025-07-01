@@ -401,6 +401,49 @@ async function PublishTest(_, { id, input }) {
   }
 }
 
+// *************** LOADER ***************
+/**
+ * Retrieves the subject associated with a specific test using DataLoader.
+ *
+ * @async
+ * @function GetSubjectByTest
+ * @param {Object} parent - The parent resolver object containing the test data
+ * @param {Object} _ - The arguments (unused)
+ * @param {Object} context - The context object containing loaders
+ * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
+ * @returns {Promise<Object|null>} A promise that resolves to the subject document or null if not found
+ */
+async function GetSubjectByTest(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) {
+      return null;
+    }
+    // ************** Return null if no subject_id is associated with the test
+    if (!parent.subject_id) {
+      return null;
+    }
+    // *************** Ensure SubjectLoader is available in context
+    if (!context.loaders || !context.loaders.SubjectLoader) {
+      console.error('SubjectLoader is not available in the context');
+      return null;
+    }
+    // *************** Load the subject using DataLoader for efficient batching and caching
+    const subject = await context.loaders.SubjectLoader.load(parent.subject_id);
+    return subject;
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/test/test.resolver.js',
+      parameter_input: JSON.stringify({ id: parent._id }),
+      function_name: 'GetSubjectByTest',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(error.message);
+  }
+}
+
 // *************** EXPORT MODULE ***************
 module.exports = {
   Query: {
@@ -412,5 +455,8 @@ module.exports = {
     UpdateTest,
     DeleteTest,
     PublishTest
+  },
+  Test: {
+    subject: GetSubjectByTest,
   }
 };
