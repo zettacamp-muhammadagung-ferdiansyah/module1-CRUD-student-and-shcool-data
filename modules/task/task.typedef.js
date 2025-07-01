@@ -1,4 +1,4 @@
-// *************** IMPORT LIBRARY ***************
+ // *************** IMPORT LIBRARY ***************
 const { gql } = require('apollo-server');
 
 const TaskTypeDefs = gql`
@@ -21,7 +21,7 @@ const TaskTypeDefs = gql`
     title: String!
     description: String!
     task_type: TaskType!
-    status: TaskStatus!
+    task_status: TaskStatus!
     due_date: Date
     completed_by: String
     completed_at: Date
@@ -54,9 +54,14 @@ const TaskTypeDefs = gql`
     title: String!
     description: String!
     task_type: TaskType!
-    status: TaskStatus
+    task_status: TaskStatus
     due_date: Date
     updated_by: String
+  }
+
+  input AssignCorrectorInput {
+    user_id: ID!
+    due_date: Date
   }
 
   type PaginatedTask {
@@ -75,6 +80,7 @@ const TaskTypeDefs = gql`
     CreateTask(task_input: TaskInput!): Task
     UpdateTask(id: ID!, task_input: TaskUpdateInput!): Task
     DeleteTask(id: ID!, deleted_by: String!): Task
+    AssignCorrector(id: ID!, input: AssignCorrectorInput!): Task!
   }
 `;
 

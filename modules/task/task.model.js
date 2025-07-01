@@ -39,7 +39,7 @@ const TaskSchema = new Schema(
     },
     
     // Status of the task
-    status: {
+    task_status: {
       type: String,
       enum: ['ACTIVE', 'IN_PROGRESS', 'COMPLETED', 'DELETED'],
       default: 'ACTIVE'

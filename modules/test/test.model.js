@@ -39,7 +39,11 @@ const testSchema = new Mongoose.Schema({
   }],
   
   // Current status of the test
-  status: { type: String, enum: ['active', 'deleted'], default: 'active' },
+  test_status: { 
+    type: String, 
+    enum: ['active', 'PUBLISHED', 'DELETED'], 
+    default: 'active' 
+  },
   
   // Date when the test was published
   published_date: {

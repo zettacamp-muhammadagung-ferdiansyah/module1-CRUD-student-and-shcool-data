@@ -13,9 +13,15 @@ function GetConfig() {
     console.error('MONGODB_URI environment variable is required but not defined');
   }
   
+  // *************** SendGrid Configuration
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  if (!sendgridApiKey) {
+    console.error('SENDGRID_API_KEY environment variable is required but not defined');
+  }
+
   // *************** Server Configuration 
   const port = process.env.PORT || 4000;
-  
+
   // *************** Return configuration object
   return {
     database: {
@@ -23,7 +29,8 @@ function GetConfig() {
     },
     server: {
       port
-    }
+    },
+    SENDGRID_API_KEY: sendgridApiKey
   };
 }
 

@@ -4,7 +4,8 @@ const { gql } = require('apollo-server');
 const TestTypeDefs = gql`
   enum TestStatus {
     active
-    deleted
+    PUBLISHED
+    DELETED
   }
 
   type Notation {
@@ -24,7 +25,7 @@ const TestTypeDefs = gql`
     description: String
     weight: Float!
     notations: [Notation!]!
-    status: TestStatus!
+    test_status: TestStatus!
     published_date: Date
     createdAt: Date!
     created_by: String
@@ -49,6 +50,13 @@ const TestTypeDefs = gql`
     limit: Int
   }
 
+  input PublishTestInput {
+    user_id: ID!
+    due_date: Date
+    title: String!
+    description: String
+  }
+
   extend type Query {
     GetAllTests(page: Int!, limit: Int!): PaginatedTest
     GetTestById(id: ID!): Test
@@ -58,6 +66,7 @@ const TestTypeDefs = gql`
     CreateTest(test_input: TestInput!): Test
     UpdateTest(id: ID!, test_input: TestInput!): Test
     DeleteTest(id: ID!, deleted_by: ID!): Test
+    PublishTest(id: ID!, input: PublishTestInput!): Test!
   }
 `;
 

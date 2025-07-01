@@ -4,6 +4,7 @@ const { ApolloError } = require('apollo-server');
 // *************** IMPORT MODULE ***************
 const TestModel = require('./test.model');
 const SubjectModel = require('../subject/subject.model');
+const TaskModel = require('../task/task.model');
 const ErrorLogModel = require('../errorLogs/error_logs.model');
 
 // *************** IMPORT VALIDATOR ***************
@@ -29,14 +30,12 @@ async function GetAllTests(_, { page, limit }) {
     // *************** Calculate skip value for pagination
     const skip = page * limit;
 
-    // *************** Execute queries in parallel
-    const [tests, total] = await Promise.all([
-      TestModel.find({ status: 'active' })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      TestModel.countDocuments({ status: 'active' })
-    ]);
+    // *************** Execute queries sequentially 
+    const tests = await TestModel.find({ test_status: 'active' })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    const total = await TestModel.countDocuments({ test_status: 'active' });
 
     // *************** Return paginated result
     return {
@@ -74,7 +73,7 @@ async function GetTestById(_, { id }) {
     ValidateMongoId(id);
 
     // *************** Find active test by ID
-    const test = await TestModel.findOne({ _id: id, status: 'active' }).lean();
+    const test = await TestModel.findOne({ _id: id, test_status: 'active' }).lean();
     if (!test) {
       throw new ApolloError('Test not found', 'RESOURCE_NOT_FOUND');
     }
@@ -138,7 +137,7 @@ async function CreateTest(_, { test_input }) {
       description: test_input.description,
       weight: test_input.weight,
       notations: test_input.notations,
-      status: 'active',
+      test_status: 'active',
       created_by: test_input.created_by || 'system',
       updated_by: test_input.updated_by || 'system'
     };
@@ -277,7 +276,7 @@ async function DeleteTest(_, { id, deleted_by }) {
     }
 
     // *************** Check if test is already deleted
-    if (test.status === 'deleted') {
+    if (test.test_status === 'DELETED') {
       throw new ApolloError('Test is already deleted', 'ALREADY_DELETED');
     }
 
@@ -285,7 +284,7 @@ async function DeleteTest(_, { id, deleted_by }) {
     const updatedTest = await TestModel.findByIdAndUpdate(
       id,
       {
-        status: 'deleted',
+        test_status: 'DELETED',
         deleted_at: new Date(),
         deleted_by
       }
@@ -314,6 +313,94 @@ async function DeleteTest(_, { id, deleted_by }) {
   }
 }
 
+/**
+ * Publishes a test and assigns a corrector by creating an ASSIGN_CORRECTOR task.
+ *
+ * This function performs the following steps:
+ * 1. Validates the test ID and user ID
+ * 2. Updates the test status from "active" to "PUBLISHED" and sets `published_date`
+ * 3. Creates a new task of type `ASSIGN_CORRECTOR` with `PROGRESS` status for the corrector
+ *
+ * @async
+ * @function PublishTest
+ * @param {object} _ - Unused parent resolver argument
+ * @param {string} args.id - The ID of the test to publish
+ * @param {object} args.input - The input payload
+ * @param {string} args.input.user_id - The ID of the user to be assigned as corrector
+ * @param {string} [args.input.due_date] - Optional due date for the corrector's task
+ * @returns {Promise<{ id: string }>} - Returns an object containing the published test ID
+ * @throws {ApolloError} - Throws an error if validation or any DB operation fails
+ */
+async function PublishTest(_, { id, input }) {
+  try {
+    // *************** Validate IDs
+    ValidateMongoId(id);
+    ValidateMongoId(input.user_id);
+
+    // *************** Find and validate test
+    const test = await TestModel.findOne({ 
+      _id: id,
+      test_status: 'active'
+    }).lean();
+
+    if (!test) {
+      throw new ApolloError('Test not found or not in active status', 'RESOURCE_NOT_FOUND');
+    }
+
+    // *************** Update Test to Published status
+    const publishResult = await TestModel.updateOne(
+      { _id: id, test_status: 'active' },
+      { 
+        $set: { 
+          test_status: 'PUBLISHED',
+          published_date: new Date(),
+          updated_by: input.user_id,
+          updated_at: new Date()
+        }
+      }
+    );
+
+    if (!publishResult || publishResult.modifiedCount === 0) {
+      throw new ApolloError('Failed to publish test', 'INTERNAL_SERVER_ERROR');
+    }
+
+
+    // *************** Prepare and create assign corrector task 
+    const assignCorrectorPayload = {
+      test_id: id,
+      user_id: input.user_id,
+      task_type: 'ASSIGN_CORRECTOR',
+      task_status: 'ACTIVE',
+      due_date: input.due_date ? new Date(input.due_date) : null,
+      created_by: input.user_id,
+      updated_by: input.user_id,
+      title: input.title,
+      description: input.description
+    };
+
+    const task = await TaskModel.create(assignCorrectorPayload);
+    if (!task) {
+      throw new ApolloError('Failed to create assign corrector task', 'TASK_CREATION_FAILED');
+    }
+
+    // *************** Return the full Test object
+    const updatedTest = await TestModel.findById(id).lean();
+    return updatedTest;
+
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/test/test.resolver.js',
+      parameter_input: JSON.stringify({ id, input }),
+      function_name: 'PublishTest',
+      error: String(error.stack),
+    });
+
+    // ************** Throw error message
+    throw new ApolloError(error.message);
+  }
+}
+
 // *************** EXPORT MODULE ***************
 module.exports = {
   Query: {
@@ -324,5 +411,6 @@ module.exports = {
     CreateTest,
     UpdateTest,
     DeleteTest,
+    PublishTest
   }
 };

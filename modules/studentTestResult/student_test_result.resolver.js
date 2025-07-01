@@ -4,6 +4,9 @@ const { ApolloError } = require('apollo-server');
 // *************** IMPORT MODULE ***************
 const StudentTestResultModel = require('./student_test_result.model');
 const ErrorLogModel = require('../errorLogs/error_logs.model');
+const TestModel = require('../test/test.model');
+const TaskModel = require('../task/task.model');
+const UserModel = require('../user/user.model');
 
 // *************** IMPORT VALIDATOR ***************
 const StudentTestResultValidators = require('./student_test_result.validator');
@@ -28,14 +31,12 @@ async function GetAllStudentTestResults(_, { page, limit }) {
     // *************** Calculate skip value for pagination
     const skip = page * limit;
 
-    // *************** Execute queries in parallel
-    const [studentTestResults, total] = await Promise.all([
-      StudentTestResultModel.find({ student_test_result_status: 'ACTIVE' })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      StudentTestResultModel.countDocuments({ student_test_result_status: 'ACTIVE' })
-    ]);
+    // *************** Execute queries sequentially
+    const studentTestResults = await StudentTestResultModel.find({ student_test_result_status: 'ACTIVE' })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    const total = await StudentTestResultModel.countDocuments({ student_test_result_status: 'ACTIVE' });
 
     // *************** Return paginated result
     return {
@@ -385,7 +386,149 @@ async function GetTestByStudentTestResult(parent, _, context) {
   }
 }
 
-// *************** EXPORT MODULE ***************
+/**
+ * Creates a new student test result, marks ENTER_MARKS task as completed, and creates VALIDATE_MARKS task.
+ *
+ * @async
+ * @function EnterMarks
+ * @param {Object} _ - Unused root argument
+ * @param {Object} args.input - Input for creating student test result
+ * @throws {ApolloError} If validation or creation fails
+ * @returns {Promise<Object>} The created student test result object
+ */
+async function EnterMarks(_, { input }) {
+  try {
+    // *************** Validate input parameters
+    StudentTestResultValidators.ValidateCreateUpdateStudentTestResultParameters({ studentTestResultInput: input });
+
+    // *************** Prepare payload for StudentTestResult 
+    const createStudentTestResultPayload = {
+      student_id: input.student_id,
+      test_id: input.test_id,
+      marks: input.marks,
+      student_test_result_status: 'ACTIVE',
+      created_by: input.created_by || null
+    };
+
+    // *************** Calculate average mark
+    const sum = input.marks.reduce((acc, mark) => acc + mark.mark, 0);
+    createStudentTestResultPayload.average_mark = sum / input.marks.length;
+    createStudentTestResultPayload.mark_entry_date = new Date();
+
+    // *************** Create StudentTestResult
+    const newStudentTestResult = await StudentTestResultModel.create(createStudentTestResultPayload);
+
+    // *************** Find the ENTER_MARKS task and ensure it is ACTIVE
+    const enterMarksTask = await TaskModel.findOne({
+      test_id: newStudentTestResult.test_id,
+      user_id: input.created_by,
+      task_type: 'ENTER_MARKS',
+      task_status: 'ACTIVE',
+    });
+    if (!enterMarksTask) {
+      throw new ApolloError('Enter Marks task not found or not active', 'RESOURCE_NOT_FOUND');
+    }
+
+    // *************** Mark ENTER_MARKS task as COMPLETED
+    enterMarksTask.task_status = 'COMPLETED';
+    enterMarksTask.updated_by = input.created_by;
+    enterMarksTask.completed_by = input.created_by;
+    enterMarksTask.completed_at = new Date();
+    await enterMarksTask.save();
+
+    // *************** Prepare payload for VALIDATE_MARKS task (with required fields)
+    const test = await TestModel.findById(newStudentTestResult.test_id).lean();
+      // *************** Always assign validator by role (e.g., academic director)
+      const validator = await UserModel.findOne({ role: 'ACADEMIC_DIRECTOR', user_status: 'ACTIVE' }).lean();
+       if (!validator) {
+      throw new ApolloError('Academic director not found', 'NOT_FOUND');
+     }
+    const createValidateMarkPayload = {
+      task_type: 'VALIDATE_MARKS',
+      test_id: newStudentTestResult.test_id,
+      user_id: validator._id,
+      due_date: input.due_date || null,
+      task_status: 'ACTIVE',
+      title: test ? test.name : 'Validate Marks',
+      description: test ? test.description : 'Validate marks for assigned test',
+      created_by: input.created_by,
+      updated_by: input.created_by
+    };
+    // *************** Create VALIDATE_MARKS task
+    const createTask = await TaskModel.create(createValidateMarkPayload);
+    if (!createTask) {
+      throw new ApolloError('Failed to create VALIDATE_MARKS task', 'NOT_FOUND');
+    }
+
+    // *************** Return the created student test result
+    return newStudentTestResult.toObject();
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ input }),
+      function_name: 'EnterMarks',
+      error: String(error.stack),
+    });
+    // *************** Throw error with context
+    throw new ApolloError(error.message);
+  }
+}
+
+/**
+ * Validates student marks and completes the VALIDATE_MARKS task.
+ *
+ * @async
+ * @function ValidateMarks
+ * @param {Object} _ - Unused root argument
+ * @param {Object} args - Arguments containing id (StudentTestResult ID)
+ * @throws {ApolloError} If validation or update fails
+ * @returns {Promise<Object>} The validated student test result object
+ */
+async function ValidateMarks(_, { id }) {
+  try {
+    // *************** Validate ID
+    ValidateMongoId(id);
+
+    // *************** Find student test result
+    const studentTestResult = await StudentTestResultModel.findById(id);
+    if (!studentTestResult || studentTestResult.student_test_result_status !== 'ACTIVE') {
+      throw new ApolloError('Student test result not found or not active', 'RESOURCE_NOT_FOUND');
+    }
+
+    // *************** Update student test result status to VALIDATED
+    studentTestResult.student_test_result_status = 'VALIDATED';
+    studentTestResult.updated_at = new Date();
+    await studentTestResult.save();
+
+    // *************** Mark VALIDATE_MARKS task as COMPLETED
+    await TaskModel.findOneAndUpdate(
+      {
+        test_id: studentTestResult.test_id,
+        user_id: studentTestResult.updated_by,
+        task_type: 'VALIDATE_MARKS',
+        task_status: 'ACTIVE'
+      },
+      { $set: { task_status: 'COMPLETED' } }
+    );
+
+    // *************** Return the validated student test result
+    return studentTestResult.toObject();
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ id }),
+      function_name: 'ValidateMarks',
+      error: String(error.stack),
+    });
+    // *************** Throw error with context
+    throw new ApolloError(error.message);
+  }
+}
+
+
+// *************** EXPORT MODULE **************
 module.exports = {
   Query: {
     GetAllStudentTestResults,
@@ -394,7 +537,9 @@ module.exports = {
   Mutation: {
     CreateStudentTestResult,
     UpdateStudentTestResult,
-    DeleteStudentTestResult
+    DeleteStudentTestResult,
+    EnterMarks,
+    ValidateMarks
   },
   StudentTestResult: {
     student: GetStudentByStudentTestResult,

@@ -4,10 +4,16 @@ const { ApolloError } = require('apollo-server');
 // *************** IMPORT MODULE ***************
 const TaskModel = require('./task.model');
 const ErrorLogModel = require('../errorLogs/error_logs.model');
+const { SendEmailViaSendGrid } = require('./task.helper');
+const StudentModel = require('../student/student.model');
+const UserModel = require('../user/user.model');
+const TestModel = require('../test/test.model');
+const SubjectModel = require('../subject/subject.model');
 
 // *************** IMPORT VALIDATOR ***************
 const TaskValidators = require('./task.validator');
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
+const { ValidateAssignCorrector } = require('./task.validator');
 
 // *************** QUERY ***************
 /**
@@ -29,14 +35,12 @@ async function GetAllTasks(_, { page, limit }) {
     // *************** Calculate skip value for pagination
     const skip = page * limit;
 
-    // *************** Execute queries in parallel
-    const [tasks, total] = await Promise.all([
-      TaskModel.find({ status: 'ACTIVE' })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      TaskModel.countDocuments({ status: 'ACTIVE' })
-    ]);
+    // *************** Execute queries sequentially 
+    const tasks = await TaskModel.find({ task_status: 'ACTIVE' })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    const total = await TaskModel.countDocuments({ task_status: 'ACTIVE' });
 
     // *************** Return paginated result
     return {
@@ -77,7 +81,7 @@ async function GetTaskById(_, { id }) {
     // *************** Find task by ID
     const task = await TaskModel.findOne({
       _id: id,
-      status: 'ACTIVE'
+      task_status: 'ACTIVE'
     }).lean();
 
     // *************** Check if task exists
@@ -132,7 +136,7 @@ async function CreateTask(_, { task_input }) {
       title: task_input.title,
       description: task_input.description,
       task_type: task_input.task_type,
-      status: 'ACTIVE',
+      task_status: 'ACTIVE',
       created_by: task_input.created_by,
       updated_by: task_input.updated_by
     };
@@ -190,7 +194,7 @@ async function UpdateTask(_, { id, task_input }) {
     // *************** Find task by ID
     const existingTask = await TaskModel.findOne({
       _id: id,
-      status: 'ACTIVE'
+      task_status: 'ACTIVE'
     });
 
     // *************** Check if task exists
@@ -206,11 +210,11 @@ async function UpdateTask(_, { id, task_input }) {
     existingTask.task_type = task_input.task_type;
 
     // *************** Update optional fields
-    if (task_input.status) {
-      existingTask.status = task_input.status;
+    if (task_input.task_status) {
+      existingTask.task_status = task_input.task_status;
       
       // *************** If status is changed to COMPLETED, set completed information
-      if (task_input.status === 'COMPLETED' && existingTask.status !== 'COMPLETED') {
+      if (task_input.task_status === 'COMPLETED' && existingTask.task_status !== 'COMPLETED') {
         existingTask.completed_by = task_input.updated_by;
         existingTask.completed_at = new Date();
       }
@@ -279,12 +283,12 @@ async function DeleteTask(_, { id, deleted_by }) {
     }
 
     // *************** Check if task is already deleted
-    if (task.status === 'DELETED') {
+    if (task.task_status === 'DELETED') {
       throw new ApolloError('Task is already deleted', 'ALREADY_DELETED');
     }
 
     // *************** Update status to 'DELETED'
-    task.status = 'DELETED';
+    task.task_status = 'DELETED';
     task.deleted_by = deleted_by;
     task.deleted_at = new Date();
 
@@ -303,6 +307,93 @@ async function DeleteTask(_, { id, deleted_by }) {
     });
 
     // *************** Throw error with context
+    throw new ApolloError(error.message);
+  }
+}
+
+/**
+ * Assigns a corrector to a test, marks the ASSIGN_CORRECTOR task as completed, creates ENTER_MARKS task, and sends notification.
+ *
+ * @async
+ * @function AssignCorrector
+ * @param {object} _ - Unused parent resolver argument
+ * @param {string} args.id - The ID of the ASSIGN_CORRECTOR task
+ * @param {object} args.input - The input payload
+ * @param {string} args.input.user_id - The ID of the user to be assigned as corrector
+ * @param {string} [args.input.due_date] - Optional due date for the ENTER_MARKS task
+ * @returns {Promise<Object>} The updated ASSIGN_CORRECTOR task (now completed)
+ * @throws {ApolloError} - Throws an error if validation or any DB operation fails
+ */
+async function AssignCorrector(_, { id, input }) {
+  try {
+    // *************** Validate input
+    const { user_id, due_date } = ValidateAssignCorrector(id, input);
+
+    // *************** Find the ASSIGN_CORRECTOR task
+    const assignTask = await TaskModel.findOne({
+      _id: id,
+      task_type: 'ASSIGN_CORRECTOR',
+      task_status: 'ACTIVE'
+    });
+    if (!assignTask) {
+      throw new ApolloError('AssignCorrector task not found or not active', 'RESOURCE_NOT_FOUND');
+    }
+
+    // *************** Mark ASSIGN_CORRECTOR task as completed
+    assignTask.task_status = 'COMPLETED';
+    assignTask.updated_by = user_id;
+    assignTask.completed_by = user_id;
+    assignTask.completed_at = new Date();
+    await assignTask.save();
+
+    // *************** Create ENTER_MARKS task
+    await TaskModel.create({
+      test_id: assignTask.test_id,
+      user_id,
+      title: 'Enter Marks',
+      description: 'Enter marks for assigned test',
+      task_type: 'ENTER_MARKS',
+      task_status: 'ACTIVE',
+      due_date: due_date ? new Date(due_date) : undefined,
+      created_by: user_id,
+      updated_by: user_id
+    });
+
+    // *************** Fetch test, subject, corrector, and students
+    const test = await TestModel.findById(assignTask.test_id).lean();
+    if (!test) throw new ApolloError('Test not found', 'RESOURCE_NOT_FOUND');
+    const subject = await SubjectModel.findById(test.subject_id).lean();
+    const corrector = await UserModel.findById(user_id).lean();
+    if (!corrector) throw new ApolloError('Corrector not found', 'RESOURCE_NOT_FOUND');
+    const students = await StudentModel.find({ test_id: test._id }).select('first_name last_name').lean();
+
+    // *************** Compose student names
+    const studentNames = students.map(s => `${s.first_name} ${s.last_name}`).join(', ');
+
+    // *************** Send notification email
+    const emailPayload = {
+      to: corrector.email,
+      subject: 'You have been assigned as a Test Corrector!',
+      html: `
+        <h2>You have been assigned as a Test Corrector!</h2>
+        <p><strong>Test:</strong> ${test.name}</p>
+        <p><strong>Subject:</strong> ${subject ? subject.name : '-'}</p>
+        <p><strong>Description:</strong> ${test.description || '-'}</p>
+        <p><strong>Students to correct:</strong> ${studentNames}</p>
+      `
+    };
+    const sendEmailResult = await SendEmailViaSendGrid(emailPayload);
+    if (!sendEmailResult) throw new ApolloError('Failed to send email notification', 'EMAIL_FAILED');
+
+    // *************** Return the updated assignTask 
+    return assignTask.toObject();
+  } catch (error) {
+    await ErrorLogModel.create({
+      path: 'modules/task/task.resolver.js',
+      parameter_input: JSON.stringify({ id, input }),
+      function_name: 'AssignCorrector',
+      error: String(error.stack),
+    });
     throw new ApolloError(error.message);
   }
 }
@@ -422,6 +513,7 @@ module.exports = {
     CreateTask,
     UpdateTask,
     DeleteTask,
+    AssignCorrector,
   },
   Task: {
     test: GetTestByTask,

@@ -28,14 +28,12 @@ async function GetAllBlocks(_, { page, limit }) {
     // *************** Calculate skip value for pagination
     const skip = page * limit;
 
-    // *************** Execute queries in parallel
-    const [blocks, total] = await Promise.all([
-      BlockModel.find({ status: 'active' })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      BlockModel.countDocuments({ status: 'active' })
-    ]);
+    // *************** Execute queries sequentially 
+    const blocks = await BlockModel.find({ status: 'active' })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    const total = await BlockModel.countDocuments({ status: 'active' });
 
     // *************** Return paginated result
     return {

@@ -111,9 +111,42 @@ function ValidateCreateUpdateTaskParameters({ id, taskInput }) {
     throw new ApolloError('Updated by must be a string', 'INVALID_INPUT');
   }
 }
+/**
+ * Validates input for AssignCorrector mutation
+ * @param {string} taskId - Task ID
+ * @param {Object} input - Input object
+ * @throws {ApolloError} If validation fails
+ * @returns {Object} { user_id, due_date }
+ */
+function ValidateAssignCorrector(taskId, input) {
+  // ***************  Validate taskId
+  ValidateMongoId(taskId);
+
+  // *************** Validate input object
+  if (!input) {
+    throw new ApolloError('Input is required', 'INVALID_INPUT');
+  }
+
+  // ***************  Validate user_id
+  if (!input.user_id) {
+    throw new ApolloError('User ID is required', 'INVALID_INPUT');
+  }
+  ValidateMongoId(input.user_id);
+
+  // ***************  Validate due_date if provided
+  if (input.due_date && isNaN(new Date(input.due_date).getTime())) {
+    throw new ApolloError('Invalid due date format', 'INVALID_INPUT');
+  }
+
+  return {
+    user_id: input.user_id,
+    due_date: input.due_date
+  };
+}
 
 // *************** EXPORT MODULE ***************
 module.exports = {
   ValidatePaginationParameters,
-  ValidateCreateUpdateTaskParameters
+  ValidateCreateUpdateTaskParameters,
+  ValidateAssignCorrector
 };

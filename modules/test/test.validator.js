@@ -123,7 +123,7 @@ async function ValidateTestWeight({ subject_id, weight, test_id, TestModel }) {
   // *************** Build query to get existing tests
   const query = {
     subject_id,
-    status: 'active'
+    test_status: 'active'
   };
   
   // *************** If test_id is provided (for updates), exclude it from the query
