@@ -19,7 +19,7 @@ function TaskLoader() {
       // *************** Fetch active tasks with matching IDs
       const tasks = await TaskModel.find({
         _id: { $in: taskIds },
-        status: 'ACTIVE'
+        task_status: 'ACTIVE'
       }).lean();
 
       // *************** Map results to maintain original order

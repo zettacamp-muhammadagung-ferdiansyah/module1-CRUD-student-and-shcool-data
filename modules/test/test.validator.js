@@ -149,9 +149,37 @@ async function ValidateTestWeight({ subject_id, weight, test_id, TestModel }) {
   }
 }
 
+/**
+ * Validates input for publishing a test (assigning a corrector)
+ *
+ * @function ValidatePublishTestInput
+ * @param {Object} input - The input object for PublishTest
+ * @throws {ApolloError} If any validation fails
+ */
+function ValidatePublishTestInput(input) {
+  if (!input) {
+    throw new ApolloError('PublishTest input is required', 'INVALID_INPUT');
+  }
+  if (!input.user_id) {
+    throw new ApolloError('User ID is required', 'INVALID_INPUT');
+  }
+  ValidateMongoId(input.user_id);
+
+  if (!input.title || typeof input.title !== 'string') {
+    throw new ApolloError('Title is required and must be a string', 'INVALID_INPUT');
+  }
+  if (input.description && typeof input.description !== 'string') {
+    throw new ApolloError('Description must be a string', 'INVALID_INPUT');
+  }
+  if (input.due_date && isNaN(Date.parse(input.due_date))) {
+    throw new ApolloError('Due date must be a valid date', 'INVALID_INPUT');
+  }
+}
+
 // *************** EXPORT MODULE ***************
 module.exports = {
   ValidateCreateUpdateTestParameters,
   ValidatePaginationParameters,
-  ValidateTestWeight
+  ValidateTestWeight,
+  ValidatePublishTestInput
 };

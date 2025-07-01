@@ -437,13 +437,13 @@ async function GetStudentByStudentTestResult(parent, _, context) {
     }
     
     // ************** Guard against missing loader
-    if (!context.dataLoaders || !context.dataLoaders.StudentLoader) {
+    if (!context.loaders || !context.loaders.StudentLoader) {
       console.error('StudentLoader is not available in the context');
       return null;
     }
 
     // *************** Load student using DataLoader
-    const student = await context.dataLoaders.StudentLoader.load(parent.student_id);
+    const student = await context.loaders.StudentLoader.load(parent.student_id);
     
     // *************** Check if student exists
     if (!student) {
@@ -489,13 +489,13 @@ async function GetTestByStudentTestResult(parent, _, context) {
     }
     
     // ************** Guard against missing loader
-    if (!context.dataLoaders || !context.dataLoaders.TestLoader) {
+    if (!context.loaders || !context.loaders.TestLoader) {
       console.error('TestLoader is not available in the context');
       return null;
     }
 
     // *************** Load test using DataLoader
-    const test = await context.dataLoaders.TestLoader.load(parent.test_id);
+    const test = await context.loaders.TestLoader.load(parent.test_id);
     
     // *************** Check if test exists
     if (!test) {

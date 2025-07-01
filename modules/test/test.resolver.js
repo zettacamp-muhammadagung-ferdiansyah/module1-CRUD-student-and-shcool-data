@@ -331,11 +331,11 @@ async function DeleteTest(_, { id, deleted_by }) {
  * @returns {Promise<{ id: string }>} - Returns an object containing the published test ID
  * @throws {ApolloError} - Throws an error if validation or any DB operation fails
  */
-async function PublishTest(_, { id, input }) {
+async function PublishTest(_, { id, input }) { //perlu validate input
   try {
-    // *************** Validate IDs
+    // *************** Validate input for PublishTest
     ValidateMongoId(id);
-    ValidateMongoId(input.user_id);
+    TestValidators.ValidatePublishTestInput(input);
 
     // *************** Find and validate test
     const test = await TestModel.findOne({ 
@@ -363,7 +363,6 @@ async function PublishTest(_, { id, input }) {
     if (!publishResult || publishResult.modifiedCount === 0) {
       throw new ApolloError('Failed to publish test', 'INTERNAL_SERVER_ERROR');
     }
-
 
     // *************** Prepare and create assign corrector task 
     const assignCorrectorPayload = {

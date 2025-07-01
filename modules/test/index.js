@@ -8,7 +8,8 @@ module.exports = {
   typeDefs: TestTypeDefs,
   resolvers: {
     Query: TestResolvers.Query,
-    Mutation: TestResolvers.Mutation
+    Mutation: TestResolvers.Mutation,
+    Test: TestResolvers.Test
   },
   TestLoader: TestLoaderModule.TestLoader
 };
