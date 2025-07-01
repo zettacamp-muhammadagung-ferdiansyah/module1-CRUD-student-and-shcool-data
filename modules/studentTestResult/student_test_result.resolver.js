@@ -280,122 +280,6 @@ async function DeleteStudentTestResult(_, { id, deleted_by }) {
     throw new ApolloError(error.message);
   }
 }
-
-// *************** LOADER ***************
-/**
- * Loads the student associated with a test result using DataLoader.
- *
- * @async
- * @function GetStudentByStudentTestResult
- * @param {Object} parent - The parent resolver object containing the student test result data
- * @param {Object} _ - The arguments (unused)
- * @param {Object} context - The context object containing loaders
- * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
- * @returns {Promise<Object>} A promise that resolves to a student document
- */
-async function GetStudentByStudentTestResult(parent, _, context) {
-  try {
-    // ************** Guard against null parent or context
-    if (!parent || !context) {
-      return null;
-    }
-    
-    // ************** Return null if no student_id is associated
-    if (!parent.student_id) {
-      return null;
-    }
-    
-    // ************** Guard against missing loader
-    if (!context.dataLoaders || !context.dataLoaders.StudentLoader) {
-      console.error('StudentLoader is not available in the context');
-      return null;
-    }
-
-    // *************** Load student using DataLoader
-    const student = await context.dataLoaders.StudentLoader.load(parent.student_id);
-    
-    // *************** Check if student exists
-    if (!student) {
-      throw new ApolloError('Student not found', 'RELATED_RESOURCE_NOT_FOUND');
-    }
-    
-    return student;
-  } catch (error) {
-    // *************** Log error to database
-    await ErrorLogModel.create({
-      path: 'modules/studentTestResult/student_test_result.resolver.js',
-      parameter_input: JSON.stringify({ parent_id: parent._id }),
-      function_name: 'GetStudentByStudentTestResult',
-      error: String(error.stack),
-    });
-    
-    // *************** Throw error with context
-    throw new ApolloError(`Failed to load student: ${error.message}`);
-  }
-}
-
-/**
- * Loads the test associated with a student test result using DataLoader.
- *
- * @async
- * @function GetTestByStudentTestResult
- * @param {Object} parent - The parent resolver object containing the student test result data
- * @param {Object} _ - The arguments (unused)
- * @param {Object} context - The context object containing loaders
- * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
- * @returns {Promise<Object>} A promise that resolves to a test document
- */
-async function GetTestByStudentTestResult(parent, _, context) {
-  try {
-    // ************** Guard against null parent or context
-    if (!parent || !context) {
-      return null;
-    }
-    
-    // ************** Return null if no test_id is associated
-    if (!parent.test_id) {
-      return null;
-    }
-    
-    // ************** Guard against missing loader
-    if (!context.dataLoaders || !context.dataLoaders.TestLoader) {
-      console.error('TestLoader is not available in the context');
-      return null;
-    }
-
-    // *************** Load test using DataLoader
-    const test = await context.dataLoaders.TestLoader.load(parent.test_id);
-    
-    // *************** Check if test exists
-    if (!test) {
-      throw new ApolloError('Test not found', 'RELATED_RESOURCE_NOT_FOUND');
-    }
-    
-    return test;
-  } catch (error) {
-    // *************** Log error to database
-    await ErrorLogModel.create({
-      path: 'modules/studentTestResult/student_test_result.resolver.js',
-      parameter_input: JSON.stringify({ parent_id: parent._id }),
-      function_name: 'GetTestByStudentTestResult',
-      error: String(error.stack),
-    });
-    
-    // *************** Throw error with context
-    throw new ApolloError(`Failed to load test: ${error.message}`);
-  }
-}
-
-/**
- * Creates a new student test result, marks ENTER_MARKS task as completed, and creates VALIDATE_MARKS task.
- *
- * @async
- * @function EnterMarks
- * @param {Object} _ - Unused root argument
- * @param {Object} args.input - Input for creating student test result
- * @throws {ApolloError} If validation or creation fails
- * @returns {Promise<Object>} The created student test result object
- */
 async function EnterMarks(_, { input }) {
   try {
     // *************** Validate input parameters
@@ -526,6 +410,123 @@ async function ValidateMarks(_, { id }) {
     throw new ApolloError(error.message);
   }
 }
+
+
+// *************** LOADER ***************
+/**
+ * Loads the student associated with a test result using DataLoader.
+ *
+ * @async
+ * @function GetStudentByStudentTestResult
+ * @param {Object} parent - The parent resolver object containing the student test result data
+ * @param {Object} _ - The arguments (unused)
+ * @param {Object} context - The context object containing loaders
+ * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
+ * @returns {Promise<Object>} A promise that resolves to a student document
+ */
+async function GetStudentByStudentTestResult(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) {
+      return null;
+    }
+    
+    // ************** Return null if no student_id is associated
+    if (!parent.student_id) {
+      return null;
+    }
+    
+    // ************** Guard against missing loader
+    if (!context.dataLoaders || !context.dataLoaders.StudentLoader) {
+      console.error('StudentLoader is not available in the context');
+      return null;
+    }
+
+    // *************** Load student using DataLoader
+    const student = await context.dataLoaders.StudentLoader.load(parent.student_id);
+    
+    // *************** Check if student exists
+    if (!student) {
+      throw new ApolloError('Student not found', 'RELATED_RESOURCE_NOT_FOUND');
+    }
+    
+    return student;
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'GetStudentByStudentTestResult',
+      error: String(error.stack),
+    });
+    
+    // *************** Throw error with context
+    throw new ApolloError(`Failed to load student: ${error.message}`);
+  }
+}
+
+/**
+ * Loads the test associated with a student test result using DataLoader.
+ *
+ * @async
+ * @function GetTestByStudentTestResult
+ * @param {Object} parent - The parent resolver object containing the student test result data
+ * @param {Object} _ - The arguments (unused)
+ * @param {Object} context - The context object containing loaders
+ * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
+ * @returns {Promise<Object>} A promise that resolves to a test document
+ */
+async function GetTestByStudentTestResult(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) {
+      return null;
+    }
+    
+    // ************** Return null if no test_id is associated
+    if (!parent.test_id) {
+      return null;
+    }
+    
+    // ************** Guard against missing loader
+    if (!context.dataLoaders || !context.dataLoaders.TestLoader) {
+      console.error('TestLoader is not available in the context');
+      return null;
+    }
+
+    // *************** Load test using DataLoader
+    const test = await context.dataLoaders.TestLoader.load(parent.test_id);
+    
+    // *************** Check if test exists
+    if (!test) {
+      throw new ApolloError('Test not found', 'RELATED_RESOURCE_NOT_FOUND');
+    }
+    
+    return test;
+  } catch (error) {
+    // *************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'GetTestByStudentTestResult',
+      error: String(error.stack),
+    });
+    
+    // *************** Throw error with context
+    throw new ApolloError(`Failed to load test: ${error.message}`);
+  }
+}
+
+/**
+ * Creates a new student test result, marks ENTER_MARKS task as completed, and creates VALIDATE_MARKS task.
+ *
+ * @async
+ * @function EnterMarks
+ * @param {Object} _ - Unused root argument
+ * @param {Object} args.input - Input for creating student test result
+ * @throws {ApolloError} If validation or creation fails
+ * @returns {Promise<Object>} The created student test result object
+ */
 
 
 // *************** EXPORT MODULE **************
