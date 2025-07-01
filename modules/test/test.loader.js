@@ -16,7 +16,7 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
 function TestLoader() {
   return new DataLoader(async (testIds) => {
     try {
-      // *************** Fetch active tests with matching IDs (mimic subject loader)
+      // *************** Fetch active tests with matching IDs 
       const tests = await TestModel.find({
         _id: { $in: testIds },
         test_status: 'active'
