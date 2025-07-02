@@ -248,7 +248,6 @@ async function DeleteBlock(_, { id, deleted_by }) {
  * @async
  * @function GetSubjectsByBlock
  * @param {Object} parent - The parent resolver object containing the block data
- * @param {Object} _ - The arguments (unused)
  * @param {Object} context - The context object containing loaders
  * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of subject documents

@@ -21,7 +21,6 @@ const { ValidateAssignCorrector } = require('./task.validator');
  *
  * @async
  * @function GetAllTasks
- * @param {Object} args - The query arguments
  * @param {number} args.page - Page number for pagination (0-based, where 0 is the first page)
  * @param {number} args.limit - Number of tasks per page
  * @throws {ApolloError} If query fails or pagination parameters are invalid
@@ -68,7 +67,6 @@ async function GetAllTasks(_, { page, limit }) {
  *
  * @async
  * @function GetTaskById
- * @param {Object} args - The query arguments
  * @param {string} args.id - MongoDB ObjectId of the task
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if task doesn't exist or is deleted
  * @returns {Promise<Object>} The task object
@@ -111,7 +109,6 @@ async function GetTaskById(_, { id }) {
  *
  * @async
  * @function CreateTask
- * @param {Object} args - The mutation arguments
  * @param {Object} args.task_input - Input containing task data
  * @param {string} args.task_input.test_id - ID of the test this task belongs to
  * @param {string} args.task_input.user_id - ID of the user this task belongs to
@@ -254,7 +251,6 @@ async function UpdateTask(_, { id, task_input }) {
  * @async
  * @function DeleteTask
  * @param {Object} _ - The parent object (unused)
- * @param {Object} args - The mutation arguments
  * @param {string} args.id - Task ID to delete
  * @param {string} args.deleted_by - User ID performing the deletion
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if task doesn't exist
@@ -457,7 +453,6 @@ async function GetTestByTask(parent, _, context) {
  * @async
  * @function GetUserByTask
  * @param {Object} parent - The parent resolver object containing the task data
- * @param {Object} _ - The arguments (unused)
  * @param {Object} context - The context object containing loaders
  * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
  * @returns {Promise<Object>} A promise that resolves to the user document

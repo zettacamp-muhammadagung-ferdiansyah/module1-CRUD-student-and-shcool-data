@@ -375,7 +375,6 @@ async function EnterMarks(_, { input }) {
  *
  * @async
  * @function ValidateMarks
- * @param {Object} args - Arguments containing id (StudentTestResult ID)
  * @throws {ApolloError} If validation or update fails
  * @returns {Promise<Object>} The validated student test result object
  */

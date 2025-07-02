@@ -324,7 +324,6 @@ async function DeleteSubject(_, { id, deleted_by }) {
  * @async
  * @function GetTestsBySubject
  * @param {Object} parent - The parent resolver object containing the subject data
- * @param {Object} _ - The arguments (unused)
  * @param {Object} context - The context object containing loaders
  * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of test documents
