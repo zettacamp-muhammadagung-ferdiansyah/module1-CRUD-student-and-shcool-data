@@ -311,7 +311,6 @@ async function DeleteTask(_, { id, deleted_by }) {
  *
  * @async
  * @function AssignCorrector
- * @param {object} _ - Unused parent resolver argument
  * @param {string} args.id - The ID of the ASSIGN_CORRECTOR task
  * @param {object} args.input - The input payload
  * @param {string} args.input.user_id - The ID of the user to be assigned as corrector

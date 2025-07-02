@@ -323,7 +323,6 @@ async function DeleteTest(_, { id, deleted_by }) {
  *
  * @async
  * @function PublishTest
- * @param {object} _ - Unused parent resolver argument
  * @param {string} args.id - The ID of the test to publish
  * @param {object} args.input - The input payload
  * @param {string} args.input.user_id - The ID of the user to be assigned as corrector
