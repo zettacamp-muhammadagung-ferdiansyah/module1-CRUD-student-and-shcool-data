@@ -280,6 +280,17 @@ async function DeleteStudentTestResult(_, { id, deleted_by }) {
     throw new ApolloError(error.message);
   }
 }
+
+/**
+ * Creates a new student test result, marks ENTER_MARKS task as completed, and creates VALIDATE_MARKS task.
+ *
+ * @async
+ * @function EnterMarks
+ * @param {Object} _ - Unused root argument
+ * @param {Object} args.input - Input for creating student test result
+ * @throws {ApolloError} If validation or creation fails
+ * @returns {Promise<Object>} The created student test result object
+ */
 async function EnterMarks(_, { input }) {
   try {
     // *************** Validate input parameters
@@ -364,7 +375,6 @@ async function EnterMarks(_, { input }) {
  *
  * @async
  * @function ValidateMarks
- * @param {Object} _ - Unused root argument
  * @param {Object} args - Arguments containing id (StudentTestResult ID)
  * @throws {ApolloError} If validation or update fails
  * @returns {Promise<Object>} The validated student test result object
@@ -419,7 +429,6 @@ async function ValidateMarks(_, { id }) {
  * @async
  * @function GetStudentByStudentTestResult
  * @param {Object} parent - The parent resolver object containing the student test result data
- * @param {Object} _ - The arguments (unused)
  * @param {Object} context - The context object containing loaders
  * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
  * @returns {Promise<Object>} A promise that resolves to a student document
@@ -471,7 +480,6 @@ async function GetStudentByStudentTestResult(parent, _, context) {
  * @async
  * @function GetTestByStudentTestResult
  * @param {Object} parent - The parent resolver object containing the student test result data
- * @param {Object} _ - The arguments (unused)
  * @param {Object} context - The context object containing loaders
  * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
  * @returns {Promise<Object>} A promise that resolves to a test document
@@ -516,17 +524,6 @@ async function GetTestByStudentTestResult(parent, _, context) {
     throw new ApolloError(`Failed to load test: ${error.message}`);
   }
 }
-
-/**
- * Creates a new student test result, marks ENTER_MARKS task as completed, and creates VALIDATE_MARKS task.
- *
- * @async
- * @function EnterMarks
- * @param {Object} _ - Unused root argument
- * @param {Object} args.input - Input for creating student test result
- * @throws {ApolloError} If validation or creation fails
- * @returns {Promise<Object>} The created student test result object
- */
 
 
 // *************** EXPORT MODULE **************
