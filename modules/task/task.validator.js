@@ -5,8 +5,6 @@ const { ApolloError } = require('apollo-server');
 // *************** IMPORT VALIDATOR ***************
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 
-
-
 /**
  * Validates parameters for creating or updating a task
  *

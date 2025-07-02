@@ -297,6 +297,17 @@ async function EnterMarks(_, { input }) {
     // *************** Validate input parameters
     StudentTestResultValidators.ValidateCreateUpdateStudentTestResultParameters({ studentTestResultInput: input });
 
+    // *************** Find the ENTER_MARKS task and ensure it is ACTIVE
+    const enterMarksTask = await TaskModel.findOne({
+      test_id: input.test_id,
+      user_id: input.created_by,
+      task_type: 'ENTER_MARKS',
+      task_status: 'ACTIVE',
+    });
+    if (!enterMarksTask) {
+      throw new ApolloError('Enter Marks task not found or not active', 'RESOURCE_NOT_FOUND');
+    }
+
     // *************** Prepare payload for StudentTestResult 
     const createStudentTestResultPayload = {
       student_id: input.student_id,
@@ -314,17 +325,6 @@ async function EnterMarks(_, { input }) {
     // *************** Create StudentTestResult
     const newStudentTestResult = await StudentTestResultModel.create(createStudentTestResultPayload);
 
-    // *************** Find the ENTER_MARKS task and ensure it is ACTIVE
-    const enterMarksTask = await TaskModel.findOne({
-      test_id: newStudentTestResult.test_id,
-      user_id: input.created_by,
-      task_type: 'ENTER_MARKS',
-      task_status: 'ACTIVE',
-    });
-    if (!enterMarksTask) {
-      throw new ApolloError('Enter Marks task not found or not active', 'RESOURCE_NOT_FOUND');
-    }
-
     // *************** Mark ENTER_MARKS task as COMPLETED
     enterMarksTask.task_status = 'COMPLETED';
     enterMarksTask.updated_by = input.created_by;
@@ -334,11 +334,10 @@ async function EnterMarks(_, { input }) {
 
     // *************** Prepare payload for VALIDATE_MARKS task (with required fields)
     const test = await TestModel.findById(newStudentTestResult.test_id).lean();
-      // *************** Always assign validator by role (e.g., academic director)
-      const validator = await UserModel.findOne({ role: 'ACADEMIC_DIRECTOR', user_status: 'ACTIVE' }).lean();
-       if (!validator) {
+    const validator = await UserModel.findOne({ role: 'ACADEMIC_DIRECTOR', user_status: 'ACTIVE' }).lean();
+    if (!validator) {
       throw new ApolloError('Academic director not found', 'NOT_FOUND');
-     }
+    }
     const createValidateMarkPayload = {
       task_type: 'VALIDATE_MARKS',
       test_id: newStudentTestResult.test_id,
@@ -350,7 +349,6 @@ async function EnterMarks(_, { input }) {
       created_by: input.created_by,
       updated_by: input.created_by
     };
-    // *************** Create VALIDATE_MARKS task
     const createTask = await TaskModel.create(createValidateMarkPayload);
     if (!createTask) {
       throw new ApolloError('Failed to create VALIDATE_MARKS task', 'NOT_FOUND');
