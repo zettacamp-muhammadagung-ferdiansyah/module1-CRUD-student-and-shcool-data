@@ -11,6 +11,7 @@ const UserModel = require('../user/user.model');
 // *************** IMPORT VALIDATOR ***************
 const StudentTestResultValidators = require('./student_test_result.validator');
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
+const { ValidatePaginationParameters } = require('../../utils/validator/pagination.validator');
 
 // *************** QUERY ***************
 /**
@@ -25,8 +26,8 @@ const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
  */
 async function GetAllStudentTestResults(_, { page, limit }) {
   try {
-    // *************** Validate pagination parameters
-    StudentTestResultValidators.ValidatePaginationParameters({ page, limit });
+    // *************** Validate pagination parameters 
+    ValidatePaginationParameters({ page, limit });
 
     // *************** Calculate skip value for pagination
     const skip = page * limit;

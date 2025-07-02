@@ -9,6 +9,7 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
 // *************** IMPORT VALIDATOR ***************
 const SubjectValidators = require('./subject.validator');
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
+const { ValidatePaginationParameters } = require('../../utils/validator/pagination.validator');
 
 // *************** QUERY ***************
 /**
@@ -23,8 +24,8 @@ const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
  */
 async function GetAllSubjects(_, { page, limit }) {
   try {
-    // *************** Validate pagination parameters
-    SubjectValidators.ValidatePaginationParameters({ page, limit });
+    // *************** Validate pagination parameters 
+    ValidatePaginationParameters({ page, limit });
 
     // *************** Calculate skip value for pagination
     const skip = page * limit;

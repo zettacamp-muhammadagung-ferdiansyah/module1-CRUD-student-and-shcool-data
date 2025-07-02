@@ -8,6 +8,7 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
 // *************** IMPORT VALIDATOR ***************
 const BlockValidators = require('./block.validator');
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
+const { ValidatePaginationParameters } = require('../../utils/validator/pagination.validator');
 
 // *************** QUERY ***************
 /**
@@ -22,8 +23,8 @@ const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
  */
 async function GetAllBlocks(_, { page, limit }) {
   try {
-    // *************** Validate pagination parameters
-    BlockValidators.ValidatePaginationParameters({ page, limit });
+    // *************** Validate pagination parameters 
+    ValidatePaginationParameters({ page, limit });
 
     // *************** Calculate skip value for pagination
     const skip = page * limit;
