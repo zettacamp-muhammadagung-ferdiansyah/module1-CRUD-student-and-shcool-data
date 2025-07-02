@@ -407,7 +407,6 @@ async function PublishTest(_, { id, input }) { //perlu validate input
  * @async
  * @function GetSubjectByTest
  * @param {Object} parent - The parent resolver object containing the test data
- * @param {Object} _ - The arguments (unused)
  * @param {Object} context - The context object containing loaders
  * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
  * @returns {Promise<Object|null>} A promise that resolves to the subject document or null if not found

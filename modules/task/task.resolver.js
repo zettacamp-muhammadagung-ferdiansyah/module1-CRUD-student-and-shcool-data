@@ -250,7 +250,6 @@ async function UpdateTask(_, { id, task_input }) {
  *
  * @async
  * @function DeleteTask
- * @param {Object} _ - The parent object (unused)
  * @param {string} args.id - Task ID to delete
  * @param {string} args.deleted_by - User ID performing the deletion
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if task doesn't exist
@@ -401,7 +400,6 @@ async function AssignCorrector(_, { id, input }) {
  * @async
  * @function GetTestByTask
  * @param {Object} parent - The parent resolver object containing the task data
- * @param {Object} _ - The arguments (unused)
  * @param {Object} context - The context object containing loaders
  * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
  * @returns {Promise<Object>} A promise that resolves to the test document
