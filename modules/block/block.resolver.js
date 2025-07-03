@@ -34,12 +34,9 @@ async function GetAllBlocks(_, { page, limit }) {
       .skip(skip)
       .limit(limit)
       .lean();
-    const total = await BlockModel.countDocuments({ status: 'active' });
-
     // *************** Return paginated result
     return {
-      data: blocks,
-      total,
+      data: blocks, 
       page,
       limit
     };
@@ -116,12 +113,10 @@ async function CreateBlock(_, { block_input }) {
       name: block_input.name,
       description: block_input.description,
       subject_ids: block_input.subject_ids || [],
-      status: 'active'
+      status: 'active',
+      created_by: block_input.created_by,
+      updated_by: block_input.updated_by
     };
-
-    // *************** Add optional fields if they exist
-    if (block_input.created_by) blockData.created_by = block_input.created_by;
-    if (block_input.updated_by) blockData.updated_by = block_input.updated_by;
 
     // *************** Create Block
     const block = await BlockModel.create(blockData);
@@ -218,16 +213,15 @@ async function DeleteBlock(_, { id, deleted_by }) {
     }
 
     // *************** Soft delete the block
-    await BlockModel.findByIdAndUpdate(
-      id,
+    await BlockModel.updateOne(
+      { _id: id },
       {
         status: 'deleted',
         deleted_at: new Date(),
         deleted_by
       }
-    ).lean();
-
-    return block;
+    );
+    return  "deleted"
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -288,6 +282,110 @@ async function GetSubjectsByBlock(parent, _, context) {
   }
 }
 
+/**
+ * Loads the user who created the block using DataLoader.
+ * @async
+ * @function createdByUser
+ * @param {object} parent - The block object.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function CreatedByUser(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) return null;
+    // ************** Return null if no created_by is associated
+    if (!parent.created_by) return null;
+    // ************** Guard against missing loader
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    // ************** Use the UserLoader to load the user by ID
+    return await context.loaders.UserLoader.load(parent.created_by);
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/block/block.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'CreatedByUser',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(`Unable to load creator user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
+/**
+ * Loads the user who last updated the block using DataLoader.
+ * @async
+ * @function updatedByUser
+ * @param {object} parent - The block object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function UpdatedByUser(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) return null;
+    // ************** Return null if no updated_by is associated
+    if (!parent.updated_by) return null;
+    // ************** Guard against missing loader
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    // ************** Use the UserLoader to load the user by ID
+    return await context.loaders.UserLoader.load(parent.updated_by);
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/block/block.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'UpdatedByUser',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(`Unable to load updater user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
+/**
+ * Loads the user who deleted the block using DataLoader.
+ * @async
+ * @function deletedByUser
+ * @param {object} parent - The block object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function DeletedByUser(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) return null;
+    // ************** Return null if no deleted_by is associated
+    if (!parent.deleted_by) return null;
+    // ************** Guard against missing loader
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    // ************** Use the UserLoader to load the user by ID
+    return await context.loaders.UserLoader.load(parent.deleted_by);
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/block/block.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'DeletedByUser',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(`Unable to load deleter user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
 // *************** EXPORT MODULE ***************
 module.exports = {
   Query: {
@@ -301,5 +399,8 @@ module.exports = {
   },
   Block: {
     subjects: GetSubjectsByBlock,
+    created_by: CreatedByUser,
+    updated_by: UpdatedByUser,
+    deleted_by: DeletedByUser,
   },
 };

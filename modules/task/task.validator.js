@@ -71,14 +71,17 @@ function ValidateCreateUpdateTaskParameters({ id, taskInput }) {
     throw new ApolloError('Invalid due date format', 'INVALID_INPUT');
   }
 
-  // *************** Validate user reference fields if provided
-  if (taskInput.created_by && typeof taskInput.created_by !== 'string') {
-    throw new ApolloError('Created by must be a string', 'INVALID_INPUT');
+  // *************** Validate created_by
+  if (!taskInput.created_by) {
+    throw new ApolloError('created_by is required', 'INVALID_INPUT');
   }
+  ValidateMongoId(taskInput.created_by);
 
-  if (taskInput.updated_by && typeof taskInput.updated_by !== 'string') {
-    throw new ApolloError('Updated by must be a string', 'INVALID_INPUT');
+  // *************** Validate updated_by
+  if (!taskInput.updated_by) {
+    throw new ApolloError('updated_by is required', 'INVALID_INPUT');
   }
+  ValidateMongoId(taskInput.updated_by);
 }
 /**
  * Validates input for AssignCorrector mutation

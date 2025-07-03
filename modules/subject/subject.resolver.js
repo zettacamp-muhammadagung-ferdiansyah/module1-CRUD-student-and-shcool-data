@@ -36,13 +36,11 @@ async function GetAllSubjects(_, { page, limit }) {
         .skip(skip)
         .limit(limit)
         .lean(),
-      SubjectModel.countDocuments({ status: 'active' })
     ]);
 
     // *************** Return paginated result
     return {
       data: subjects,
-      total,
       page,
       limit
     };
@@ -135,7 +133,9 @@ async function CreateSubject(_, { subject_input }) {
       description: subject_input.description,
       coefficient: subject_input.coefficient,
       test_ids: subject_input.test_ids || [],
-      status: 'active'
+      status: 'active',
+      created_by: subject_input.created_by,
+      updated_by: subject_input.updated_by
     };
 
     // *************** Add optional fields if they exist
@@ -179,6 +179,7 @@ async function CreateSubject(_, { subject_input }) {
  * @param {string} [args.subject_input.description] - Updated description
  * @param {number} [args.subject_input.coefficient] - Updated coefficient
  * @param {Array<string>} [args.subject_input.test_ids] - Updated test IDs
+ * @param {string} [args.subject_input.updated_by] - User ID of updater
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if subject doesn't exist
  * @returns {Promise<Object>} The updated subject object
  */
@@ -205,7 +206,9 @@ async function UpdateSubject(_, { id, subject_input }) {
       name: subject_input.name,
       description: subject_input.description,
       coefficient: subject_input.coefficient,
-      test_ids: subject_input.test_ids
+      test_ids: subject_input.test_ids,
+      created_by: subject_input.created_by,
+      updated_by: subject_input.updated_by
     };
 
     // *************** Add optional fields if they exist
@@ -283,14 +286,14 @@ async function DeleteSubject(_, { id, deleted_by }) {
     }
 
     // *************** Soft delete the subject
-    const updatedSubject = await SubjectModel.findByIdAndUpdate(
-      id,
+    await SubjectModel.updateOne(
+      { _id: id },
       {
         status: 'deleted',
         deleted_at: new Date(),
         deleted_by
       }
-    ).lean();
+    );
     
     // *************** Remove subject from block's subject_ids array
     if (subject.block_id) {
@@ -299,8 +302,7 @@ async function DeleteSubject(_, { id, deleted_by }) {
         { $pull: { subject_ids: subject._id } }
       );
     }
-
-    return subject;
+    return  "deleted"
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -309,9 +311,6 @@ async function DeleteSubject(_, { id, deleted_by }) {
       function_name: 'DeleteSubject',
       error: String(error.stack),
     });
-
-    // ************** Throw error message
-    throw new ApolloError(error.message);
 
     // ************** Throw error message
     throw new ApolloError(error.message);
@@ -364,6 +363,114 @@ async function GetTestsBySubject(parent, _, context) {
   }
 }
 
+/**
+ * Loads the user who created the subject using DataLoader.
+ *
+ * @async
+ * @function CreatedByUser
+ * @param {object} parent - The subject object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function CreatedByUser(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) return null;
+    // ************** Return null if no created_by is associated
+    if (!parent.created_by) return null;
+    // ************** Guard against missing loader
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    // ************** Use the UserLoader to load the user by ID
+    return await context.loaders.UserLoader.load(parent.created_by);
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/subject/subject.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'CreatedByUser',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(`Unable to load creator user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
+/**
+ * Loads the user who last updated the subject using DataLoader.
+ *
+ * @async
+ * @function UpdatedByUser
+ * @param {object} parent - The subject object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function UpdatedByUser(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) return null;
+    // ************** Return null if no updated_by is associated
+    if (!parent.updated_by) return null;
+    // ************** Guard against missing loader
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    // ************** Use the UserLoader to load the user by ID
+    return await context.loaders.UserLoader.load(parent.updated_by);
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/subject/subject.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'UpdatedByUser',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(`Unable to load updater user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
+/**
+ * Loads the user who deleted the subject using DataLoader.
+ *
+ * @async
+ * @function DeletedByUser
+ * @param {object} parent - The subject object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function DeletedByUser(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) return null;
+    // ************** Return null if no deleted_by is associated
+    if (!parent.deleted_by) return null;
+    // ************** Guard against missing loader
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    // ************** Use the UserLoader to load the user by ID
+    return await context.loaders.UserLoader.load(parent.deleted_by);
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/subject/subject.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'DeletedByUser',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(`Unable to load deleter user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
 // *************** EXPORT MODULE ***************
 module.exports = {
   Query: {
@@ -377,5 +484,8 @@ module.exports = {
   },
   Subject: {
     tests: GetTestsBySubject,
+    created_by: CreatedByUser,
+    updated_by: UpdatedByUser,
+    deleted_by: DeletedByUser,
   }
 };

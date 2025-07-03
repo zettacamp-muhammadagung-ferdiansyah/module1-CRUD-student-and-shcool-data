@@ -36,12 +36,10 @@ async function GetAllTests(_, { page, limit }) {
       .skip(skip)
       .limit(limit)
       .lean();
-    const total = await TestModel.countDocuments({ test_status: 'active' });
 
     // *************** Return paginated result
     return {
       data: tests,
-      total,
       page,
       limit
     };
@@ -132,6 +130,7 @@ async function CreateTest(_, { test_input }) {
     });
 
     // *************** Create sanitized test object with only allowed fields
+    // *************** Create sanitized test object with only allowed fields
     const testData = {
       subject_id: test_input.subject_id,
       name: test_input.name,
@@ -139,8 +138,8 @@ async function CreateTest(_, { test_input }) {
       weight: test_input.weight,
       notations: test_input.notations,
       test_status: 'active',
-      created_by: test_input.created_by || 'system',
-      updated_by: test_input.updated_by || 'system'
+      created_by: test_input.created_by,
+      updated_by: test_input.updated_by
     };
 
     // *************** Create Test
@@ -212,13 +211,14 @@ async function UpdateTest(_, { id, test_input }) {
     });
 
     // *************** Create sanitized update object with only allowed fields
+    // *************** Create sanitized update object with only allowed fields
     const updateData = {
       subject_id: test_input.subject_id,
       name: test_input.name,
       description: test_input.description,
       weight: test_input.weight,
       notations: test_input.notations,
-      updated_by: test_input.updated_by || 'system'
+      updated_by: test_input.updated_by
     };
 
     // *************** Update Test
@@ -282,14 +282,14 @@ async function DeleteTest(_, { id, deleted_by }) {
     }
 
     // *************** Soft delete the test
-    const updatedTest = await TestModel.findByIdAndUpdate(
-      id,
+    await TestModel.updateOne(
+      { _id: id },
       {
         test_status: 'DELETED',
         deleted_at: new Date(),
         deleted_by
       }
-    ).lean();
+    );
     
     // *************** Remove test from subject's test_ids array
     if (test.subject_id) {
@@ -298,8 +298,8 @@ async function DeleteTest(_, { id, deleted_by }) {
         { $pull: { test_ids: test._id } }
       );
     }
-
-    return updatedTest;
+    // *************** Return deleted
+  return  "DELETED"
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -442,6 +442,114 @@ async function GetSubjectByTest(parent, _, context) {
   }
 }
 
+/**
+ * Loads the user who created the test using DataLoader.
+ *
+ * @async
+ * @function CreatedByUser
+ * @param {object} parent - The test object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function CreatedByUser(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) return null;
+    // ************** Return null if no created_by is associated
+    if (!parent.created_by) return null;
+    // ************** Guard against missing loader
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    // ************** Use the UserLoader to load the user by ID
+    return await context.loaders.UserLoader.load(parent.created_by);
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/test/test.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'CreatedByUser',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(`Unable to load creator user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
+/**
+ * Loads the user who last updated the test using DataLoader.
+ *
+ * @async
+ * @function UpdatedByUser
+ * @param {object} parent - The test object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function UpdatedByUser(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) return null;
+    // ************** Return null if no updated_by is associated
+    if (!parent.updated_by) return null;
+    // ************** Guard against missing loader
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    // ************** Use the UserLoader to load the user by ID
+    return await context.loaders.UserLoader.load(parent.updated_by);
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/test/test.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'UpdatedByUser',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(`Unable to load updater user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
+/**
+ * Loads the user who deleted the test using DataLoader.
+ *
+ * @async
+ * @function DeletedByUser
+ * @param {object} parent - The test object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function DeletedByUser(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) return null;
+    // ************** Return null if no deleted_by is associated
+    if (!parent.deleted_by) return null;
+    // ************** Guard against missing loader
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    // ************** Use the UserLoader to load the user by ID
+    return await context.loaders.UserLoader.load(parent.deleted_by);
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/test/test.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'DeletedByUser',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(`Unable to load deleter user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
 // *************** EXPORT MODULE ***************
 module.exports = {
   Query: {
@@ -456,5 +564,8 @@ module.exports = {
   },
   Test: {
     subject: GetSubjectByTest,
+    created_by: CreatedByUser,
+    updated_by: UpdatedByUser,
+    deleted_by: DeletedByUser,
   }
 };

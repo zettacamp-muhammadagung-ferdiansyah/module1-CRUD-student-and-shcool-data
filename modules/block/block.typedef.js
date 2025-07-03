@@ -15,24 +15,23 @@ const BlockTypeDefs = gql`
     subjects: [Subject]
     status: BlockStatus
     createdAt: Date
-    created_by: String
+    created_by: User
     updatedAt: Date
-    updated_by: String
+    updated_by: User
     deleted_at: Date
-    deleted_by: String
+    deleted_by: User
   }
 
   input BlockInput {
     name: String!
     description: String
     subject_ids: [ID!]
-    created_by: String
-    updated_by: String
+    created_by: ID!
+    updated_by: ID!
   }
 
   type PaginatedBlock {
     data: [Block]
-    total: Int
     page: Int
     limit: Int
   }
@@ -45,7 +44,7 @@ const BlockTypeDefs = gql`
   extend type Mutation {
     CreateBlock(block_input: BlockInput!): Block
     UpdateBlock(id: ID!, block_input: BlockInput!): Block
-    DeleteBlock(id: ID!, deleted_by: ID!): Block
+    DeleteBlock(id: ID!, deleted_by: ID!): String
   }
 `;
 

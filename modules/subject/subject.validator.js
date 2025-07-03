@@ -60,15 +60,24 @@ function ValidateCreateUpdateSubjectParameters({ id, subjectInput }) {
     if (!Array.isArray(subjectInput.test_ids)) {
       throw new ApolloError('Test IDs must be an array', 'INVALID_INPUT');
     }
-    
     // *************** Validate each test ID
     subjectInput.test_ids.forEach(testId => {
       ValidateMongoId(testId);
     });
   }
+
+  // *************** Validate created_by 
+  if (!subjectInput.created_by) {
+    throw new ApolloError('created_by is required', 'INVALID_INPUT');
+  }
+  ValidateMongoId(subjectInput.created_by);
+
+  // *************** Validate updated_by
+  if (!subjectInput.updated_by) {
+    throw new ApolloError('updated_by is required', 'INVALID_INPUT');
+  }
+  ValidateMongoId(subjectInput.updated_by);
 }
-
-
 
 // *************** EXPORT MODULE ***************
 module.exports = {

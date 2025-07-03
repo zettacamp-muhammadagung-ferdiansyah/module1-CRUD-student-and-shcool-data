@@ -28,27 +28,42 @@ function ValidateCreateUpdateBlockParameters({ id, blockInput }) {
     throw new ApolloError('Input object must be provided', 'INVALID_INPUT');
   }
   
-  // *************** Check if name is a string if provided
-  if (blockInput.name && typeof blockInput.name !== 'string') {
+
+  // *************** Validate name (required)
+  if (!blockInput.name) {
+    throw new ApolloError('Block name is required', 'INVALID_INPUT');
+  }
+  if (typeof blockInput.name !== 'string') {
     throw new ApolloError('Block name must be a string', 'INVALID_INPUT');
   }
 
-  // *************** Check if description is a string if provided
+  // *************** Validate description if provided
   if (blockInput.description && typeof blockInput.description !== 'string') {
     throw new ApolloError('Block description must be a string', 'INVALID_INPUT');
   }
 
-  // *************** Check if subject_ids is an array if provided
-  if (blockInput.subject_ids && !Array.isArray(blockInput.subject_ids)) {
-    throw new ApolloError('Subject IDs must be an array', 'INVALID_INPUT');
-  }
-
-  // *************** Validate each subject ID if provided
-  if (blockInput.subject_ids && Array.isArray(blockInput.subject_ids)) {
+  // *************** Validate subject_ids if provided
+  if (blockInput.subject_ids) {
+    if (!Array.isArray(blockInput.subject_ids)) {
+      throw new ApolloError('Subject IDs must be an array', 'INVALID_INPUT');
+    }
+    // *************** Validate each subject ID
     blockInput.subject_ids.forEach(subjectId => {
       ValidateMongoId(subjectId);
     });
   }
+
+  // *************** Validate created_by 
+  if (!blockInput.created_by) {
+    throw new ApolloError('created_by is required', 'INVALID_INPUT');
+  }
+  ValidateMongoId(blockInput.created_by);
+
+  // *************** Validate updated_by 
+  if (!blockInput.updated_by) {
+    throw new ApolloError('updated_by is required', 'INVALID_INPUT');
+  }
+  ValidateMongoId(blockInput.updated_by);
 }
 
 

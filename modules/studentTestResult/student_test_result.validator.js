@@ -51,19 +51,28 @@ function ValidateCreateUpdateStudentTestResultParameters({ id, studentTestResult
     if (!mark.notation_text) {
       throw new ApolloError(`Notation text is required for mark at index ${index}`, 'INVALID_INPUT');
     }
-    
     if (typeof mark.notation_text !== 'string') {
       throw new ApolloError(`Notation text must be a string for mark at index ${index}`, 'INVALID_INPUT');
     }
-    
     if (mark.mark === undefined || mark.mark === null) {
       throw new ApolloError(`Mark value is required for mark at index ${index}`, 'INVALID_INPUT');
     }
-    
     if (typeof mark.mark !== 'number') {
       throw new ApolloError(`Mark value must be a number for mark at index ${index}`, 'INVALID_INPUT');
     }
   });
+
+  // *************** Validate created_by (required)
+  if (!studentTestResultInput.created_by) {
+    throw new ApolloError('created_by is required', 'INVALID_INPUT');
+  }
+  ValidateMongoId(studentTestResultInput.created_by);
+
+  // *************** Validate updated_by (required)
+  if (!studentTestResultInput.updated_by) {
+    throw new ApolloError('updated_by is required', 'INVALID_INPUT');
+  }
+  ValidateMongoId(studentTestResultInput.updated_by);
 }
 
 

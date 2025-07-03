@@ -25,14 +25,12 @@ const TaskTypeDefs = gql`
     due_date: Date
     completed_by: String
     completed_at: Date
-    created_by: String!
-    updated_by: String!
-    deleted_by: String
+    created_by: User!
+    updated_by: User!
+    deleted_by: User
     deleted_at: Date
     created_at: Date
     updated_at: Date
-    
-    
     test: Test
     user: User
   }
@@ -44,8 +42,8 @@ const TaskTypeDefs = gql`
     description: String!
     task_type: TaskType!
     due_date: Date
-    created_by: String
-    updated_by: String
+    created_by: ID!
+    updated_by: ID!
   }
 
   input TaskUpdateInput {
@@ -56,7 +54,7 @@ const TaskTypeDefs = gql`
     task_type: TaskType!
     task_status: TaskStatus
     due_date: Date
-    updated_by: String
+    updated_by: ID!
   }
 
   input AssignCorrectorInput {
@@ -66,7 +64,6 @@ const TaskTypeDefs = gql`
 
   type PaginatedTask {
     data: [Task]
-    total: Int
     page: Int
     limit: Int
   }
@@ -79,7 +76,7 @@ const TaskTypeDefs = gql`
   extend type Mutation {
     CreateTask(task_input: TaskInput!): Task
     UpdateTask(id: ID!, task_input: TaskUpdateInput!): Task
-    DeleteTask(id: ID!, deleted_by: String!): Task
+    DeleteTask(id: ID!, deleted_by: ID!): Task
     AssignCorrector(id: ID!, input: AssignCorrectorInput!): Task!
   }
 `;

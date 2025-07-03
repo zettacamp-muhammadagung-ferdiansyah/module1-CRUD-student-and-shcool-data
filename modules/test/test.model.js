@@ -51,14 +51,23 @@ const testSchema = new Mongoose.Schema({
     default: null,
   },
   
-  // The user ID of the person who created the test
-  created_by: { type: String, required: true },
-  
-  // The user ID of the person who made the last update
-  updated_by: { type: String, required: true },
-  
-  // The user ID of the person who performed the deletion
-  deleted_by: { type: String },
+  // The user who created the test
+created_by: {
+  type: Mongoose.Schema.Types.ObjectId,
+  ref: 'user',
+  required: true
+},
+// The user who last updated the test
+updated_by: {
+  type: Mongoose.Schema.Types.ObjectId,
+  ref: 'user',
+  required: true
+},
+// The user who deleted the test (if applicable)
+deleted_by: {
+  type: Mongoose.Schema.Types.ObjectId,
+  ref: 'user'
+},
   
   // Timestamp when the test was deleted
   deleted_at: { type: Date, default: null }

@@ -85,8 +85,19 @@ function ValidateCreateUpdateTestParameters({ id, testInput }) {
       throw new ApolloError(`Max points cannot be negative for notation at index ${index}`, 'INVALID_INPUT');
     }
   });
-}
 
+  // *************** Validate created_by (required)
+  if (!testInput.created_by) {
+    throw new ApolloError('created_by is required', 'INVALID_INPUT');
+  }
+  ValidateMongoId(testInput.created_by);
+
+  // *************** Validate updated_by (required)
+  if (!testInput.updated_by) {
+    throw new ApolloError('updated_by is required', 'INVALID_INPUT');
+  }
+  ValidateMongoId(testInput.updated_by);
+}
 
 
 /**

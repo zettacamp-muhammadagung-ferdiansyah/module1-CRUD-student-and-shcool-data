@@ -18,11 +18,11 @@ const SubjectTypeDefs = gql`
     tests: [Test]
     status: SubjectStatus!
     createdAt: Date!
-    created_by: String
+    created_by: User
     updatedAt: Date!
-    updated_by: String
+    updated_by: User
     deleted_at: Date
-    deleted_by: String
+    deleted_by: User
   }
 
   input SubjectInput {
@@ -31,11 +31,12 @@ const SubjectTypeDefs = gql`
     description: String
     coefficient: Float!
     test_ids: [ID!]
+    created_by: ID!
+    updated_by: ID!
   }
 
   type PaginatedSubject {
     data: [Subject]
-    total: Int
     page: Int
     limit: Int
   }
@@ -48,7 +49,7 @@ const SubjectTypeDefs = gql`
   extend type Mutation {
     CreateSubject(subject_input: SubjectInput!): Subject
     UpdateSubject(id: ID!, subject_input: SubjectInput!): Subject
-    DeleteSubject(id: ID!, deleted_by: ID!): Subject
+    DeleteSubject(id: ID!, deleted_by: ID!): String
   }
 `;
 

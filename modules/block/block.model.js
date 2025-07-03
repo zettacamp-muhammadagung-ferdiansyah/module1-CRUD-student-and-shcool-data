@@ -14,14 +14,25 @@ const blockSchema = new Mongoose.Schema({
   // Current condition of the block status
   status: { type: String, enum: ['active', 'deleted'], default: 'active' },
   
-  // The user ID of the person who created the block
-  created_by: { type: String },
-  
-  // The user ID of the person who made the last update
-  updated_by: { type: String },
-  
-  // The user ID of the person who performed the deletion
-  deleted_by: { type: String },
+  // ID of the user who created this block record
+  created_by: {
+    type: Mongoose.Schema.Types.ObjectId,
+    ref: 'user',
+    required: true
+  },
+
+  // ID of the user who last updated this block record
+  updated_by: {
+    type: Mongoose.Schema.Types.ObjectId,
+    ref: 'user',
+    required: true
+  },
+
+  // ID of the user who deleted this block (if applicable)
+  deleted_by: {
+    type: Mongoose.Schema.Types.ObjectId,
+    ref: 'user'
+  },
   
   // Timestamp when the block record was deleted
   deleted_at: { type: Date, default: null }

@@ -37,12 +37,10 @@ async function GetAllStudentTestResults(_, { page, limit }) {
       .skip(skip)
       .limit(limit)
       .lean();
-    const total = await StudentTestResultModel.countDocuments({ student_test_result_status: 'ACTIVE' });
 
     // *************** Return paginated result
     return {
       data: studentTestResults,
-      total,
       page,
       limit
     };
@@ -258,10 +256,15 @@ async function DeleteStudentTestResult(_, { id, deleted_by }) {
       throw new ApolloError('Student test result is already deleted', 'ALREADY_DELETED');
     }
 
-    // *************** Update status to 'DELETED'
-    studentTestResult.student_test_result_status = 'DELETED';
-    studentTestResult.deleted_by = deleted_by;
-    studentTestResult.deleted_at = new Date();
+    // *************** Update status to 'DELETED' 
+    await StudentTestResultModel.updateOne(
+      { _id: id },
+      {
+        student_test_result_status: 'DELETED',
+        deleted_at: new Date(),
+        deleted_by
+      }
+    );
 
     // *************** Save changes
     await studentTestResult.save();
@@ -521,6 +524,94 @@ async function GetTestByStudentTestResult(parent, _, context) {
     // *************** Throw error with context
     throw new ApolloError(`Failed to load test: ${error.message}`);
   }
+}/**
+ * Loads the user who created the student test result using DataLoader.
+ *
+ * @async
+ * @function CreatedByUser
+ * @param {object} parent - The student test result object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function CreatedByUser(parent, _, context) {
+  try {
+    if (!parent || !context) return null;
+    if (!parent.created_by) return null;
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    return await context.loaders.UserLoader.load(parent.created_by);
+  } catch (error) {
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'CreatedByUser',
+      error: String(error.stack),
+    });
+    throw new ApolloError(`Unable to load creator user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
+/**
+ * Loads the user who last updated the student test result using DataLoader.
+ *
+ * @async
+ * @function UpdatedByUser
+ * @param {object} parent - The student test result object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function UpdatedByUser(parent, _, context) {
+  try {
+    if (!parent || !context) return null;
+    if (!parent.updated_by) return null;
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    return await context.loaders.UserLoader.load(parent.updated_by);
+  } catch (error) {
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'UpdatedByUser',
+      error: String(error.stack),
+    });
+    throw new ApolloError(`Unable to load updater user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
+/**
+ * Loads the user who deleted the student test result using DataLoader.
+ *
+ * @async
+ * @function DeletedByUser
+ * @param {object} parent - The student test result object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function DeletedByUser(parent, _, context) {
+  try {
+    if (!parent || !context) return null;
+    if (!parent.deleted_by) return null;
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    return await context.loaders.UserLoader.load(parent.deleted_by);
+  } catch (error) {
+    await ErrorLogModel.create({
+      path: 'modules/studentTestResult/student_test_result.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'DeletedByUser',
+      error: String(error.stack),
+    });
+    throw new ApolloError(`Unable to load deleter user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
 }
 
 
@@ -539,6 +630,9 @@ module.exports = {
   },
   StudentTestResult: {
     student: GetStudentByStudentTestResult,
-    test: GetTestByStudentTestResult
+    test: GetTestByStudentTestResult,
+    created_by: CreatedByUser,
+    updated_by: UpdatedByUser,
+    deleted_by: DeletedByUser,
   }
 };

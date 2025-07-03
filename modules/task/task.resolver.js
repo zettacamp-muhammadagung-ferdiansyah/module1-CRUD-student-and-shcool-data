@@ -40,12 +40,9 @@ async function GetAllTasks(_, { page, limit }) {
       .skip(skip)
       .limit(limit)
       .lean();
-    const total = await TaskModel.countDocuments({ task_status: 'ACTIVE' });
-
     // *************** Return paginated result
     return {
       data: tasks,
-      total,
       page,
       limit
     };
@@ -283,13 +280,15 @@ async function DeleteTask(_, { id, deleted_by }) {
       throw new ApolloError('Task is already deleted', 'ALREADY_DELETED');
     }
 
-    // *************** Update status to 'DELETED'
-    task.task_status = 'DELETED';
-    task.deleted_by = deleted_by;
-    task.deleted_at = new Date();
-
-    // *************** Save changes
-    await task.save();
+    // *************** Update status to 'DELETED' using updateOne
+    await TaskModel.updateOne(
+      { _id: id },
+      {
+        task_status: 'DELETED',
+        deleted_at: new Date(),
+        deleted_by
+      }
+    );
 
     // *************** Return deleted task
     return task.toObject();
@@ -496,6 +495,114 @@ async function GetUserByTask(parent, _, context) {
   }
 }
 
+/**
+ * Loads the user who created the task using DataLoader.
+ *
+ * @async
+ * @function CreatedByUser
+ * @param {object} parent - The task object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function CreatedByUser(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) return null;
+    // ************** Return null if no created_by is associated
+    if (!parent.created_by) return null;
+    // ************** Guard against missing loader
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    // ************** Use the UserLoader to load the user by ID
+    return await context.loaders.UserLoader.load(parent.created_by);
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/task/task.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'CreatedByUser',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(`Unable to load creator user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
+/**
+ * Loads the user who last updated the task using DataLoader.
+ *
+ * @async
+ * @function UpdatedByUser
+ * @param {object} parent - The task object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function UpdatedByUser(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) return null;
+    // ************** Return null if no updated_by is associated
+    if (!parent.updated_by) return null;
+    // ************** Guard against missing loader
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    // ************** Use the UserLoader to load the user by ID
+    return await context.loaders.UserLoader.load(parent.updated_by);
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/task/task.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'UpdatedByUser',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(`Unable to load updater user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
+/**
+ * Loads the user who deleted the task using DataLoader.
+ *
+ * @async
+ * @function DeletedByUser
+ * @param {object} parent - The task object.
+ * @param {object} _ - Unused resolver argument.
+ * @param {object} context - The GraphQL context containing loaders.
+ * @returns {Promise<object|null>} The user object or null if not found.
+ */
+async function DeletedByUser(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) return null;
+    // ************** Return null if no deleted_by is associated
+    if (!parent.deleted_by) return null;
+    // ************** Guard against missing loader
+    if (!context.loaders || !context.loaders.UserLoader) {
+      console.error('UserLoader is not available in the context');
+      return null;
+    }
+    // ************** Use the UserLoader to load the user by ID
+    return await context.loaders.UserLoader.load(parent.deleted_by);
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/task/task.resolver.js',
+      parameter_input: JSON.stringify({ parent_id: parent._id }),
+      function_name: 'DeletedByUser',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(`Unable to load deleter user: ${error.message}`, 'USER_FETCH_FAILED');
+  }
+}
+
 // *************** EXPORT MODULE ***************
 module.exports = {
   Query: {
@@ -511,5 +618,8 @@ module.exports = {
   Task: {
     test: GetTestByTask,
     user: GetUserByTask,
+    created_by: CreatedByUser,
+    updated_by: UpdatedByUser,
+    deleted_by: DeletedByUser,
   }
 };

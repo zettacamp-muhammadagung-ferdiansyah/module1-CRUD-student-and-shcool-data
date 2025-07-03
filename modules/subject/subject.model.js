@@ -24,16 +24,26 @@ const subjectSchema = new Mongoose.Schema({
   
   // Current condition of the subject
   status: { type: String, enum: ['active', 'deleted'], default: 'active' },
-  
-  // The user ID of the person who created the subject
-  created_by: { type: String },
-  
-  // The user ID of the person who made the last update
-  updated_by: { type: String },
-  
-  // The user ID of the person who performed the deletion
-  deleted_by: { type: String },
-  
+
+  // The user who created the subject
+  created_by: {
+    type: Mongoose.Schema.Types.ObjectId,
+    ref: 'user',
+    required: true
+  },
+
+  // The user who last updated the subject
+  updated_by: {
+    type: Mongoose.Schema.Types.ObjectId,
+    ref: 'user',
+    required: true
+  },
+
+  // The user who deleted the subject (if applicable)
+  deleted_by: {
+    type: Mongoose.Schema.Types.ObjectId,
+    ref: 'user'
+  },
   // Timestamp when the subject was deleted
   deleted_at: { type: Date, default: null }
 }, {

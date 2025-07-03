@@ -61,21 +61,24 @@ const TaskSchema = new Schema(
       type: Date
     },
     
-    // ID of the user who created this task record
+    // The user who created the task
     created_by: {
-      type: String,
-      default: null
+      type: Types.ObjectId,
+      ref: 'user',
+      required: true
     },
-    
-    // ID of the user who last updated this task record
+
+    // The user who last updated the task
     updated_by: {
-      type: String,
-      default: null
+      type: Types.ObjectId,
+      ref: 'user',
+      required: true
     },
-    
-    // ID of the user who deleted this task (if applicable)
+
+    // The user who deleted the task (if applicable)
     deleted_by: {
-      type: String,
+      type: Types.ObjectId,
+      ref: 'user',
       default: null
     },
     

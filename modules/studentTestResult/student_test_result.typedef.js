@@ -26,9 +26,9 @@ const StudentTestResultTypeDefs = gql`
     average_mark: Float!
     mark_entry_date: Date!
     student_test_result_status: StudentTestResultStatus!
-    created_by: String
-    updated_by: String
-    deleted_by: String
+    created_by: User
+    updated_by: User
+    deleted_by: User
     deleted_at: Date
     createdAt: Date
     updatedAt: Date
@@ -40,14 +40,13 @@ const StudentTestResultTypeDefs = gql`
     student_id: ID!
     test_id: ID!
     marks: [MarkInput!]!
-
-    created_by: ID! 
-    due_date: Date 
+    created_by: ID!
+    updated_by: ID!
+    due_date: Date
   }
 
   type PaginatedStudentTestResult {
     data: [StudentTestResult]
-    total: Int
     page: Int
     limit: Int
   }
