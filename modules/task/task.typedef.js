@@ -76,7 +76,7 @@ const TaskTypeDefs = gql`
   extend type Mutation {
     CreateTask(task_input: TaskInput!): Task
     UpdateTask(id: ID!, task_input: TaskUpdateInput!): Task
-    DeleteTask(id: ID!, deleted_by: ID!): Task
+    DeleteTask(id: ID!, deleted_by: ID!): String
     AssignCorrector(id: ID!, input: AssignCorrectorInput!): Task!
   }
 `;

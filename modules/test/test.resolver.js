@@ -299,7 +299,7 @@ async function DeleteTest(_, { id, deleted_by }) {
       );
     }
     // *************** Return deleted
-  return  "DELETED"
+  return  "test has been deleted"
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({

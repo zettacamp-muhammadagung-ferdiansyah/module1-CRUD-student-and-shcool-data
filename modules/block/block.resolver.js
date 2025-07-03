@@ -221,7 +221,7 @@ async function DeleteBlock(_, { id, deleted_by }) {
         deleted_by
       }
     );
-    return  "deleted"
+    return  "block has been deleted"
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({

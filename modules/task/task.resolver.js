@@ -280,7 +280,7 @@ async function DeleteTask(_, { id, deleted_by }) {
       throw new ApolloError('Task is already deleted', 'ALREADY_DELETED');
     }
 
-    // *************** Update status to 'DELETED' using updateOne
+    // *************** Soft delete the task
     await TaskModel.updateOne(
       { _id: id },
       {
@@ -289,9 +289,7 @@ async function DeleteTask(_, { id, deleted_by }) {
         deleted_by
       }
     );
-
-    // *************** Return deleted task
-    return task.toObject();
+    return 'task has been deleted';
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({

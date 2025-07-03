@@ -256,7 +256,7 @@ async function DeleteStudentTestResult(_, { id, deleted_by }) {
       throw new ApolloError('Student test result is already deleted', 'ALREADY_DELETED');
     }
 
-    // *************** Update status to 'DELETED' 
+    // *************** Soft delete the student test result
     await StudentTestResultModel.updateOne(
       { _id: id },
       {
@@ -265,12 +265,7 @@ async function DeleteStudentTestResult(_, { id, deleted_by }) {
         deleted_by
       }
     );
-
-    // *************** Save changes
-    await studentTestResult.save();
-
-    // *************** Return deleted student test result
-    return studentTestResult.toObject();
+    return 'student test result has been deleted';
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({

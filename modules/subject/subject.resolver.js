@@ -302,7 +302,7 @@ async function DeleteSubject(_, { id, deleted_by }) {
         { $pull: { subject_ids: subject._id } }
       );
     }
-    return  "deleted"
+    return  "Subject has been deleted"
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
