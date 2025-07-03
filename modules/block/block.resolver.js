@@ -23,23 +23,24 @@ const { ValidatePaginationParameters } = require('../../utils/validator/paginati
  */
 async function GetAllBlocks(_, { page, limit }) {
   try {
-    // *************** Validate pagination parameters 
+    // *************** Validate pagination parameters
     ValidatePaginationParameters({ page, limit });
 
     // *************** Calculate skip value for pagination
     const skip = page * limit;
 
-    // *************** Execute queries sequentially 
-    const blocks = await BlockModel.find({ status: 'active' })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-    // *************** Return paginated result
-    return {
-      data: blocks, 
+    // *************** Execute queries sequentially
+    const blocks = await BlockModel.find({ status: 'active' }).skip(skip).limit(limit).lean();
+
+    // *************** Prepare paginated result
+    const paginatedResult = {
+      data: blocks,
       page,
-      limit
+      length: blocks.length,
     };
+
+    // *************** Return paginated result
+    return paginatedResult;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -115,7 +116,7 @@ async function CreateBlock(_, { block_input }) {
       subject_ids: block_input.subject_ids || [],
       status: 'active',
       created_by: block_input.created_by,
-      updated_by: block_input.updated_by
+      updated_by: block_input.updated_by,
     };
 
     // *************** Create Block
@@ -157,7 +158,7 @@ async function UpdateBlock(_, { id, block_input }) {
     const updateData = {
       name: block_input.name,
       description: block_input.description,
-      subject_ids: block_input.subject_ids
+      subject_ids: block_input.subject_ids,
     };
 
     // *************** Add optional fields if they exist
@@ -218,10 +219,10 @@ async function DeleteBlock(_, { id, deleted_by }) {
       {
         status: 'deleted',
         deleted_at: new Date(),
-        deleted_by
+        deleted_by,
       }
     );
-    return  "block has been deleted"
+    return 'block has been deleted';
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -236,7 +237,7 @@ async function DeleteBlock(_, { id, deleted_by }) {
   }
 }
 
-// *************** LOADER *************** 
+// *************** LOADER ***************
 /**
  * Retrieves subjects associated with a specific block using DataLoader.
  *
@@ -253,18 +254,18 @@ async function GetSubjectsByBlock(parent, _, context) {
     if (!parent || !context) {
       return [];
     }
-    
+
     // ************** Return empty array if no subject_ids are associated with the block
     if (!parent.subject_ids || !parent.subject_ids.length) {
       return [];
     }
-    
+
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.SubjectLoader) {
       console.error('SubjectLoader is not available in the context');
       return [];
     }
-    
+
     //************** Use the SubjectLoader to load each subject by ID
     const subjects = await context.loaders.SubjectLoader.loadMany(parent.subject_ids);
     return subjects;

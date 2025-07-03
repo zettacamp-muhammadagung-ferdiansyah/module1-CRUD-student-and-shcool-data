@@ -33,14 +33,14 @@ const BlockTypeDefs = gql`
   type PaginatedBlock {
     data: [Block]
     page: Int
-    limit: Int
+    length: Int
   }
 
   extend type Query {
     GetAllBlocks(page: Int!, limit: Int!): PaginatedBlock
     GetBlockById(id: ID!): Block
   }
-  
+
   extend type Mutation {
     CreateBlock(block_input: BlockInput!): Block
     UpdateBlock(id: ID!, block_input: BlockInput!): Block

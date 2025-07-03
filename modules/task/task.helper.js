@@ -1,6 +1,6 @@
 // *************** IMPORT MODULE ***************
-const sgMail = require("@sendgrid/mail");
-const getConfig = require("../../core/config");
+const sgMail = require('@sendgrid/mail');
+const getConfig = require('../../core/config');
 const { SENDGRID_API_KEY } = getConfig();
 
 // *************** DEBUG: Log the loaded SendGrid API Key
@@ -18,22 +18,14 @@ sgMail.setApiKey(SENDGRID_API_KEY);
  * @param {string} [options.from] - Sender email (defaults to no-reply)
  * @returns {Promise<void>}
  */
-async function SendEmailViaSendGrid({
-  to,
-  subject,
-  html,
-  from = "afstory.121@gmail.com",
-}) {
+async function SendEmailViaSendGrid({ to, subject, html, from = 'afstory.121@gmail.com' }) {
   try {
     const msg = { to, from, subject, html };
     const sendMail = await sgMail.send(msg);
     return sendMail;
   } catch (error) {
-    console.error(
-      "SendGrid Error:",
-      (error.response && error.response.body) ? error.response.body : error.message
-    );
-    throw new Error("Failed to send email notification");
+    console.error('SendGrid Error:', error.response && error.response.body ? error.response.body : error.message);
+    throw new Error('Failed to send email notification');
   }
 }
 

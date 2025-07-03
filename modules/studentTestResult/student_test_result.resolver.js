@@ -26,24 +26,24 @@ const { ValidatePaginationParameters } = require('../../utils/validator/paginati
  */
 async function GetAllStudentTestResults(_, { page, limit }) {
   try {
-    // *************** Validate pagination parameters 
+    // *************** Validate pagination parameters
     ValidatePaginationParameters({ page, limit });
 
     // *************** Calculate skip value for pagination
     const skip = page * limit;
 
     // *************** Execute queries sequentially
-    const studentTestResults = await StudentTestResultModel.find({ student_test_result_status: 'ACTIVE' })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const studentTestResults = await StudentTestResultModel.find({ student_test_result_status: 'ACTIVE' }).skip(skip).limit(limit).lean();
 
-    // *************** Return paginated result
-    return {
+    // *************** Prepare paginated result
+    const paginatedResult = {
       data: studentTestResults,
       page,
-      limit
+      length: studentTestResults.length,
     };
+
+    // *************** Return paginated result
+    return paginatedResult;
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({
@@ -75,7 +75,7 @@ async function GetStudentTestResultById(_, { id }) {
     // *************** Find student test result by ID
     const studentTestResult = await StudentTestResultModel.findOne({
       _id: id,
-      student_test_result_status: 'ACTIVE'
+      student_test_result_status: 'ACTIVE',
     }).lean();
 
     // *************** Check if student test result exists
@@ -115,8 +115,8 @@ async function GetStudentTestResultById(_, { id }) {
 async function CreateStudentTestResult(_, { student_test_result_input }) {
   try {
     // *************** Validate input parameters
-    StudentTestResultValidators.ValidateCreateUpdateStudentTestResultParameters({ 
-      studentTestResultInput: student_test_result_input 
+    StudentTestResultValidators.ValidateCreateUpdateStudentTestResultParameters({
+      studentTestResultInput: student_test_result_input,
     });
 
     // *************** Create sanitized student test result object with only required fields from input
@@ -124,14 +124,14 @@ async function CreateStudentTestResult(_, { student_test_result_input }) {
       student_id: student_test_result_input.student_id,
       test_id: student_test_result_input.test_id,
       marks: student_test_result_input.marks,
-      student_test_result_status: 'ACTIVE'
+      student_test_result_status: 'ACTIVE',
     };
-    
+
     // *************** Calculate average mark from the provided marks
     const sum = student_test_result_input.marks.reduce((acc, mark) => acc + mark.mark, 0);
     studentTestResultData.average_mark = sum / student_test_result_input.marks.length;
     studentTestResultData.mark_entry_date = new Date();
-    
+
     // *************** Add optional fields if they exist
     if (student_test_result_input.created_by) {
       studentTestResultData.created_by = student_test_result_input.created_by;
@@ -169,15 +169,15 @@ async function CreateStudentTestResult(_, { student_test_result_input }) {
 async function UpdateStudentTestResult(_, { id, student_test_result_input }) {
   try {
     // *************** Validate input parameters
-    StudentTestResultValidators.ValidateCreateUpdateStudentTestResultParameters({ 
-      id, 
-      studentTestResultInput: student_test_result_input 
+    StudentTestResultValidators.ValidateCreateUpdateStudentTestResultParameters({
+      id,
+      studentTestResultInput: student_test_result_input,
     });
 
     // *************** Find student test result by ID
     const existingStudentTestResult = await StudentTestResultModel.findOne({
       _id: id,
-      student_test_result_status: 'ACTIVE'
+      student_test_result_status: 'ACTIVE',
     });
 
     // *************** Check if student test result exists
@@ -203,7 +203,7 @@ async function UpdateStudentTestResult(_, { id, student_test_result_input }) {
 
     // *************** Update mark entry date and updated_by
     existingStudentTestResult.mark_entry_date = new Date();
-    
+
     if (student_test_result_input.updated_by) {
       existingStudentTestResult.updated_by = student_test_result_input.updated_by;
     }
@@ -242,7 +242,7 @@ async function DeleteStudentTestResult(_, { id, deleted_by }) {
   try {
     // *************** Validate parameters
     ValidateMongoId(id);
-    
+
     // *************** Find student test result by ID
     const studentTestResult = await StudentTestResultModel.findById(id);
 
@@ -262,7 +262,7 @@ async function DeleteStudentTestResult(_, { id, deleted_by }) {
       {
         student_test_result_status: 'DELETED',
         deleted_at: new Date(),
-        deleted_by
+        deleted_by,
       }
     );
     return 'student test result has been deleted';
@@ -305,13 +305,13 @@ async function EnterMarks(_, { input }) {
       throw new ApolloError('Enter Marks task not found or not active', 'RESOURCE_NOT_FOUND');
     }
 
-    // *************** Prepare payload for StudentTestResult 
+    // *************** Prepare payload for StudentTestResult
     const createStudentTestResultPayload = {
       student_id: input.student_id,
       test_id: input.test_id,
       marks: input.marks,
       student_test_result_status: 'ACTIVE',
-      created_by: input.created_by || null
+      created_by: input.created_by || null,
     };
 
     // *************** Calculate average mark
@@ -344,7 +344,7 @@ async function EnterMarks(_, { input }) {
       title: test ? test.name : 'Validate Marks',
       description: test ? test.description : 'Validate marks for assigned test',
       created_by: input.created_by,
-      updated_by: input.created_by
+      updated_by: input.created_by,
     };
     const createTask = await TaskModel.create(createValidateMarkPayload);
     if (!createTask) {
@@ -396,7 +396,7 @@ async function ValidateMarks(_, { id }) {
         test_id: studentTestResult.test_id,
         user_id: studentTestResult.updated_by,
         task_type: 'VALIDATE_MARKS',
-        task_status: 'ACTIVE'
+        task_status: 'ACTIVE',
       },
       { $set: { task_status: 'COMPLETED' } }
     );
@@ -416,7 +416,6 @@ async function ValidateMarks(_, { id }) {
   }
 }
 
-
 // *************** LOADER ***************
 /**
  * Loads the student associated with a test result using DataLoader.
@@ -434,12 +433,12 @@ async function GetStudentByStudentTestResult(parent, _, context) {
     if (!parent || !context) {
       return null;
     }
-    
+
     // ************** Return null if no student_id is associated
     if (!parent.student_id) {
       return null;
     }
-    
+
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.StudentLoader) {
       console.error('StudentLoader is not available in the context');
@@ -448,12 +447,12 @@ async function GetStudentByStudentTestResult(parent, _, context) {
 
     // *************** Load student using DataLoader
     const student = await context.loaders.StudentLoader.load(parent.student_id);
-    
+
     // *************** Check if student exists
     if (!student) {
       throw new ApolloError('Student not found', 'RELATED_RESOURCE_NOT_FOUND');
     }
-    
+
     return student;
   } catch (error) {
     // *************** Log error to database
@@ -463,7 +462,7 @@ async function GetStudentByStudentTestResult(parent, _, context) {
       function_name: 'GetStudentByStudentTestResult',
       error: String(error.stack),
     });
-    
+
     // *************** Throw error with context
     throw new ApolloError(`Failed to load student: ${error.message}`);
   }
@@ -485,12 +484,12 @@ async function GetTestByStudentTestResult(parent, _, context) {
     if (!parent || !context) {
       return null;
     }
-    
+
     // ************** Return null if no test_id is associated
     if (!parent.test_id) {
       return null;
     }
-    
+
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.TestLoader) {
       console.error('TestLoader is not available in the context');
@@ -499,12 +498,12 @@ async function GetTestByStudentTestResult(parent, _, context) {
 
     // *************** Load test using DataLoader
     const test = await context.loaders.TestLoader.load(parent.test_id);
-    
+
     // *************** Check if test exists
     if (!test) {
       throw new ApolloError('Test not found', 'RELATED_RESOURCE_NOT_FOUND');
     }
-    
+
     return test;
   } catch (error) {
     // *************** Log error to database
@@ -514,11 +513,12 @@ async function GetTestByStudentTestResult(parent, _, context) {
       function_name: 'GetTestByStudentTestResult',
       error: String(error.stack),
     });
-    
+
     // *************** Throw error with context
     throw new ApolloError(`Failed to load test: ${error.message}`);
   }
-}/**
+}
+/**
  * Loads the user who created the student test result using DataLoader.
  *
  * @async
@@ -605,19 +605,18 @@ async function DeletedByUser(parent, _, context) {
   }
 }
 
-
 // *************** EXPORT MODULE **************
 module.exports = {
   Query: {
     GetAllStudentTestResults,
-    GetStudentTestResultById
+    GetStudentTestResultById,
   },
   Mutation: {
     CreateStudentTestResult,
     UpdateStudentTestResult,
     DeleteStudentTestResult,
     EnterMarks,
-    ValidateMarks
+    ValidateMarks,
   },
   StudentTestResult: {
     student: GetStudentByStudentTestResult,
@@ -625,5 +624,5 @@ module.exports = {
     created_by: CreatedByUser,
     updated_by: UpdatedByUser,
     deleted_by: DeletedByUser,
-  }
+  },
 };

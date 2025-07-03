@@ -112,12 +112,12 @@ function ValidateAssignCorrector(taskId, input) {
 
   return {
     user_id: input.user_id,
-    due_date: input.due_date
+    due_date: input.due_date,
   };
 }
 
 // *************** EXPORT MODULE ***************
 module.exports = {
   ValidateCreateUpdateTaskParameters,
-  ValidateAssignCorrector
+  ValidateAssignCorrector,
 };

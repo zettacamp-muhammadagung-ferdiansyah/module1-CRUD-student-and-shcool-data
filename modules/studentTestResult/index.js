@@ -9,7 +9,7 @@ module.exports = {
   resolvers: {
     Query: StudentTestResultResolvers.Query,
     Mutation: StudentTestResultResolvers.Mutation,
-    StudentTestResult: StudentTestResultResolvers.StudentTestResult
+    StudentTestResult: StudentTestResultResolvers.StudentTestResult,
   },
-  StudentTestResultLoader: StudentTestResultLoaderModule.StudentTestResultLoader
+  StudentTestResultLoader: StudentTestResultLoaderModule.StudentTestResultLoader,
 };

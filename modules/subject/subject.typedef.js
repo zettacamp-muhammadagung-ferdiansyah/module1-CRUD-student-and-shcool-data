@@ -2,7 +2,6 @@
 const { gql } = require('apollo-server');
 
 const SubjectTypeDefs = gql`
-  
   enum SubjectStatus {
     active
     deleted
@@ -45,7 +44,7 @@ const SubjectTypeDefs = gql`
     GetAllSubjects(page: Int!, limit: Int!): PaginatedSubject
     GetSubjectById(id: ID!): Subject
   }
-  
+
   extend type Mutation {
     CreateSubject(subject_input: SubjectInput!): Subject
     UpdateSubject(id: ID!, subject_input: SubjectInput!): Subject

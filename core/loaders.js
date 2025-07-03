@@ -11,7 +11,7 @@ const TaskLoader = require('../modules/task').TaskLoader;
 /**
  * Creates and initializes all DataLoader instances for the application
  * Centralizes loader instantiation to maintain consistent caching behavior
- * 
+ *
  * @returns {Object} - Object containing all initialized DataLoader instances
  */
 function LoaderModule() {
@@ -24,7 +24,7 @@ function LoaderModule() {
     SubjectLoader: SubjectLoader(),
     TestLoader: TestLoader(),
     StudentTestResultLoader: StudentTestResultLoader(),
-    TaskLoader: TaskLoader()
+    TaskLoader: TaskLoader(),
   };
 }
 

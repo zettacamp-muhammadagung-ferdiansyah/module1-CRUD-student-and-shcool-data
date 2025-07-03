@@ -22,12 +22,11 @@ function ValidateCreateUpdateBlockParameters({ id, blockInput }) {
   if (id) {
     ValidateMongoId(id);
   }
-  
+
   // *************** Check if input is provided
   if (!blockInput) {
     throw new ApolloError('Input object must be provided', 'INVALID_INPUT');
   }
-  
 
   // *************** Validate name (required)
   if (!blockInput.name) {
@@ -48,27 +47,25 @@ function ValidateCreateUpdateBlockParameters({ id, blockInput }) {
       throw new ApolloError('Subject IDs must be an array', 'INVALID_INPUT');
     }
     // *************** Validate each subject ID
-    blockInput.subject_ids.forEach(subjectId => {
+    blockInput.subject_ids.forEach((subjectId) => {
       ValidateMongoId(subjectId);
     });
   }
 
-  // *************** Validate created_by 
+  // *************** Validate created_by
   if (!blockInput.created_by) {
     throw new ApolloError('created_by is required', 'INVALID_INPUT');
   }
   ValidateMongoId(blockInput.created_by);
 
-  // *************** Validate updated_by 
+  // *************** Validate updated_by
   if (!blockInput.updated_by) {
     throw new ApolloError('updated_by is required', 'INVALID_INPUT');
   }
   ValidateMongoId(blockInput.updated_by);
 }
 
-
-
 // *************** EXPORT MODULE ***************
 module.exports = {
-  ValidateCreateUpdateBlockParameters
+  ValidateCreateUpdateBlockParameters,
 };

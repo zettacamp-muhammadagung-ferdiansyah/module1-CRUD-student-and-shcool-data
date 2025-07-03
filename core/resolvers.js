@@ -20,5 +20,5 @@ module.exports = mergeResolvers([
   SubjectModule.resolvers,
   TestModule.resolvers,
   StudentTestResultModule.resolvers,
-  TaskModule.resolvers
+  TaskModule.resolvers,
 ]);

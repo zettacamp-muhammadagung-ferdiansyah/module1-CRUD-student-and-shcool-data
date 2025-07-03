@@ -18,19 +18,19 @@ function BlockLoader() {
   return new DataLoader(async (blockIds) => {
     try {
       // *************** Query for active blocks with IDs in the provided array
-      const blocks = await BlockModel.find({ 
-        _id: { $in: blockIds }, 
-        status: 'active' 
+      const blocks = await BlockModel.find({
+        _id: { $in: blockIds },
+        status: 'active',
       }).lean();
 
       // *************** Map results back to the original ID order
       const blockMap = {};
-      blocks.forEach(block => {
+      blocks.forEach((block) => {
         blockMap[block._id.toString()] = block;
       });
 
       // *************** Return blocks in the same order as the input IDs
-      return blockIds.map(id => blockMap[id.toString()] || null);
+      return blockIds.map((id) => blockMap[id.toString()] || null);
     } catch (error) {
       // *************** Log error for debugging
       await ErrorLogModel.create({
@@ -47,5 +47,5 @@ function BlockLoader() {
 
 // *************** EXPORT MODULE ***************
 module.exports = {
-  BlockLoader
+  BlockLoader,
 };

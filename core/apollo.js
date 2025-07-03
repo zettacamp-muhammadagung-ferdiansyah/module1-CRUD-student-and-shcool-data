@@ -18,7 +18,7 @@ function CreateApolloServer() {
     resolvers: Resolvers,
     context: () => {
       return {
-        loaders: LoaderModule()
+        loaders: LoaderModule(),
       };
     },
     formatError: (error) => {
@@ -26,9 +26,9 @@ function CreateApolloServer() {
       return {
         message: error.message,
         code: error.extensions && error.extensions.code ? error.extensions.code : 'INTERNAL_SERVER_ERROR',
-        path: error.path
+        path: error.path,
       };
-    }
+    },
   });
 
   return server;

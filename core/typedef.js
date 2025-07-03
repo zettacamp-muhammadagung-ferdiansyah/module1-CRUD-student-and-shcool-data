@@ -29,5 +29,5 @@ module.exports = mergeTypeDefs([
   SubjectModule.typeDefs,
   TestModule.typeDefs,
   StudentTestResultModule.typeDefs,
-  TaskModule.typeDefs
+  TaskModule.typeDefs,
 ]);

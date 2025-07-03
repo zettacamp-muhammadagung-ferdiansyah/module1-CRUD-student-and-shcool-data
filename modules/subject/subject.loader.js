@@ -10,7 +10,7 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
  * Creates a new DataLoader for batch-loading active subject data by their IDs.
  * This optimizes queries by collecting individual subject ID requests
  * and fetching them in a single database query.
- * 
+ *
  * @returns {DataLoader} - An instance of DataLoader for fetching subjects by ID
  */
 function SubjectLoader() {
@@ -19,16 +19,14 @@ function SubjectLoader() {
       // *************** Fetch active subjects with matching IDs
       const subjects = await SubjectModel.find({
         _id: { $in: subjectIds },
-        status: 'active'
+        status: 'active',
       }).lean();
 
       // *************** Map results to maintain original order
-      const subjectsById = new Map(
-        subjects.map(subject => [String(subject._id), subject])
-      );
+      const subjectsById = new Map(subjects.map((subject) => [String(subject._id), subject]));
 
       // *************** Return subjects in the same order as requested IDs
-      return subjectIds.map(id => subjectsById.get(String(id)) || null);
+      return subjectIds.map((id) => subjectsById.get(String(id)) || null);
     } catch (error) {
       // *************** Log error for debugging
       await ErrorLogModel.create({
@@ -46,5 +44,5 @@ function SubjectLoader() {
 
 // *************** EXPORT MODULE ***************
 module.exports = {
-  SubjectLoader
+  SubjectLoader,
 };

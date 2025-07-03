@@ -57,7 +57,7 @@ const StudentTestResultTypeDefs = gql`
     GetStudentTestResultsByStudent(student_id: ID!, page: Int!, limit: Int!): PaginatedStudentTestResult
     GetStudentTestResultsByTest(test_id: ID!, page: Int!, limit: Int!): PaginatedStudentTestResult
   }
-  
+
   extend type Mutation {
     CreateStudentTestResult(student_test_result_input: StudentTestResultInput!): StudentTestResult
     UpdateStudentTestResult(id: ID!, student_test_result_input: StudentTestResultInput!): StudentTestResult

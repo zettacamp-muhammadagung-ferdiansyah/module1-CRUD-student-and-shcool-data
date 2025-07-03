@@ -1,4 +1,4 @@
- // *************** IMPORT LIBRARY ***************
+// *************** IMPORT LIBRARY ***************
 const { gql } = require('apollo-server');
 
 const TaskTypeDefs = gql`
@@ -72,7 +72,7 @@ const TaskTypeDefs = gql`
     GetAllTasks(page: Int!, limit: Int!): PaginatedTask
     GetTaskById(id: ID!): Task
   }
-  
+
   extend type Mutation {
     CreateTask(task_input: TaskInput!): Task
     UpdateTask(id: ID!, task_input: TaskUpdateInput!): Task

@@ -41,11 +41,11 @@ function ValidateCreateUpdateStudentTestResultParameters({ id, studentTestResult
   if (!studentTestResultInput.marks || !Array.isArray(studentTestResultInput.marks)) {
     throw new ApolloError('Marks must be an array', 'INVALID_INPUT');
   }
-  
+
   if (studentTestResultInput.marks.length === 0) {
     throw new ApolloError('At least one mark is required', 'INVALID_INPUT');
   }
-  
+
   // *************** Validate each mark in the marks array
   studentTestResultInput.marks.forEach((mark, index) => {
     if (!mark.notation_text) {
@@ -75,9 +75,7 @@ function ValidateCreateUpdateStudentTestResultParameters({ id, studentTestResult
   ValidateMongoId(studentTestResultInput.updated_by);
 }
 
-
-
 // *************** EXPORT MODULE ***************
 module.exports = {
-  ValidateCreateUpdateStudentTestResultParameters
+  ValidateCreateUpdateStudentTestResultParameters,
 };

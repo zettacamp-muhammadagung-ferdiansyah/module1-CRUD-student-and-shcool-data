@@ -10,7 +10,7 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
  * Creates a new DataLoader for batch-loading active test data by their IDs.
  * This optimizes queries by collecting individual test ID requests
  * and fetching them in a single database query.
- * 
+ *
  * @returns {DataLoader} - An instance of DataLoader for fetching tests by ID
  */
 function TestLoader() {
@@ -19,16 +19,14 @@ function TestLoader() {
       // *************** Fetch tests with matching IDs and accept multiple status values (case-insensitive)
       const tests = await TestModel.find({
         _id: { $in: testIds },
-        test_status: { $in: ['ACTIVE', 'active', 'PUBLISHED'] }
+        test_status: { $in: ['ACTIVE', 'active', 'PUBLISHED'] },
       }).lean();
 
       // *************** Map results to maintain original order
-      const testsById = new Map(
-        tests.map(test => [String(test._id), test])
-      );
+      const testsById = new Map(tests.map((test) => [String(test._id), test]));
 
       // *************** Return tests in the same order as requested IDs
-      return testIds.map(id => testsById.get(String(id)) || null);
+      return testIds.map((id) => testsById.get(String(id)) || null);
     } catch (error) {
       // *************** Log error for debugging
       await ErrorLogModel.create({
@@ -46,5 +44,5 @@ function TestLoader() {
 
 // *************** EXPORT MODULE ***************
 module.exports = {
-  TestLoader
+  TestLoader,
 };

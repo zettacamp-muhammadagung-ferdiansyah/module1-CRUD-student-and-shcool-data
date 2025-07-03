@@ -24,26 +24,26 @@ const { ValidatePaginationParameters } = require('../../utils/validator/paginati
  */
 async function GetAllSubjects(_, { page, limit }) {
   try {
-    // *************** Validate pagination parameters 
+    // *************** Validate pagination parameters
     ValidatePaginationParameters({ page, limit });
 
     // *************** Calculate skip value for pagination
     const skip = page * limit;
 
     // *************** Execute queries in parallel
-    const [subjects, total] = await Promise.all([
-      SubjectModel.find({ status: 'active' })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+    const [subjects] = await Promise.all([
+      SubjectModel.find({ status: 'active' }).skip(skip).limit(limit).lean(),
     ]);
 
-    // *************** Return paginated result
-    return {
+    // *************** Prepare paginated result
+    const paginatedResult = {
       data: subjects,
       page,
-      limit
+      length: subjects.length,
     };
+
+    // *************** Return paginated result
+    return paginatedResult;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -116,11 +116,11 @@ async function CreateSubject(_, { subject_input }) {
 
     // *************** Verify block exists if provided
     if (subject_input.block_id) {
-      const block = await BlockModel.findOne({ 
-        _id: subject_input.block_id, 
-        status: 'active' 
+      const block = await BlockModel.findOne({
+        _id: subject_input.block_id,
+        status: 'active',
       }).lean();
-      
+
       if (!block) {
         throw new ApolloError('Block not found or deleted', 'RESOURCE_NOT_FOUND');
       }
@@ -135,7 +135,7 @@ async function CreateSubject(_, { subject_input }) {
       test_ids: subject_input.test_ids || [],
       status: 'active',
       created_by: subject_input.created_by,
-      updated_by: subject_input.updated_by
+      updated_by: subject_input.updated_by,
     };
 
     // *************** Add optional fields if they exist
@@ -143,15 +143,12 @@ async function CreateSubject(_, { subject_input }) {
 
     // *************** Create Subject
     const subject = await SubjectModel.create(subjectData);
-    
+
     // *************** Update the Block's subject_ids array to include this subject
     if (subject.block_id) {
-      await BlockModel.findByIdAndUpdate(
-        subject.block_id,
-        { $addToSet: { subject_ids: subject._id } }
-      );
+      await BlockModel.findByIdAndUpdate(subject.block_id, { $addToSet: { subject_ids: subject._id } });
     }
-    
+
     return subject;
   } catch (error) {
     // ************** Log error to database
@@ -190,11 +187,11 @@ async function UpdateSubject(_, { id, subject_input }) {
 
     // *************** Verify block exists if provided
     if (subject_input.block_id) {
-      const block = await BlockModel.findOne({ 
-        _id: subject_input.block_id, 
-        status: 'active' 
+      const block = await BlockModel.findOne({
+        _id: subject_input.block_id,
+        status: 'active',
       }).lean();
-      
+
       if (!block) {
         throw new ApolloError('Block not found or deleted', 'RESOURCE_NOT_FOUND');
       }
@@ -208,7 +205,7 @@ async function UpdateSubject(_, { id, subject_input }) {
       coefficient: subject_input.coefficient,
       test_ids: subject_input.test_ids,
       created_by: subject_input.created_by,
-      updated_by: subject_input.updated_by
+      updated_by: subject_input.updated_by,
     };
 
     // *************** Add optional fields if they exist
@@ -219,28 +216,19 @@ async function UpdateSubject(_, { id, subject_input }) {
     if (!oldSubject) {
       throw new ApolloError('Subject not found', 'RESOURCE_NOT_FOUND');
     }
-    
+
     const subject = await SubjectModel.findByIdAndUpdate(id, updateData, { new: true }).lean();
-    
+
     // *************** Update block's subject_ids if block_id has changed
     if (subject.block_id && oldSubject.block_id && !subject.block_id.equals(oldSubject.block_id)) {
       // ***************  Remove subject from old block
-      await BlockModel.findByIdAndUpdate(
-        oldSubject.block_id,
-        { $pull: { subject_ids: subject._id } }
-      );
-      
+      await BlockModel.findByIdAndUpdate(oldSubject.block_id, { $pull: { subject_ids: subject._id } });
+
       // *************** Add subject to new block
-      await BlockModel.findByIdAndUpdate(
-        subject.block_id,
-        { $addToSet: { subject_ids: subject._id } }
-      );
+      await BlockModel.findByIdAndUpdate(subject.block_id, { $addToSet: { subject_ids: subject._id } });
     } else if (subject.block_id && (!oldSubject.block_id || oldSubject.block_id === null)) {
       // *************** If subject didn't have a block_id before but now has one
-      await BlockModel.findByIdAndUpdate(
-        subject.block_id,
-        { $addToSet: { subject_ids: subject._id } }
-      );
+      await BlockModel.findByIdAndUpdate(subject.block_id, { $addToSet: { subject_ids: subject._id } });
     }
 
     return subject;
@@ -291,18 +279,15 @@ async function DeleteSubject(_, { id, deleted_by }) {
       {
         status: 'deleted',
         deleted_at: new Date(),
-        deleted_by
+        deleted_by,
       }
     );
-    
+
     // *************** Remove subject from block's subject_ids array
     if (subject.block_id) {
-      await BlockModel.findByIdAndUpdate(
-        subject.block_id,
-        { $pull: { subject_ids: subject._id } }
-      );
+      await BlockModel.findByIdAndUpdate(subject.block_id, { $pull: { subject_ids: subject._id } });
     }
-    return  "Subject has been deleted"
+    return 'Subject has been deleted';
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -334,18 +319,18 @@ async function GetTestsBySubject(parent, _, context) {
     if (!parent || !context) {
       return [];
     }
-    
+
     // ************** Return empty array if no test_ids are associated with the subject
     if (!parent.test_ids || !parent.test_ids.length) {
       return [];
     }
-    
+
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.TestLoader) {
       console.error('TestLoader is not available in the context');
       return [];
     }
-    
+
     // ************** Use the TestLoader to load each test by ID
     const tests = await context.loaders.TestLoader.loadMany(parent.test_ids);
     return tests;
@@ -484,5 +469,5 @@ module.exports = {
     created_by: CreatedByUser,
     updated_by: UpdatedByUser,
     deleted_by: DeletedByUser,
-  }
+  },
 };

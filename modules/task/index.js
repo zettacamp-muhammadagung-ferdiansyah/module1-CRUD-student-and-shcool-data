@@ -10,7 +10,7 @@ module.exports = {
   resolvers: {
     Query: TaskResolvers.Query,
     Mutation: TaskResolvers.Mutation,
-    Task: TaskResolvers.Task
+    Task: TaskResolvers.Task,
   },
-  TaskLoader: TaskLoaderModule.TaskLoader
+  TaskLoader: TaskLoaderModule.TaskLoader,
 };

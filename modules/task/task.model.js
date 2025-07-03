@@ -9,91 +9,91 @@ const TaskSchema = new Schema(
     test_id: {
       type: Types.ObjectId,
       ref: 'Test',
-      required: true
+      required: true,
     },
-    
+
     // The ID of the user to which the task belongs
     user_id: {
       type: Types.ObjectId,
       ref: 'User',
-      required: true
+      required: true,
     },
-    
+
     // Title of the task
     title: {
       type: String,
-      required: true
+      required: true,
     },
-    
+
     // Description of the task
     description: {
       type: String,
-      required: true
+      required: true,
     },
-    
+
     // Type of the task
     task_type: {
       type: String,
       enum: ['ASSIGN_CORRECTOR', 'ENTER_MARKS', 'VALIDATE_MARKS'],
-      required: true
+      required: true,
     },
-    
+
     // Status of the task
     task_status: {
       type: String,
       enum: ['ACTIVE', 'IN_PROGRESS', 'COMPLETED', 'DELETED'],
-      default: 'ACTIVE'
+      default: 'ACTIVE',
     },
-    
+
     // Due date for the task
     due_date: {
-      type: Date
+      type: Date,
     },
-    
+
     // The ID of user that completed this task
     completed_by: {
       type: String,
-      default: null
+      default: null,
     },
-    
+
     // Timestamp for when this task was completed
     completed_at: {
-      type: Date
+      type: Date,
     },
-    
+
     // The user who created the task
     created_by: {
       type: Types.ObjectId,
       ref: 'user',
-      required: true
+      required: true,
     },
 
     // The user who last updated the task
     updated_by: {
       type: Types.ObjectId,
       ref: 'user',
-      required: true
+      required: true,
     },
 
     // The user who deleted the task (if applicable)
     deleted_by: {
       type: Types.ObjectId,
       ref: 'user',
-      default: null
+      default: null,
     },
-    
+
     // Timestamp when the task was marked as deleted
     deleted_at: {
       type: Date,
-      default: null
-    }
+      default: null,
+    },
   },
   {
     // Enable automatic timestamp tracking
     timestamps: {
       createdAt: 'created_at',
-      updatedAt: 'updated_at'
-    }
+      updatedAt: 'updated_at',
+    },
   }
 );
 

@@ -25,24 +25,24 @@ const { ValidatePaginationParameters } = require('../../utils/validator/paginati
  */
 async function GetAllTests(_, { page, limit }) {
   try {
-    // *************** Validate pagination parameters 
+    // *************** Validate pagination parameters
     ValidatePaginationParameters({ page, limit });
 
     // *************** Calculate skip value for pagination
     const skip = page * limit;
 
-    // *************** Execute queries sequentially 
-    const tests = await TestModel.find({ test_status: 'active' })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    // *************** Execute queries sequentially
+    const tests = await TestModel.find({ test_status: 'active' }).skip(skip).limit(limit).lean();
 
-    // *************** Return paginated result
-    return {
+    // *************** Prepare paginated result
+    const paginatedResult = {
       data: tests,
       page,
-      limit
+      length: tests.length,
     };
+
+    // *************** Return paginated result
+    return paginatedResult;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -113,11 +113,11 @@ async function CreateTest(_, { test_input }) {
     TestValidators.ValidateCreateUpdateTestParameters({ testInput: test_input });
 
     // *************** Verify subject exists
-    const subject = await SubjectModel.findOne({ 
-      _id: test_input.subject_id, 
-      status: 'active' 
+    const subject = await SubjectModel.findOne({
+      _id: test_input.subject_id,
+      status: 'active',
     }).lean();
-    
+
     if (!subject) {
       throw new ApolloError('Subject not found or deleted', 'RESOURCE_NOT_FOUND');
     }
@@ -126,7 +126,7 @@ async function CreateTest(_, { test_input }) {
     await TestValidators.ValidateTestWeight({
       subject_id: test_input.subject_id,
       weight: test_input.weight,
-      TestModel
+      TestModel,
     });
 
     // *************** Create sanitized test object with only allowed fields
@@ -139,18 +139,15 @@ async function CreateTest(_, { test_input }) {
       notations: test_input.notations,
       test_status: 'active',
       created_by: test_input.created_by,
-      updated_by: test_input.updated_by
+      updated_by: test_input.updated_by,
     };
 
     // *************** Create Test
     const test = await TestModel.create(testData);
-    
+
     // *************** Update the Subject's test_ids array to include this test
-    await SubjectModel.findByIdAndUpdate(
-      test.subject_id,
-      { $addToSet: { test_ids: test._id } }
-    );
-    
+    await SubjectModel.findByIdAndUpdate(test.subject_id, { $addToSet: { test_ids: test._id } });
+
     return test;
   } catch (error) {
     // ************** Log error to database
@@ -187,11 +184,11 @@ async function UpdateTest(_, { id, test_input }) {
     TestValidators.ValidateCreateUpdateTestParameters({ id, testInput: test_input });
 
     // *************** Verify subject exists
-    const subject = await SubjectModel.findOne({ 
-      _id: test_input.subject_id, 
-      status: 'active' 
+    const subject = await SubjectModel.findOne({
+      _id: test_input.subject_id,
+      status: 'active',
     }).lean();
-    
+
     if (!subject) {
       throw new ApolloError('Subject not found or deleted', 'RESOURCE_NOT_FOUND');
     }
@@ -207,7 +204,7 @@ async function UpdateTest(_, { id, test_input }) {
       subject_id: test_input.subject_id,
       weight: test_input.weight,
       test_id: id,
-      TestModel
+      TestModel,
     });
 
     // *************** Create sanitized update object with only allowed fields
@@ -218,25 +215,19 @@ async function UpdateTest(_, { id, test_input }) {
       description: test_input.description,
       weight: test_input.weight,
       notations: test_input.notations,
-      updated_by: test_input.updated_by
+      updated_by: test_input.updated_by,
     };
 
     // *************** Update Test
     const test = await TestModel.findByIdAndUpdate(id, updateData, { new: true }).lean();
-    
+
     // *************** Handle subject_id change if it has changed
     if (test.subject_id && oldTest.subject_id && !test.subject_id.equals(oldTest.subject_id)) {
       // *************** Remove test from old subject's test_ids
-      await SubjectModel.findByIdAndUpdate(
-        oldTest.subject_id,
-        { $pull: { test_ids: test._id } }
-      );
-      
+      await SubjectModel.findByIdAndUpdate(oldTest.subject_id, { $pull: { test_ids: test._id } });
+
       // *************** Add test to new subject's test_ids
-      await SubjectModel.findByIdAndUpdate(
-        test.subject_id,
-        { $addToSet: { test_ids: test._id } }
-      );
+      await SubjectModel.findByIdAndUpdate(test.subject_id, { $addToSet: { test_ids: test._id } });
     }
 
     return test;
@@ -287,19 +278,16 @@ async function DeleteTest(_, { id, deleted_by }) {
       {
         test_status: 'DELETED',
         deleted_at: new Date(),
-        deleted_by
+        deleted_by,
       }
     );
-    
+
     // *************** Remove test from subject's test_ids array
     if (test.subject_id) {
-      await SubjectModel.findByIdAndUpdate(
-        test.subject_id,
-        { $pull: { test_ids: test._id } }
-      );
+      await SubjectModel.findByIdAndUpdate(test.subject_id, { $pull: { test_ids: test._id } });
     }
     // *************** Return deleted
-  return  "test has been deleted"
+    return 'test has been deleted';
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -331,16 +319,17 @@ async function DeleteTest(_, { id, deleted_by }) {
  * @returns {Promise<{ id: string }>} - Returns an object containing the published test ID
  * @throws {ApolloError} - Throws an error if validation or any DB operation fails
  */
-async function PublishTest(_, { id, input }) { //perlu validate input
+async function PublishTest(_, { id, input }) {
+  //perlu validate input
   try {
     // *************** Validate input for PublishTest
     ValidateMongoId(id);
     TestValidators.ValidatePublishTestInput(input);
 
     // *************** Find and validate test
-    const test = await TestModel.findOne({ 
+    const test = await TestModel.findOne({
       _id: id,
-      test_status: 'active'
+      test_status: 'active',
     }).lean();
 
     if (!test) {
@@ -350,13 +339,13 @@ async function PublishTest(_, { id, input }) { //perlu validate input
     // *************** Update Test to Published status
     const publishResult = await TestModel.updateOne(
       { _id: id, test_status: 'active' },
-      { 
-        $set: { 
+      {
+        $set: {
           test_status: 'PUBLISHED',
           published_date: new Date(),
           updated_by: input.user_id,
-          updated_at: new Date()
-        }
+          updated_at: new Date(),
+        },
       }
     );
 
@@ -364,7 +353,7 @@ async function PublishTest(_, { id, input }) { //perlu validate input
       throw new ApolloError('Failed to publish test', 'INTERNAL_SERVER_ERROR');
     }
 
-    // *************** Prepare and create assign corrector task 
+    // *************** Prepare and create assign corrector task
     const assignCorrectorPayload = {
       test_id: id,
       user_id: input.user_id,
@@ -374,7 +363,7 @@ async function PublishTest(_, { id, input }) { //perlu validate input
       created_by: input.user_id,
       updated_by: input.user_id,
       title: input.title,
-      description: input.description
+      description: input.description,
     };
 
     const task = await TaskModel.create(assignCorrectorPayload);
@@ -385,7 +374,6 @@ async function PublishTest(_, { id, input }) { //perlu validate input
     // *************** Return the full Test object
     const updatedTest = await TestModel.findById(id).lean();
     return updatedTest;
-
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
@@ -557,12 +545,12 @@ module.exports = {
     CreateTest,
     UpdateTest,
     DeleteTest,
-    PublishTest
+    PublishTest,
   },
   Test: {
     subject: GetSubjectByTest,
     created_by: CreatedByUser,
     updated_by: UpdatedByUser,
     deleted_by: DeletedByUser,
-  }
+  },
 };

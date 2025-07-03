@@ -3,7 +3,7 @@ require('dotenv').config();
 
 /**
  * Provides access to environment configuration variables with validation
- * 
+ *
  * @returns {Object} - Object containing configuration values
  */
 function GetConfig() {
@@ -12,25 +12,25 @@ function GetConfig() {
   if (!mongodbUri) {
     console.error('MONGODB_URI environment variable is required but not defined');
   }
-  
+
   // *************** SendGrid Configuration
   const sendgridApiKey = process.env.SENDGRID_API_KEY;
   if (!sendgridApiKey) {
     console.error('SENDGRID_API_KEY environment variable is required but not defined');
   }
 
-  // *************** Server Configuration 
+  // *************** Server Configuration
   const port = process.env.PORT || 4000;
 
   // *************** Return configuration object
   return {
     database: {
-      uri: mongodbUri
+      uri: mongodbUri,
     },
     server: {
-      port
+      port,
     },
-    SENDGRID_API_KEY: sendgridApiKey
+    SENDGRID_API_KEY: sendgridApiKey,
   };
 }
 

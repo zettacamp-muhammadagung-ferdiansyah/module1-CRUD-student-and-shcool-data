@@ -30,5 +30,5 @@ function ValidatePaginationParameters({ page, limit }) {
 
 // *************** EXPORT MODULE ***************
 module.exports = {
-  ValidatePaginationParameters
+  ValidatePaginationParameters,
 };

@@ -10,7 +10,7 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
  * Creates a new DataLoader for batch-loading active task data by their IDs.
  * This optimizes queries by collecting individual task ID requests
  * and fetching them in a single database query.
- * 
+ *
  * @returns {DataLoader} - An instance of DataLoader for fetching tasks by ID
  */
 function TaskLoader() {
@@ -19,16 +19,14 @@ function TaskLoader() {
       // *************** Fetch active tasks with matching IDs
       const tasks = await TaskModel.find({
         _id: { $in: taskIds },
-        task_status: 'ACTIVE'
+        task_status: 'ACTIVE',
       }).lean();
 
       // *************** Map results to maintain original order
-      const tasksById = new Map(
-        tasks.map(task => [String(task._id), task])
-      );
+      const tasksById = new Map(tasks.map((task) => [String(task._id), task]));
 
       // *************** Return tasks in the same order as requested IDs
-      return taskIds.map(id => tasksById.get(String(id)) || null);
+      return taskIds.map((id) => tasksById.get(String(id)) || null);
     } catch (error) {
       // *************** Log error for debugging
       await ErrorLogModel.create({
@@ -46,5 +44,5 @@ function TaskLoader() {
 
 // *************** EXPORT MODULE ***************
 module.exports = {
-  TaskLoader
+  TaskLoader,
 };

@@ -74,7 +74,7 @@ function ValidateCreateUpdateTestParameters({ id, testInput }) {
     if (typeof notation.notation_text !== 'string') {
       throw new ApolloError(`Notation text must be a string for notation at index ${index}`, 'INVALID_INPUT');
     }
-    
+
     if (notation.max_points === undefined || notation.max_points === null) {
       throw new ApolloError(`Max points is required for notation at index ${index}`, 'INVALID_INPUT');
     }
@@ -99,7 +99,6 @@ function ValidateCreateUpdateTestParameters({ id, testInput }) {
   ValidateMongoId(testInput.updated_by);
 }
 
-
 /**
  * Validates that the total weight of all tests for a subject doesn't exceed 1
  *
@@ -116,27 +115,27 @@ async function ValidateTestWeight({ subject_id, weight, test_id, TestModel }) {
   // *************** Build query to get existing tests
   const query = {
     subject_id,
-    test_status: 'active'
+    test_status: 'active',
   };
-  
+
   // *************** If test_id is provided (for updates), exclude it from the query
   if (test_id) {
     query._id = { $ne: test_id };
   }
-  
+
   // *************** Get existing tests for this subject
   const existingTests = await TestModel.find(query).lean();
-  
+
   // *************** Calculate sum of weights for existing tests
   const existingWeightSum = existingTests.reduce((sum, test) => sum + test.weight, 0);
-  
+
   // *************** Check if adding/updating the test would exceed weight limit
   if (existingWeightSum + weight > 1) {
     throw new ApolloError(
       `Total weight for all tests in this subject would exceed 1. ` +
-      `Current total${test_id ? ' (excluding this test)' : ''}: ${existingWeightSum}, ` +
-      `${test_id ? 'Updated' : 'New'} test weight: ${weight}, ` +
-      `Maximum allowed: 1`, 
+        `Current total${test_id ? ' (excluding this test)' : ''}: ${existingWeightSum}, ` +
+        `${test_id ? 'Updated' : 'New'} test weight: ${weight}, ` +
+        `Maximum allowed: 1`,
       'VALIDATION_ERROR'
     );
   }
@@ -173,5 +172,5 @@ function ValidatePublishTestInput(input) {
 module.exports = {
   ValidateCreateUpdateTestParameters,
   ValidateTestWeight,
-  ValidatePublishTestInput
+  ValidatePublishTestInput,
 };

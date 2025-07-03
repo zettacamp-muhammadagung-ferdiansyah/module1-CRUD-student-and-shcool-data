@@ -9,7 +9,7 @@ module.exports = {
   resolvers: {
     Query: SubjectResolvers.Query,
     Mutation: SubjectResolvers.Mutation,
-    Subject: SubjectResolvers.Subject
+    Subject: SubjectResolvers.Subject,
   },
-  SubjectLoader: SubjectLoaderModule.SubjectLoader
+  SubjectLoader: SubjectLoaderModule.SubjectLoader,
 };

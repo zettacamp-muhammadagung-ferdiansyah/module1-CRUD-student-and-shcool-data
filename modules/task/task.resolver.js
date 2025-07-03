@@ -29,23 +29,24 @@ const { ValidateAssignCorrector } = require('./task.validator');
  */
 async function GetAllTasks(_, { page, limit }) {
   try {
-    // *************** Validate pagination parameters 
+    // *************** Validate pagination parameters
     ValidatePaginationParameters({ page, limit });
 
     // *************** Calculate skip value for pagination
     const skip = page * limit;
 
-    // *************** Execute queries sequentially 
-    const tasks = await TaskModel.find({ task_status: 'ACTIVE' })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-    // *************** Return paginated result
-    return {
+    // *************** Execute queries sequentially
+    const tasks = await TaskModel.find({ task_status: 'ACTIVE' }).skip(skip).limit(limit).lean();
+
+    // *************** Prepare paginated result
+    const paginatedResult = {
       data: tasks,
       page,
-      limit
+      length: tasks.length,
     };
+
+    // *************** Return paginated result
+    return paginatedResult;
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({
@@ -77,7 +78,7 @@ async function GetTaskById(_, { id }) {
     // *************** Find task by ID
     const task = await TaskModel.findOne({
       _id: id,
-      task_status: 'ACTIVE'
+      task_status: 'ACTIVE',
     }).lean();
 
     // *************** Check if task exists
@@ -133,7 +134,7 @@ async function CreateTask(_, { task_input }) {
       task_type: task_input.task_type,
       task_status: 'ACTIVE',
       created_by: task_input.created_by,
-      updated_by: task_input.updated_by
+      updated_by: task_input.updated_by,
     };
 
     // *************** Add optional fields if they exist
@@ -189,7 +190,7 @@ async function UpdateTask(_, { id, task_input }) {
     // *************** Find task by ID
     const existingTask = await TaskModel.findOne({
       _id: id,
-      task_status: 'ACTIVE'
+      task_status: 'ACTIVE',
     });
 
     // *************** Check if task exists
@@ -207,7 +208,7 @@ async function UpdateTask(_, { id, task_input }) {
     // *************** Update optional fields
     if (task_input.task_status) {
       existingTask.task_status = task_input.task_status;
-      
+
       // *************** If status is changed to COMPLETED, set completed information
       if (task_input.task_status === 'COMPLETED' && existingTask.task_status !== 'COMPLETED') {
         existingTask.completed_by = task_input.updated_by;
@@ -265,8 +266,8 @@ async function DeleteTask(_, { id, deleted_by }) {
     }
     if (typeof deleted_by !== 'string') {
       throw new ApolloError('Deleted by must be a string', 'INVALID_INPUT');
-    };
-    
+    }
+
     // *************** Find task by ID
     const task = await TaskModel.findById(id);
 
@@ -286,7 +287,7 @@ async function DeleteTask(_, { id, deleted_by }) {
       {
         task_status: 'DELETED',
         deleted_at: new Date(),
-        deleted_by
+        deleted_by,
       }
     );
     return 'task has been deleted';
@@ -325,7 +326,7 @@ async function AssignCorrector(_, { id, input }) {
     const assignTask = await TaskModel.findOne({
       _id: id,
       task_type: 'ASSIGN_CORRECTOR',
-      task_status: 'ACTIVE'
+      task_status: 'ACTIVE',
     });
     if (!assignTask) {
       throw new ApolloError('AssignCorrector task not found or not active', 'RESOURCE_NOT_FOUND');
@@ -348,7 +349,7 @@ async function AssignCorrector(_, { id, input }) {
       task_status: 'ACTIVE',
       due_date: due_date ? new Date(due_date) : undefined,
       created_by: user_id,
-      updated_by: user_id
+      updated_by: user_id,
     });
 
     // *************** Fetch test, subject, corrector, and students
@@ -360,7 +361,7 @@ async function AssignCorrector(_, { id, input }) {
     const students = await StudentModel.find({ test_id: test._id }).select('first_name last_name').lean();
 
     // *************** Compose student names
-    const studentNames = students.map(s => `${s.first_name} ${s.last_name}`).join(', ');
+    const studentNames = students.map((s) => `${s.first_name} ${s.last_name}`).join(', ');
 
     // *************** Send notification email
     const emailPayload = {
@@ -372,12 +373,12 @@ async function AssignCorrector(_, { id, input }) {
         <p><strong>Subject:</strong> ${subject ? subject.name : '-'}</p>
         <p><strong>Description:</strong> ${test.description || '-'}</p>
         <p><strong>Students to correct:</strong> ${studentNames}</p>
-      `
+      `,
     };
     const sendEmailResult = await SendEmailViaSendGrid(emailPayload);
     if (!sendEmailResult) throw new ApolloError('Failed to send email notification', 'EMAIL_FAILED');
 
-    // *************** Return the updated assignTask 
+    // *************** Return the updated assignTask
     return assignTask.toObject();
   } catch (error) {
     await ErrorLogModel.create({
@@ -407,12 +408,12 @@ async function GetTestByTask(parent, _, context) {
     if (!parent || !context) {
       return null;
     }
-    
+
     // ************** Return null if no test_id is associated
     if (!parent.test_id) {
       return null;
     }
-    
+
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.TestLoader) {
       console.error('TestLoader is not available in the context');
@@ -421,12 +422,12 @@ async function GetTestByTask(parent, _, context) {
 
     // *************** Load test using DataLoader
     const test = await context.loaders.TestLoader.load(parent.test_id);
-    
+
     // *************** Check if test exists
     if (!test) {
       throw new ApolloError('Test not found', 'RELATED_RESOURCE_NOT_FOUND');
     }
-    
+
     return test;
   } catch (error) {
     // ***************  Log error to database
@@ -436,7 +437,7 @@ async function GetTestByTask(parent, _, context) {
       function_name: 'GetTestByTask',
       error: String(error.stack),
     });
-    
+
     // ***************  Throw error with context
     throw new ApolloError(`Failed to load test: ${error.message}`);
   }
@@ -458,12 +459,12 @@ async function GetUserByTask(parent, _, context) {
     if (!parent || !context) {
       return null;
     }
-    
+
     // ************** Return null if no user_id is associated
     if (!parent.user_id) {
       return null;
     }
-    
+
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
       console.error('UserLoader is not available in the context');
@@ -472,12 +473,12 @@ async function GetUserByTask(parent, _, context) {
 
     // *************** Load user using DataLoader
     const user = await context.loaders.UserLoader.load(parent.user_id);
-    
+
     // *************** Check if user exists
     if (!user) {
       throw new ApolloError('User not found', 'RELATED_RESOURCE_NOT_FOUND');
     }
-    
+
     return user;
   } catch (error) {
     //************** Log error to database
@@ -487,7 +488,7 @@ async function GetUserByTask(parent, _, context) {
       function_name: 'GetUserByTask',
       error: String(error.stack),
     });
-    
+
     // ************** Throw error with context
     throw new ApolloError(`Failed to load user: ${error.message}`);
   }
@@ -616,5 +617,5 @@ module.exports = {
     created_by: CreatedByUser,
     updated_by: UpdatedByUser,
     deleted_by: DeletedByUser,
-  }
+  },
 };

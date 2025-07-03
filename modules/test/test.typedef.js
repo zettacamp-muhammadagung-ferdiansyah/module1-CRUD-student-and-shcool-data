@@ -63,7 +63,7 @@ const TestTypeDefs = gql`
     GetAllTests(page: Int!, limit: Int!): PaginatedTest
     GetTestById(id: ID!): Test
   }
-  
+
   extend type Mutation {
     CreateTest(test_input: TestInput!): Test
     UpdateTest(id: ID!, test_input: TestInput!): Test

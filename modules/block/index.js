@@ -9,7 +9,7 @@ module.exports = {
   resolvers: {
     Query: BlockResolvers.Query,
     Mutation: BlockResolvers.Mutation,
-    Block: BlockResolvers.Block
+    Block: BlockResolvers.Block,
   },
-  BlockLoader: BlockLoaderModule.BlockLoader
+  BlockLoader: BlockLoaderModule.BlockLoader,
 };
