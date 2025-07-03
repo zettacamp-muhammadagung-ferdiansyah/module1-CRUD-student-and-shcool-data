@@ -321,7 +321,6 @@ async function CreatedByUser(parent, _, context) {
  * @async
  * @function updatedByUser
  * @param {object} parent - The block object.
- * @param {object} _ - Unused resolver argument.
  * @param {object} context - The GraphQL context containing loaders.
  * @returns {Promise<object|null>} The user object or null if not found.
  */
@@ -356,7 +355,6 @@ async function UpdatedByUser(parent, _, context) {
  * @async
  * @function deletedByUser
  * @param {object} parent - The block object.
- * @param {object} _ - Unused resolver argument.
  * @param {object} context - The GraphQL context containing loaders.
  * @returns {Promise<object|null>} The user object or null if not found.
  */

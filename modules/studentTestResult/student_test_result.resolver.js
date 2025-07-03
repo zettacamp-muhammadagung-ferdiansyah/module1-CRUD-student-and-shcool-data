@@ -290,7 +290,6 @@ async function DeleteStudentTestResult(_, { id, deleted_by }) {
  *
  * @async
  * @function EnterMarks
- * @param {Object} _ - Unused root argument
  * @param {Object} args.input - Input for creating student test result
  * @throws {ApolloError} If validation or creation fails
  * @returns {Promise<Object>} The created student test result object
@@ -530,7 +529,6 @@ async function GetTestByStudentTestResult(parent, _, context) {
  * @async
  * @function CreatedByUser
  * @param {object} parent - The student test result object.
- * @param {object} _ - Unused resolver argument.
  * @param {object} context - The GraphQL context containing loaders.
  * @returns {Promise<object|null>} The user object or null if not found.
  */
@@ -560,7 +558,6 @@ async function CreatedByUser(parent, _, context) {
  * @async
  * @function UpdatedByUser
  * @param {object} parent - The student test result object.
- * @param {object} _ - Unused resolver argument.
  * @param {object} context - The GraphQL context containing loaders.
  * @returns {Promise<object|null>} The user object or null if not found.
  */
@@ -590,7 +587,6 @@ async function UpdatedByUser(parent, _, context) {
  * @async
  * @function DeletedByUser
  * @param {object} parent - The student test result object.
- * @param {object} _ - Unused resolver argument.
  * @param {object} context - The GraphQL context containing loaders.
  * @returns {Promise<object|null>} The user object or null if not found.
  */

@@ -448,7 +448,6 @@ async function GetSubjectByTest(parent, _, context) {
  * @async
  * @function CreatedByUser
  * @param {object} parent - The test object.
- * @param {object} _ - Unused resolver argument.
  * @param {object} context - The GraphQL context containing loaders.
  * @returns {Promise<object|null>} The user object or null if not found.
  */
@@ -484,7 +483,6 @@ async function CreatedByUser(parent, _, context) {
  * @async
  * @function UpdatedByUser
  * @param {object} parent - The test object.
- * @param {object} _ - Unused resolver argument.
  * @param {object} context - The GraphQL context containing loaders.
  * @returns {Promise<object|null>} The user object or null if not found.
  */
@@ -520,7 +518,6 @@ async function UpdatedByUser(parent, _, context) {
  * @async
  * @function DeletedByUser
  * @param {object} parent - The test object.
- * @param {object} _ - Unused resolver argument.
  * @param {object} context - The GraphQL context containing loaders.
  * @returns {Promise<object|null>} The user object or null if not found.
  */
