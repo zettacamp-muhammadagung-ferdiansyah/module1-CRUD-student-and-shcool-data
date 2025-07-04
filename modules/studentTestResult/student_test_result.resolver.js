@@ -375,7 +375,7 @@ async function ValidateMarks(_, { id }) {
     if (!studentTestResult || studentTestResult.student_test_result_status !== 'ACTIVE') {
       throw new ApolloError('Student test result not found or not active', 'RESOURCE_NOT_FOUND');
     }
-    
+
     // *************** Update student test result status to VALIDATED
     studentTestResult.student_test_result_status = 'VALIDATED';
     studentTestResult.updated_at = new Date();
@@ -389,7 +389,7 @@ async function ValidateMarks(_, { id }) {
 
     // *************** If all are validated, mark VALIDATE_MARKS task as COMPLETED
     if (unvalidatedCount === 0) {
-      const updateResult = await TaskModel.findOneAndUpdate(
+      await TaskModel.findOneAndUpdate(
         {
           test_id: studentTestResult.test_id,
           task_type: 'VALIDATE_MARKS',
