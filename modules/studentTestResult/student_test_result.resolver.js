@@ -155,14 +155,22 @@ async function CreateStudentTestResult(_, { student_test_result_input }) {
 }
 
 /**
- * Updates an existing student test result
+ * Updates an existing student test result.
+ *
+ * This mutation updates the fields of a student test result document based on the provided input.
+ * It recalculates the average mark if marks are provided, updates only the fields present in the input,
+ * and returns the updated student test result object.
  *
  * @async
  * @function UpdateStudentTestResult
- * @param {string} args.id - Student test result ID to update
- * @param {Object} args.student_test_result_input - Input containing updated student test result data
- * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if student test result doesn't exist
- * @returns {Promise<Object>} The updated student test result object
+ * @param {string} args.id - The ID of the student test result to update.
+ * @param {Object} args.student_test_result_input - The input object containing updated fields.
+ * @param {string} [args.student_test_result_input.student_id] - (Optional) The updated student ID.
+ * @param {string} [args.student_test_result_input.test_id] - (Optional) The updated test ID.
+ * @param {Array<Object>} [args.student_test_result_input.marks] - (Optional) Array of updated marks.
+ * @param {string} [args.student_test_result_input.updated_by] - (Optional) The user ID performing the update.
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if the student test result does not exist or is not active.
+ * @returns {Promise<Object>} The updated student test result object.
  */
 async function UpdateStudentTestResult(_, { id, student_test_result_input }) {
   try {
@@ -172,45 +180,47 @@ async function UpdateStudentTestResult(_, { id, student_test_result_input }) {
       studentTestResultInput: student_test_result_input,
     });
 
-    // *************** Find student test result by ID
-    const existingStudentTestResult = await StudentTestResultModel.findOne({
+    // *************** Find student test result by ID and status
+    const existing = await StudentTestResultModel.findOne({
       _id: id,
       student_test_result_status: 'ACTIVE',
     });
 
-    // *************** Check if student test result exists
-    if (!existingStudentTestResult) {
+    if (!existing) {
       throw new ApolloError('Student test result not found', 'RESOURCE_NOT_FOUND');
     }
 
     // *************** Calculate average mark if marks are provided
+    let marks = existing.marks;
+    let average_mark = existing.average_mark;
     if (student_test_result_input.marks && student_test_result_input.marks.length > 0) {
-      const sum = student_test_result_input.marks.reduce((acc, mark) => acc + mark.mark, 0);
-      existingStudentTestResult.average_mark = sum / student_test_result_input.marks.length;
-      existingStudentTestResult.marks = student_test_result_input.marks;
+      marks = student_test_result_input.marks;
+      const sum = marks.reduce((acc, mark) => acc + mark.mark, 0);
+      average_mark = sum / marks.length;
     }
 
-    // *************** Update fields if provided
-    if (student_test_result_input.student_id) {
-      existingStudentTestResult.student_id = student_test_result_input.student_id;
+    // *************** Build update payload (no spread, no in-memory mutation)
+    const updatePayload = {
+      student_id: student_test_result_input.student_id || existing.student_id,
+      test_id: student_test_result_input.test_id || existing.test_id,
+      marks,
+      average_mark,
+      mark_entry_date: new Date(),
+      updated_by: student_test_result_input.updated_by || existing.updated_by,
+    };
+
+    // *************** Update and return updated student test result in one step
+    const updated = await StudentTestResultModel.findByIdAndUpdate(
+      id,
+      { $set: updatePayload },
+      { new: true }
+    ).lean();
+
+    if (!updated) {
+      throw new ApolloError('Student test result not found after update', 'RESOURCE_NOT_FOUND');
     }
 
-    if (student_test_result_input.test_id) {
-      existingStudentTestResult.test_id = student_test_result_input.test_id;
-    }
-
-    // *************** Update mark entry date and updated_by
-    existingStudentTestResult.mark_entry_date = new Date();
-
-    if (student_test_result_input.updated_by) {
-      existingStudentTestResult.updated_by = student_test_result_input.updated_by;
-    }
-
-    // *************** Save changes
-    await existingStudentTestResult.save();
-
-    // *************** Return updated student test result
-    return existingStudentTestResult.toObject();
+    return updated;
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({
@@ -224,7 +234,6 @@ async function UpdateStudentTestResult(_, { id, student_test_result_input }) {
     throw new ApolloError(error.message);
   }
 }
-
 /**
  * Soft deletes a student test result by setting status to 'DELETED'
  *
