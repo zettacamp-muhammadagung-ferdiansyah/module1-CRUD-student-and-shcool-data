@@ -35,27 +35,27 @@ const TaskTypeDefs = gql`
     user: User
   }
 
-  input TaskInput {
-    test_id: ID!
-    user_id: ID!
-    title: String!
-    description: String!
-    task_type: TaskType!
-    due_date: Date
-    created_by: ID!
-    updated_by: ID!
-  }
 
-  input TaskUpdateInput {
-    test_id: ID!
-    user_id: ID!
-    title: String!
-    description: String!
-    task_type: TaskType!
-    task_status: TaskStatus
-    due_date: Date
-    updated_by: ID!
-  }
+input CreateTaskInput {
+  test_id: ID!
+  user_id: ID!
+  title: String!
+  description: String!
+  task_type: TaskType!
+  due_date: Date
+  created_by: ID!
+}
+
+input UpdateTaskInput {
+  test_id: ID!
+  user_id: ID!
+  title: String!
+  description: String!
+  task_type: TaskType!
+  task_status: TaskStatus
+  due_date: Date
+  updated_by: ID!
+}
 
   input AssignCorrectorInput {
     user_id: ID!
@@ -74,8 +74,8 @@ const TaskTypeDefs = gql`
   }
 
   extend type Mutation {
-    CreateTask(task_input: TaskInput!): Task
-    UpdateTask(id: ID!, task_input: TaskUpdateInput!): Task
+    CreateTask(task_input: CreateTaskInput!): Task
+    UpdateTask(id: ID!, task_input: UpdateTaskInput!): Task
     DeleteTask(id: ID!, deleted_by: ID!): String
     AssignCorrector(id: ID!, input: AssignCorrectorInput!): Task!
   }

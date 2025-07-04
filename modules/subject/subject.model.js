@@ -35,8 +35,7 @@ const subjectSchema = new Mongoose.Schema(
     // The user who last updated the subject
     updated_by: {
       type: Mongoose.Schema.Types.ObjectId,
-      ref: 'user',
-      required: true,
+      ref: 'user'
     },
 
     // The user who deleted the subject (if applicable)

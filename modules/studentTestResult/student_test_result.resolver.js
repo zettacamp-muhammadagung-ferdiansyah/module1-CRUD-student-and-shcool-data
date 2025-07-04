@@ -115,9 +115,7 @@ async function GetStudentTestResultById(_, { id }) {
 async function CreateStudentTestResult(_, { student_test_result_input }) {
   try {
     // *************** Validate input parameters
-    StudentTestResultValidators.ValidateCreateUpdateStudentTestResultParameters({
-      studentTestResultInput: student_test_result_input,
-    });
+    StudentTestResultValidators.ValidateCreateStudentTestResultParameters(student_test_result_input);
 
     // *************** Create sanitized student test result object with only required fields from input
     const studentTestResultData = {
@@ -169,7 +167,7 @@ async function CreateStudentTestResult(_, { student_test_result_input }) {
 async function UpdateStudentTestResult(_, { id, student_test_result_input }) {
   try {
     // *************** Validate input parameters
-    StudentTestResultValidators.ValidateCreateUpdateStudentTestResultParameters({
+    StudentTestResultValidators.ValidateUpdateStudentTestResultParameters({
       id,
       studentTestResultInput: student_test_result_input,
     });
@@ -240,20 +238,13 @@ async function UpdateStudentTestResult(_, { id, student_test_result_input }) {
  */
 async function DeleteStudentTestResult(_, { id, deleted_by }) {
   try {
-    // *************** Validate parameters
+    // *************** Validate MongoDB ID
     ValidateMongoId(id);
 
-    // *************** Find student test result by ID
-    const studentTestResult = await StudentTestResultModel.findById(id);
-
-    // *************** Check if student test result exists
+    // *************** Find the student test result by id and ensure it is active
+    const studentTestResult = await StudentTestResultModel.findOne({ _id: id, student_test_result_status: 'ACTIVE' }).lean();
     if (!studentTestResult) {
-      throw new ApolloError('Student test result not found', 'RESOURCE_NOT_FOUND');
-    }
-
-    // *************** Check if student test result is already deleted
-    if (studentTestResult.student_test_result_status === 'DELETED') {
-      throw new ApolloError('Student test result is already deleted', 'ALREADY_DELETED');
+      throw new ApolloError('Student test result not found or already deleted', 'RESOURCE_NOT_FOUND');
     }
 
     // *************** Soft delete the student test result
@@ -292,7 +283,7 @@ async function DeleteStudentTestResult(_, { id, deleted_by }) {
 async function EnterMarks(_, { input }) {
   try {
     // *************** Validate input parameters
-    StudentTestResultValidators.ValidateCreateUpdateStudentTestResultParameters({ studentTestResultInput: input });
+    StudentTestResultValidators.ValidateCreateStudentTestResultParameters(input);
 
     // *************** Find the ENTER_MARKS task and ensure it is ACTIVE
     const enterMarksTask = await TaskModel.findOne({
@@ -331,7 +322,7 @@ async function EnterMarks(_, { input }) {
 
     // *************** Prepare payload for VALIDATE_MARKS task (with required fields)
     const test = await TestModel.findById(newStudentTestResult.test_id).lean();
-    const validator = await UserModel.findOne({ role: 'ACADEMIC_DIRECTOR', user_status: 'ACTIVE' }).lean();
+    const validator = await UserModel.findOne({ role: 'ACADEMIC_DIRECTOR', status: 'active' }).lean();
     if (!validator) {
       throw new ApolloError('Academic director not found', 'NOT_FOUND');
     }
@@ -384,25 +375,32 @@ async function ValidateMarks(_, { id }) {
     if (!studentTestResult || studentTestResult.student_test_result_status !== 'ACTIVE') {
       throw new ApolloError('Student test result not found or not active', 'RESOURCE_NOT_FOUND');
     }
-
+    
     // *************** Update student test result status to VALIDATED
     studentTestResult.student_test_result_status = 'VALIDATED';
     studentTestResult.updated_at = new Date();
     await studentTestResult.save();
 
-    // *************** Mark VALIDATE_MARKS task as COMPLETED
-    await TaskModel.findOneAndUpdate(
-      {
-        test_id: studentTestResult.test_id,
-        user_id: studentTestResult.updated_by,
-        task_type: 'VALIDATE_MARKS',
-        task_status: 'ACTIVE',
-      },
-      { $set: { task_status: 'COMPLETED' } }
-    );
+    // *************** Check if all student test results for this test are validated
+    const unvalidatedCount = await StudentTestResultModel.countDocuments({
+      test_id: studentTestResult.test_id,
+      student_test_result_status: { $ne: 'VALIDATED' },
+    });
+
+    // *************** If all are validated, mark VALIDATE_MARKS task as COMPLETED
+    if (unvalidatedCount === 0) {
+      const updateResult = await TaskModel.findOneAndUpdate(
+        {
+          test_id: studentTestResult.test_id,
+          task_type: 'VALIDATE_MARKS',
+          task_status: 'ACTIVE',
+        },
+        { $set: { task_status: 'COMPLETED' } }
+      );
+    }
 
     // *************** Return the validated student test result
-    return studentTestResult.toObject();
+    return studentTestResult;
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({

@@ -104,20 +104,20 @@ async function GetTestById(_, { id }) {
  * @param {string} [args.test_input.description] - Description of the test
  * @param {number} args.test_input.weight - Weight for score calculations
  * @param {Array<Object>} args.test_input.notations - Array of notation objects
+ * @param {string} args.test_input.created_by - User ID of creator
  * @throws {ApolloError} If validation fails or creation error occurs
  * @returns {Promise<Object>} The created test object
  */
 async function CreateTest(_, { test_input }) {
   try {
-    // *************** Validate Input
-    TestValidators.ValidateCreateUpdateTestParameters({ testInput: test_input });
+    // *************** Validate input parameters
+    TestValidators.ValidateCreateTestParameters(test_input);
 
-    // *************** Verify subject exists
+    // *************** Verify subject exists and is active
     const subject = await SubjectModel.findOne({
       _id: test_input.subject_id,
       status: 'active',
     }).lean();
-
     if (!subject) {
       throw new ApolloError('Subject not found or deleted', 'RESOURCE_NOT_FOUND');
     }
@@ -130,7 +130,6 @@ async function CreateTest(_, { test_input }) {
     });
 
     // *************** Create sanitized test object with only allowed fields
-    // *************** Create sanitized test object with only allowed fields
     const testData = {
       subject_id: test_input.subject_id,
       name: test_input.name,
@@ -139,7 +138,6 @@ async function CreateTest(_, { test_input }) {
       notations: test_input.notations,
       test_status: 'active',
       created_by: test_input.created_by,
-      updated_by: test_input.updated_by,
     };
 
     // *************** Create Test
@@ -170,25 +168,25 @@ async function CreateTest(_, { test_input }) {
  * @function UpdateTest
  * @param {string} args.id - Test ID to update
  * @param {Object} args.test_input - Input containing updated test data
- * @param {string} [args.test_input.subject_id] - Updated subject ID
- * @param {string} [args.test_input.name] - Updated name
+ * @param {string} args.test_input.subject_id - Updated subject ID
+ * @param {string} args.test_input.name - Updated name
  * @param {string} [args.test_input.description] - Updated description
- * @param {number} [args.test_input.weight] - Updated weight
- * @param {Array<Object>} [args.test_input.notations] - Updated notations
+ * @param {number} args.test_input.weight - Updated weight
+ * @param {Array<Object>} args.test_input.notations - Updated notations
+ * @param {string} args.test_input.updated_by - User ID of updater
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if test doesn't exist
  * @returns {Promise<Object>} The updated test object
  */
 async function UpdateTest(_, { id, test_input }) {
   try {
-    // *************** Validate Input
-    TestValidators.ValidateCreateUpdateTestParameters({ id, testInput: test_input });
+    // *************** Validate input parameters
+    TestValidators.ValidateUpdateTestParameters({ id, testInput: test_input });
 
-    // *************** Verify subject exists
+    // *************** Verify subject exists and is active
     const subject = await SubjectModel.findOne({
       _id: test_input.subject_id,
       status: 'active',
     }).lean();
-
     if (!subject) {
       throw new ApolloError('Subject not found or deleted', 'RESOURCE_NOT_FOUND');
     }
@@ -208,7 +206,6 @@ async function UpdateTest(_, { id, test_input }) {
     });
 
     // *************** Create sanitized update object with only allowed fields
-    // *************** Create sanitized update object with only allowed fields
     const updateData = {
       subject_id: test_input.subject_id,
       name: test_input.name,
@@ -216,6 +213,7 @@ async function UpdateTest(_, { id, test_input }) {
       weight: test_input.weight,
       notations: test_input.notations,
       updated_by: test_input.updated_by,
+      updatedAt: new Date(),
     };
 
     // *************** Update Test
@@ -223,10 +221,9 @@ async function UpdateTest(_, { id, test_input }) {
 
     // *************** Handle subject_id change if it has changed
     if (test.subject_id && oldTest.subject_id && !test.subject_id.equals(oldTest.subject_id)) {
-      // *************** Remove test from old subject's test_ids
+      // *************** *************** Remove test from old subject's test_ids
       await SubjectModel.findByIdAndUpdate(oldTest.subject_id, { $pull: { test_ids: test._id } });
-
-      // *************** Add test to new subject's test_ids
+      // *************** Add test ID to new subject
       await SubjectModel.findByIdAndUpdate(test.subject_id, { $addToSet: { test_ids: test._id } });
     }
 
@@ -246,30 +243,24 @@ async function UpdateTest(_, { id, test_input }) {
 }
 
 /**
- * Soft deletes a test by setting status to 'deleted'
+ * Soft deletes a test by setting test_status to 'DELETED'
  *
  * @async
  * @function DeleteTest
  * @param {string} args.id - Test ID to delete
  * @param {string} args.deleted_by - User ID performing the deletion
- * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if test doesn't exist
- * @throws {ApolloError} Throws 'ALREADY_DELETED' if test is already deleted
- * @returns {Promise<Object>} The deleted test object
+ * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if test doesn't exist or already deleted
+ * @returns {Promise<string>} Success message
  */
 async function DeleteTest(_, { id, deleted_by }) {
   try {
     // *************** Validate MongoDB ID
     ValidateMongoId(id);
 
-    // *************** Get the test first to check if it exists
-    const test = await TestModel.findById(id).lean();
+    // *************** Find the test by id and ensure it is active
+    const test = await TestModel.findOne({ _id: id, test_status: 'active' }).lean();
     if (!test) {
-      throw new ApolloError('Test not found', 'RESOURCE_NOT_FOUND');
-    }
-
-    // *************** Check if test is already deleted
-    if (test.test_status === 'DELETED') {
-      throw new ApolloError('Test is already deleted', 'ALREADY_DELETED');
+      throw new ApolloError('Test not found or already deleted', 'RESOURCE_NOT_FOUND');
     }
 
     // *************** Soft delete the test
@@ -281,12 +272,6 @@ async function DeleteTest(_, { id, deleted_by }) {
         deleted_by,
       }
     );
-
-    // *************** Remove test from subject's test_ids array
-    if (test.subject_id) {
-      await SubjectModel.findByIdAndUpdate(test.subject_id, { $pull: { test_ids: test._id } });
-    }
-    // *************** Return deleted
     return 'test has been deleted';
   } catch (error) {
     // ************** Log error to database
@@ -320,11 +305,9 @@ async function DeleteTest(_, { id, deleted_by }) {
  * @throws {ApolloError} - Throws an error if validation or any DB operation fails
  */
 async function PublishTest(_, { id, input }) {
-  //perlu validate input
   try {
-    // *************** Validate input for PublishTest
-    ValidateMongoId(id);
-    TestValidators.ValidatePublishTestInput(input);
+    // ***************  validate input for PublishTest
+    TestValidators.ValidatePublishTestInput({ id, input });
 
     // *************** Find and validate test
     const test = await TestModel.findOne({

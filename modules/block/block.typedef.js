@@ -22,13 +22,19 @@ const BlockTypeDefs = gql`
     deleted_by: User
   }
 
-  input BlockInput {
-    name: String!
-    description: String
-    subject_ids: [ID!]
-    created_by: ID!
-    updated_by: ID!
-  }
+input CreateBlockInput {
+  name: String!
+  description: String
+  subject_ids: [ID!]
+  created_by: ID!
+}
+
+input UpdateBlockInput {
+  name: String!
+  description: String
+  subject_ids: [ID!]
+  updated_by: ID!
+}
 
   type PaginatedBlock {
     data: [Block]
@@ -42,8 +48,8 @@ const BlockTypeDefs = gql`
   }
 
   extend type Mutation {
-    CreateBlock(block_input: BlockInput!): Block
-    UpdateBlock(id: ID!, block_input: BlockInput!): Block
+    CreateBlock(block_input: CreateBlockInput!): Block
+    UpdateBlock(id: ID!, block_input: UpdateBlockInput!): Block
     DeleteBlock(id: ID!, deleted_by: ID!): String
   }
 `;

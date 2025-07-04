@@ -63,8 +63,7 @@ const testSchema = new Mongoose.Schema(
     // The user who last updated the test
     updated_by: {
       type: Mongoose.Schema.Types.ObjectId,
-      ref: 'user',
-      required: true,
+      ref: 'user'
     },
     // The user who deleted the test (if applicable)
     deleted_by: {

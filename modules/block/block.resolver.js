@@ -106,8 +106,8 @@ async function GetBlockById(_, { id }) {
  */
 async function CreateBlock(_, { block_input }) {
   try {
-    // *************** Validate Input
-    BlockValidators.ValidateCreateUpdateBlockParameters({ blockInput: block_input });
+    // *************** Validate Input 
+    BlockValidators.ValidateCreateBlockParameters(block_input);
 
     // *************** Create sanitized block object with only allowed fields
     const blockData = {
@@ -116,7 +116,6 @@ async function CreateBlock(_, { block_input }) {
       subject_ids: block_input.subject_ids || [],
       status: 'active',
       created_by: block_input.created_by,
-      updated_by: block_input.updated_by,
     };
 
     // *************** Create Block
@@ -151,19 +150,18 @@ async function CreateBlock(_, { block_input }) {
  */
 async function UpdateBlock(_, { id, block_input }) {
   try {
-    // *************** Validate Input
-    BlockValidators.ValidateCreateUpdateBlockParameters({ id, blockInput: block_input });
+
+    // *************** Validate Input 
+    BlockValidators.ValidateUpdateBlockParameters({ id, blockInput: block_input });
 
     // *************** Create sanitized update object with only allowed fields
     const updateData = {
       name: block_input.name,
       description: block_input.description,
       subject_ids: block_input.subject_ids,
+      updated_by: block_input.updated_by,
+      updated_at: new Date(),
     };
-
-    // *************** Add optional fields if they exist
-    if (block_input.updated_by) updateData.updated_by = block_input.updated_by;
-    updateData.updated_at = new Date();
 
     // *************** Update Block
     const block = await BlockModel.findByIdAndUpdate(id, updateData, { new: true }).lean();
@@ -202,15 +200,10 @@ async function DeleteBlock(_, { id, deleted_by }) {
     // *************** Validate MongoDB ID
     ValidateMongoId(id);
 
-    // *************** Get the block first to check if it exists
-    const block = await BlockModel.findById(id).lean();
+    // *************** Find the block by id and ensure it is active
+    const block = await BlockModel.findOne({ _id: id, status: 'active' }).lean();
     if (!block) {
-      throw new ApolloError('Block not found', 'RESOURCE_NOT_FOUND');
-    }
-
-    // *************** Check if block is already deleted
-    if (block.status === 'deleted') {
-      throw new ApolloError('Block is already deleted', 'ALREADY_DELETED');
+      throw new ApolloError('Block not found or already deleted', 'RESOURCE_NOT_FOUND');
     }
 
     // *************** Soft delete the block

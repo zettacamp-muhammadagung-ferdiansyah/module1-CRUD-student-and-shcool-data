@@ -111,19 +111,16 @@ async function GetSubjectById(_, { id }) {
  */
 async function CreateSubject(_, { subject_input }) {
   try {
-    // *************** Validate Input
-    SubjectValidators.ValidateCreateUpdateSubjectParameters({ subjectInput: subject_input });
+    // *************** Validate input parameters
+    SubjectValidators.ValidateCreateSubjectParameters(subject_input);
 
-    // *************** Verify block exists if provided
-    if (subject_input.block_id) {
-      const block = await BlockModel.findOne({
-        _id: subject_input.block_id,
-        status: 'active',
-      }).lean();
-
-      if (!block) {
-        throw new ApolloError('Block not found or deleted', 'RESOURCE_NOT_FOUND');
-      }
+    // *************** Verify block exists and is active
+    const block = await BlockModel.findOne({
+      _id: subject_input.block_id,
+      status: 'active',
+    }).lean();
+    if (!block) {
+      throw new ApolloError('Block not found or deleted', 'RESOURCE_NOT_FOUND');
     }
 
     // *************** Create sanitized subject object with only allowed fields
@@ -135,11 +132,7 @@ async function CreateSubject(_, { subject_input }) {
       test_ids: subject_input.test_ids || [],
       status: 'active',
       created_by: subject_input.created_by,
-      updated_by: subject_input.updated_by,
     };
-
-    // *************** Add optional fields if they exist
-    if (subject_input.created_by) subjectData.created_by = subject_input.created_by;
 
     // *************** Create Subject
     const subject = await SubjectModel.create(subjectData);
@@ -182,19 +175,16 @@ async function CreateSubject(_, { subject_input }) {
  */
 async function UpdateSubject(_, { id, subject_input }) {
   try {
-    // *************** Validate Input
-    SubjectValidators.ValidateCreateUpdateSubjectParameters({ id, subjectInput: subject_input });
+    // *************** Validate input parameters
+    SubjectValidators.ValidateUpdateSubjectParameters({ id, subjectInput: subject_input });
 
-    // *************** Verify block exists if provided
-    if (subject_input.block_id) {
-      const block = await BlockModel.findOne({
-        _id: subject_input.block_id,
-        status: 'active',
-      }).lean();
-
-      if (!block) {
-        throw new ApolloError('Block not found or deleted', 'RESOURCE_NOT_FOUND');
-      }
+    // *************** Verify block exists and is active
+    const block = await BlockModel.findOne({
+      _id: subject_input.block_id,
+      status: 'active',
+    }).lean();
+    if (!block) {
+      throw new ApolloError('Block not found or deleted', 'RESOURCE_NOT_FOUND');
     }
 
     // *************** Create sanitized update object with only allowed fields
@@ -204,19 +194,17 @@ async function UpdateSubject(_, { id, subject_input }) {
       description: subject_input.description,
       coefficient: subject_input.coefficient,
       test_ids: subject_input.test_ids,
-      created_by: subject_input.created_by,
       updated_by: subject_input.updated_by,
+      updatedAt: new Date(),
     };
 
-    // *************** Add optional fields if they exist
-    if (subject_input.updated_by) updateData.updated_by = subject_input.updated_by;
-
-    // *************** Update Subject
+    // *************** Find the old subject
     const oldSubject = await SubjectModel.findById(id).lean();
     if (!oldSubject) {
       throw new ApolloError('Subject not found', 'RESOURCE_NOT_FOUND');
     }
 
+    // *************** Update Subject
     const subject = await SubjectModel.findByIdAndUpdate(id, updateData, { new: true }).lean();
 
     // *************** Update block's subject_ids if block_id has changed
@@ -262,15 +250,10 @@ async function DeleteSubject(_, { id, deleted_by }) {
     // *************** Validate MongoDB ID
     ValidateMongoId(id);
 
-    // *************** Get the subject first to check if it exists
-    const subject = await SubjectModel.findById(id).lean();
+    // *************** Find the subject by id and ensure it is active
+    const subject = await SubjectModel.findOne({ _id: id, status: 'active' }).lean();
     if (!subject) {
-      throw new ApolloError('Subject not found', 'RESOURCE_NOT_FOUND');
-    }
-
-    // *************** Check if subject is already deleted
-    if (subject.status === 'deleted') {
-      throw new ApolloError('Subject is already deleted', 'ALREADY_DELETED');
+      throw new ApolloError('Subject not found or already deleted', 'RESOURCE_NOT_FOUND');
     }
 
     // *************** Soft delete the subject
@@ -282,12 +265,7 @@ async function DeleteSubject(_, { id, deleted_by }) {
         deleted_by,
       }
     );
-
-    // *************** Remove subject from block's subject_ids array
-    if (subject.block_id) {
-      await BlockModel.findByIdAndUpdate(subject.block_id, { $pull: { subject_ids: subject._id } });
-    }
-    return 'Subject has been deleted';
+    return 'subject has been deleted';
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({

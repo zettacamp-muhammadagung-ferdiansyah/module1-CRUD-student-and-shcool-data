@@ -5,35 +5,27 @@ const { ApolloError } = require('apollo-server');
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 
 // *************** VALIDATOR ***************
+
 /**
- * Validates parameters for creating or updating a block
+ * Validates parameters for creating a block
  *
- * @function ValidateCreateUpdateBlockParameters
- * @param {Object} params - Parameters object
- * @param {string} [params.id] - Block ID (required for update only)
- * @param {Object} params.blockInput - Block input data
- * @param {string} params.blockInput.name - Name of the block
- * @param {string} [params.blockInput.description] - Description of the block
- * @param {Array<string>} [params.blockInput.subject_ids] - Array of subject IDs
+ * @function ValidateCreateBlockParameters
+ * @param {Object} blockInput - Block input data
+ * @param {string} blockInput.name - Name of the block (required)
+ * @param {string} [blockInput.description] - Description of the block
+ * @param {Array<string>} [blockInput.subject_ids] - Array of subject IDs
+ * @param {string} blockInput.created_by - User ID of creator (required)
  * @throws {ApolloError} Throws error if validation fails
  */
-function ValidateCreateUpdateBlockParameters({ id, blockInput }) {
-  // *************** Check if ID exists and is valid for updates only
-  if (id) {
-    ValidateMongoId(id);
-  }
-
+function ValidateCreateBlockParameters(blockInput) {
   // *************** Check if input is provided
   if (!blockInput) {
     throw new ApolloError('Input object must be provided', 'INVALID_INPUT');
   }
 
-  // *************** Validate name (required)
-  if (!blockInput.name) {
-    throw new ApolloError('Block name is required', 'INVALID_INPUT');
-  }
-  if (typeof blockInput.name !== 'string') {
-    throw new ApolloError('Block name must be a string', 'INVALID_INPUT');
+  // *************** Validate name (required, must be non-empty string)
+  if (typeof blockInput.name !== 'string' || blockInput.name === '') {
+    throw new ApolloError('Block name is required and must be a string', 'INVALID_INPUT');
   }
 
   // *************** Validate description if provided
@@ -52,20 +44,59 @@ function ValidateCreateUpdateBlockParameters({ id, blockInput }) {
     });
   }
 
-  // *************** Validate created_by
-  if (!blockInput.created_by) {
-    throw new ApolloError('created_by is required', 'INVALID_INPUT');
-  }
+  // *************** Validate created_by (required, must be valid MongoId)
   ValidateMongoId(blockInput.created_by);
+}
 
-  // *************** Validate updated_by
-  if (!blockInput.updated_by) {
-    throw new ApolloError('updated_by is required', 'INVALID_INPUT');
+/**
+ * Validates parameters for updating a block
+ *
+ * @function ValidateUpdateBlockParameters
+ * @param {Object} params - Parameters object
+ * @param {string} params.id - Block ID (required)
+ * @param {Object} params.blockInput - Block input data
+ * @param {string} params.blockInput.name - Name of the block (required)
+ * @param {string} [params.blockInput.description] - Description of the block
+ * @param {Array<string>} [params.blockInput.subject_ids] - Array of subject IDs
+ * @param {string} params.blockInput.updated_by - User ID of updater (required)
+ * @throws {ApolloError} Throws error if validation fails
+ */
+function ValidateUpdateBlockParameters({ id, blockInput }) {
+  // *************** Validate ID (required, must be valid MongoId)
+  ValidateMongoId(id);
+
+  // *************** Check if input is provided
+  if (!blockInput) {
+    throw new ApolloError('Input object must be provided', 'INVALID_INPUT');
   }
+
+  // *************** Validate name (required, must be non-empty string)
+  if (typeof blockInput.name !== 'string' || blockInput.name === '') {
+    throw new ApolloError('Block name is required and must be a string', 'INVALID_INPUT');
+  }
+
+  // *************** Validate description if provided
+  if (blockInput.description && typeof blockInput.description !== 'string') {
+    throw new ApolloError('Block description must be a string', 'INVALID_INPUT');
+  }
+
+  // *************** Validate subject_ids if provided
+  if (blockInput.subject_ids) {
+    if (!Array.isArray(blockInput.subject_ids)) {
+      throw new ApolloError('Subject IDs must be an array', 'INVALID_INPUT');
+    }
+    // *************** Validate each subject ID
+    blockInput.subject_ids.forEach((subjectId) => {
+      ValidateMongoId(subjectId);
+    });
+  }
+
+  // *************** Validate updated_by (required, must be valid MongoId)
   ValidateMongoId(blockInput.updated_by);
 }
 
 // *************** EXPORT MODULE ***************
 module.exports = {
-  ValidateCreateUpdateBlockParameters,
+  ValidateCreateBlockParameters,
+  ValidateUpdateBlockParameters,
 };

@@ -36,20 +36,28 @@ const TestTypeDefs = gql`
     deleted_by: User
   }
 
-  input TestInput {
+  input CreateTestInput {
     subject_id: ID!
     name: String!
     description: String
     weight: Float!
     notations: [NotationInput!]!
     created_by: ID!
+  }
+
+  input UpdateTestInput {
+    subject_id: ID!
+    name: String!
+    description: String
+    weight: Float!
+    notations: [NotationInput!]!
     updated_by: ID!
   }
 
   type PaginatedTest {
     data: [Test]
     page: Int
-    limit: Int
+    length: Int
   }
 
   input PublishTestInput {
@@ -65,8 +73,8 @@ const TestTypeDefs = gql`
   }
 
   extend type Mutation {
-    CreateTest(test_input: TestInput!): Test
-    UpdateTest(id: ID!, test_input: TestInput!): Test
+    CreateTest(test_input: CreateTestInput!): Test
+    UpdateTest(id: ID!, test_input: UpdateTestInput!): Test
     DeleteTest(id: ID!, deleted_by: ID!): String
     PublishTest(id: ID!, input: PublishTestInput!): Test!
   }

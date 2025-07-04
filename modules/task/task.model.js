@@ -71,8 +71,7 @@ const TaskSchema = new Schema(
     // The user who last updated the task
     updated_by: {
       type: Types.ObjectId,
-      ref: 'user',
-      required: true,
+      ref: 'user'
     },
 
     // The user who deleted the task (if applicable)

@@ -24,20 +24,29 @@ const SubjectTypeDefs = gql`
     deleted_by: User
   }
 
-  input SubjectInput {
+
+  input CreateSubjectInput {
     block_id: ID!
     name: String!
     description: String
     coefficient: Float!
     test_ids: [ID!]
     created_by: ID!
+  }
+
+  input UpdateSubjectInput {
+    block_id: ID!
+    name: String!
+    description: String
+    coefficient: Float!
+    test_ids: [ID!]
     updated_by: ID!
   }
 
   type PaginatedSubject {
     data: [Subject]
     page: Int
-    limit: Int
+    length: Int
   }
 
   extend type Query {
@@ -46,8 +55,8 @@ const SubjectTypeDefs = gql`
   }
 
   extend type Mutation {
-    CreateSubject(subject_input: SubjectInput!): Subject
-    UpdateSubject(id: ID!, subject_input: SubjectInput!): Subject
+    CreateSubject(subject_input: CreateSubjectInput!): Subject
+    UpdateSubject(id: ID!, subject_input: UpdateSubjectInput!): Subject
     DeleteSubject(id: ID!, deleted_by: ID!): String
   }
 `;

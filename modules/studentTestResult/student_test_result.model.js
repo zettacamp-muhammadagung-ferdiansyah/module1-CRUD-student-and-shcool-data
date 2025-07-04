@@ -63,8 +63,7 @@ const studentTestResultSchema = new Schema(
     // The user who last updated the student test result
     updated_by: {
       type: Mongoose.Schema.Types.ObjectId,
-      ref: 'user',
-      required: true,
+      ref: 'user'
     },
 
     // The user who deleted the student test result (if applicable)

@@ -25,8 +25,7 @@ const blockSchema = new Mongoose.Schema(
     // ID of the user who last updated this block record
     updated_by: {
       type: Mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
+      ref: 'User'
     },
 
     // ID of the user who deleted this block (if applicable)

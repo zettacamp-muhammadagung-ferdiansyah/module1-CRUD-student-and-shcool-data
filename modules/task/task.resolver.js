@@ -123,7 +123,7 @@ async function GetTaskById(_, { id }) {
 async function CreateTask(_, { task_input }) {
   try {
     // *************** Validate input parameters
-    TaskValidators.ValidateCreateUpdateTaskParameters({ taskInput: task_input });
+    TaskValidators.ValidateCreateTaskParameters(task_input);
 
     // *************** Create task object with input data
     const taskData = {
@@ -185,7 +185,7 @@ async function CreateTask(_, { task_input }) {
 async function UpdateTask(_, { id, task_input }) {
   try {
     // *************** Validate input parameters
-    TaskValidators.ValidateCreateUpdateTaskParameters({ id, taskInput: task_input });
+    TaskValidators.ValidateUpdateTaskParameters({ id, taskInput: task_input });
 
     // *************** Find task by ID
     const existingTask = await TaskModel.findOne({
@@ -260,25 +260,10 @@ async function DeleteTask(_, { id, deleted_by }) {
     // *************** Validate MongoDB ID
     ValidateMongoId(id);
 
-    // *************** Validate deleted_by
-    if (!deleted_by) {
-      throw new ApolloError('Deleted by is required', 'INVALID_INPUT');
-    }
-    if (typeof deleted_by !== 'string') {
-      throw new ApolloError('Deleted by must be a string', 'INVALID_INPUT');
-    }
-
-    // *************** Find task by ID
-    const task = await TaskModel.findById(id);
-
-    // *************** Check if task exists
+    // *************** Find the task by id and ensure it is active
+    const task = await TaskModel.findOne({ _id: id, task_status: 'ACTIVE' }).lean();
     if (!task) {
-      throw new ApolloError('Task not found', 'RESOURCE_NOT_FOUND');
-    }
-
-    // *************** Check if task is already deleted
-    if (task.task_status === 'DELETED') {
-      throw new ApolloError('Task is already deleted', 'ALREADY_DELETED');
+      throw new ApolloError('Task not found or already deleted', 'RESOURCE_NOT_FOUND');
     }
 
     // *************** Soft delete the task

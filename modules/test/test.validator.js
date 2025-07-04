@@ -6,21 +6,14 @@ const { ApolloError } = require('apollo-server');
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 
 /**
- * Validates parameters for creating or updating a test
+ * Validates parameters for creating a test
  *
- * @function ValidateCreateUpdateTestParameters
- * @param {Object} params - Parameters for validation
- * @param {string} [params.id] - Test ID (required for update, not for create)
- * @param {Object} params.testInput - Input object containing test data
+ * @function ValidateCreateTestParameters
+ * @param {Object} testInput - Input object containing test data
  * @throws {ApolloError} If any validation fails
  */
-function ValidateCreateUpdateTestParameters({ id, testInput }) {
-  // *************** Validate ID if provided (required for update)
-  if (id) {
-    ValidateMongoId(id);
-  }
-
-  // *************** Validate required fields
+function ValidateCreateTestParameters(testInput) {
+  // *************** Check if input is provided
   if (!testInput) {
     throw new ApolloError('Test input is required', 'INVALID_INPUT');
   }
@@ -32,11 +25,8 @@ function ValidateCreateUpdateTestParameters({ id, testInput }) {
   ValidateMongoId(testInput.subject_id);
 
   // *************** Validate name
-  if (!testInput.name) {
-    throw new ApolloError('Test name is required', 'INVALID_INPUT');
-  }
-  if (typeof testInput.name !== 'string') {
-    throw new ApolloError('Test name must be a string', 'INVALID_INPUT');
+  if (typeof testInput.name !== 'string' || testInput.name === '') {
+    throw new ApolloError('Test name is required and must be a string', 'INVALID_INPUT');
   }
 
   // *************** Validate description if provided
@@ -45,57 +35,84 @@ function ValidateCreateUpdateTestParameters({ id, testInput }) {
   }
 
   // *************** Validate weight
-  if (testInput.weight === undefined || testInput.weight === null) {
-    throw new ApolloError('Weight is required', 'INVALID_INPUT');
-  }
-  if (typeof testInput.weight !== 'number') {
-    throw new ApolloError('Weight must be a number', 'INVALID_INPUT');
-  }
-  if (testInput.weight < 0) {
-    throw new ApolloError('Weight cannot be negative', 'INVALID_INPUT');
+  if (typeof testInput.weight !== 'number' || testInput.weight < 0) {
+    throw new ApolloError('Weight is required and must be a non-negative number', 'INVALID_INPUT');
   }
 
   // *************** Validate notations
-  if (!testInput.notations) {
-    throw new ApolloError('Notations are required', 'INVALID_INPUT');
-  }
-  if (!Array.isArray(testInput.notations)) {
-    throw new ApolloError('Notations must be an array', 'INVALID_INPUT');
-  }
-  if (testInput.notations.length === 0) {
-    throw new ApolloError('At least one notation is required', 'INVALID_INPUT');
+  if (!testInput.notations || !Array.isArray(testInput.notations) || testInput.notations.length === 0) {
+    throw new ApolloError('Notations are required and must be a non-empty array', 'INVALID_INPUT');
   }
 
   // *************** Validate each notation
   testInput.notations.forEach((notation, index) => {
-    if (!notation.notation_text) {
-      throw new ApolloError(`Notation text is required for notation at index ${index}`, 'INVALID_INPUT');
+    if (!notation.notation_text || typeof notation.notation_text !== 'string') {
+      throw new ApolloError(`Notation text is required and must be a string for notation at index ${index}`, 'INVALID_INPUT');
     }
-    if (typeof notation.notation_text !== 'string') {
-      throw new ApolloError(`Notation text must be a string for notation at index ${index}`, 'INVALID_INPUT');
-    }
-
-    if (notation.max_points === undefined || notation.max_points === null) {
-      throw new ApolloError(`Max points is required for notation at index ${index}`, 'INVALID_INPUT');
-    }
-    if (typeof notation.max_points !== 'number') {
-      throw new ApolloError(`Max points must be a number for notation at index ${index}`, 'INVALID_INPUT');
-    }
-    if (notation.max_points < 0) {
-      throw new ApolloError(`Max points cannot be negative for notation at index ${index}`, 'INVALID_INPUT');
+    if (typeof notation.max_points !== 'number' || notation.max_points < 0) {
+      throw new ApolloError(`Max points is required and must be a non-negative number for notation at index ${index}`, 'INVALID_INPUT');
     }
   });
 
-  // *************** Validate created_by (required)
-  if (!testInput.created_by) {
-    throw new ApolloError('created_by is required', 'INVALID_INPUT');
-  }
+  // *************** Validate created_by (required, must be valid MongoId)
   ValidateMongoId(testInput.created_by);
+}
 
-  // *************** Validate updated_by (required)
-  if (!testInput.updated_by) {
-    throw new ApolloError('updated_by is required', 'INVALID_INPUT');
+/**
+ * Validates parameters for updating a test
+ *
+ * @function ValidateUpdateTestParameters
+ * @param {Object} params - Parameters for validation
+ * @param {string} params.id - Test ID (required)
+ * @param {Object} params.testInput - Input object containing test data
+ * @throws {ApolloError} If any validation fails
+ */
+function ValidateUpdateTestParameters({ id, testInput }) {
+  // *************** Validate ID (required, must be valid MongoId)
+  ValidateMongoId(id);
+
+  // *************** Check if input is provided
+  if (!testInput) {
+    throw new ApolloError('Test input is required', 'INVALID_INPUT');
   }
+
+  // *************** Validate subject_id
+  if (!testInput.subject_id) {
+    throw new ApolloError('Subject ID is required', 'INVALID_INPUT');
+  }
+  ValidateMongoId(testInput.subject_id);
+
+  // *************** Validate name
+  if (typeof testInput.name !== 'string' || testInput.name === '') {
+    throw new ApolloError('Test name is required and must be a string', 'INVALID_INPUT');
+  }
+
+  // *************** Validate description if provided
+  if (testInput.description && typeof testInput.description !== 'string') {
+    throw new ApolloError('Description must be a string', 'INVALID_INPUT');
+  }
+
+  // *************** Validate weight
+  if (typeof testInput.weight !== 'number' || testInput.weight < 0) {
+    throw new ApolloError('Weight is required and must be a non-negative number', 'INVALID_INPUT');
+  }
+
+  // *************** Validate notations
+  if (!testInput.notations || !Array.isArray(testInput.notations) || testInput.notations.length === 0) {
+    throw new ApolloError('Notations are required and must be a non-empty array', 'INVALID_INPUT');
+  }
+
+  // *************** Validate each notation
+  testInput.notations.forEach((notation, index) => {
+    if (!notation.notation_text || typeof notation.notation_text !== 'string') {
+      throw new ApolloError(`Notation text is required and must be a string for notation at index ${index}`, 'INVALID_INPUT');
+    }
+    if (typeof notation.max_points !== 'number' || notation.max_points < 0) {
+      throw new ApolloError(`Max points is required and must be a non-negative number for notation at index ${index}`, 'INVALID_INPUT');
+    }
+  });
+
+  // *************** Validate updated_by (required, must be valid MongoId)
   ValidateMongoId(testInput.updated_by);
 }
 
@@ -145,10 +162,16 @@ async function ValidateTestWeight({ subject_id, weight, test_id, TestModel }) {
  * Validates input for publishing a test (assigning a corrector)
  *
  * @function ValidatePublishTestInput
- * @param {Object} input - The input object for PublishTest
+ * @param {Object} params - The input object for PublishTest
+ * @param {string} params.id - The test ID to publish
+ * @param {Object} params.input - The input payload
  * @throws {ApolloError} If any validation fails
  */
-function ValidatePublishTestInput(input) {
+function ValidatePublishTestInput({ id, input }) {
+  // ***************  Validate ID
+  ValidateMongoId(id);
+
+  // *************** Validate input
   if (!input) {
     throw new ApolloError('PublishTest input is required', 'INVALID_INPUT');
   }
@@ -170,7 +193,8 @@ function ValidatePublishTestInput(input) {
 
 // *************** EXPORT MODULE ***************
 module.exports = {
-  ValidateCreateUpdateTestParameters,
+  ValidateCreateTestParameters,
+  ValidateUpdateTestParameters,
   ValidateTestWeight,
   ValidatePublishTestInput,
 };

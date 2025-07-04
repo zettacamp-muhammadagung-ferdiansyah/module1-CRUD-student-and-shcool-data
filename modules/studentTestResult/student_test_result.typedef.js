@@ -36,19 +36,27 @@ const StudentTestResultTypeDefs = gql`
     test: Test
   }
 
-  input StudentTestResultInput {
-    student_id: ID!
-    test_id: ID!
-    marks: [MarkInput!]!
-    created_by: ID!
-    updated_by: ID!
-    due_date: Date
-  }
+
+input CreateStudentTestResultInput {
+  student_id: ID!
+  test_id: ID!
+  marks: [MarkInput!]!
+  created_by: ID!
+  due_date: Date
+}
+
+input UpdateStudentTestResultInput {
+  student_id: ID!
+  test_id: ID!
+  marks: [MarkInput!]!
+  updated_by: ID!
+  due_date: Date
+}
 
   type PaginatedStudentTestResult {
     data: [StudentTestResult]
     page: Int
-    limit: Int
+    length: Int
   }
 
   extend type Query {
@@ -59,10 +67,10 @@ const StudentTestResultTypeDefs = gql`
   }
 
   extend type Mutation {
-    CreateStudentTestResult(student_test_result_input: StudentTestResultInput!): StudentTestResult
-    UpdateStudentTestResult(id: ID!, student_test_result_input: StudentTestResultInput!): StudentTestResult
+    CreateStudentTestResult(student_test_result_input: CreateStudentTestResultInput!): StudentTestResult
+    UpdateStudentTestResult(id: ID!, student_test_result_input: UpdateStudentTestResultInput!): StudentTestResult
     DeleteStudentTestResult(id: ID!, deleted_by: ID!): String
-    EnterMarks(input: StudentTestResultInput!): StudentTestResult
+    EnterMarks(input: CreateStudentTestResultInput!): StudentTestResult
     ValidateMarks(id: ID!): StudentTestResult
   }
 `;
