@@ -255,7 +255,6 @@ async function GetSubjectsByBlock(parent, _, context) {
 
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.SubjectLoader) {
-      console.error('SubjectLoader is not available in the context');
       return [];
     }
 
@@ -292,7 +291,6 @@ async function CreatedByUser(parent, _, context) {
     if (!parent.created_by) return null;
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     // ************** Use the UserLoader to load the user by ID
@@ -326,7 +324,6 @@ async function UpdatedByUser(parent, _, context) {
     if (!parent.updated_by) return null;
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     // ************** Use the UserLoader to load the user by ID
@@ -360,7 +357,6 @@ async function DeletedByUser(parent, _, context) {
     if (!parent.deleted_by) return null;
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     // ************** Use the UserLoader to load the user by ID

@@ -13,9 +13,9 @@ const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
  * @throws {ApolloError} If any validation fails
  */
 function ValidateCreateStudentTestResultParameters(studentTestResultInput) {
-  // *************** Validate required fields
-  if (!studentTestResultInput) {
-    throw new ApolloError('Student test result input is required', 'INVALID_INPUT');
+  // *************** Validate object and not empty
+  if (!studentTestResultInput || typeof studentTestResultInput !== 'object') {
+    throw new ApolloError('Student test result input must be an object', 'INVALID_INPUT');
   }
   // *************** Validate student_id
   if (!studentTestResultInput.student_id) {
@@ -41,9 +41,6 @@ function ValidateCreateStudentTestResultParameters(studentTestResultInput) {
     }
     if (typeof mark.notation_text !== 'string') {
       throw new ApolloError(`Notation text must be a string for mark at index ${index}`, 'INVALID_INPUT');
-    }
-    if (mark.mark === undefined || mark.mark === null) {
-      throw new ApolloError(`Mark value is required for mark at index ${index}`, 'INVALID_INPUT');
     }
     if (typeof mark.mark !== 'number') {
       throw new ApolloError(`Mark value must be a number for mark at index ${index}`, 'INVALID_INPUT');
@@ -67,9 +64,9 @@ function ValidateCreateStudentTestResultParameters(studentTestResultInput) {
 function ValidateUpdateStudentTestResultParameters({ id, studentTestResultInput }) {
   // *************** Validate ID (required)
   ValidateMongoId(id);
-  // *************** Validate required fields
-  if (!studentTestResultInput) {
-    throw new ApolloError('Student test result input is required', 'INVALID_INPUT');
+  // *************** Validate object and not empty
+  if (!studentTestResultInput || typeof studentTestResultInput !== 'object') {
+    throw new ApolloError('Student test result input must be an object', 'INVALID_INPUT');
   }
   // *************** Validate student_id
   if (!studentTestResultInput.student_id) {
@@ -95,9 +92,6 @@ function ValidateUpdateStudentTestResultParameters({ id, studentTestResultInput 
     }
     if (typeof mark.notation_text !== 'string') {
       throw new ApolloError(`Notation text must be a string for mark at index ${index}`, 'INVALID_INPUT');
-    }
-    if (mark.mark === undefined || mark.mark === null) {
-      throw new ApolloError(`Mark value is required for mark at index ${index}`, 'INVALID_INPUT');
     }
     if (typeof mark.mark !== 'number') {
       throw new ApolloError(`Mark value must be a number for mark at index ${index}`, 'INVALID_INPUT');

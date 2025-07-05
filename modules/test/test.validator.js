@@ -13,9 +13,9 @@ const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
  * @throws {ApolloError} If any validation fails
  */
 function ValidateCreateTestParameters(testInput) {
-  // *************** Check if input is provided
-  if (!testInput) {
-    throw new ApolloError('Test input is required', 'INVALID_INPUT');
+  // *************** Validate object and not empty
+  if (!testInput || typeof testInput !== 'object') {
+    throw new ApolloError('Test input must be an object', 'INVALID_INPUT');
   }
 
   // *************** Validate subject_id
@@ -25,8 +25,8 @@ function ValidateCreateTestParameters(testInput) {
   ValidateMongoId(testInput.subject_id);
 
   // *************** Validate name
-  if (typeof testInput.name !== 'string' || testInput.name === '') {
-    throw new ApolloError('Test name is required and must be a string', 'INVALID_INPUT');
+  if (typeof testInput.name !== 'string' || testInput.name.trim() === '') {
+    throw new ApolloError('Test name is required and must be a non-empty string', 'INVALID_INPUT');
   }
 
   // *************** Validate description if provided
@@ -71,9 +71,9 @@ function ValidateUpdateTestParameters({ id, testInput }) {
   // *************** Validate ID (required, must be valid MongoId)
   ValidateMongoId(id);
 
-  // *************** Check if input is provided
-  if (!testInput) {
-    throw new ApolloError('Test input is required', 'INVALID_INPUT');
+  // *************** Validate object and not empty
+  if (!testInput || typeof testInput !== 'object') {
+    throw new ApolloError('Test input must be an object', 'INVALID_INPUT');
   }
 
   // *************** Validate subject_id
@@ -83,8 +83,8 @@ function ValidateUpdateTestParameters({ id, testInput }) {
   ValidateMongoId(testInput.subject_id);
 
   // *************** Validate name
-  if (typeof testInput.name !== 'string' || testInput.name === '') {
-    throw new ApolloError('Test name is required and must be a string', 'INVALID_INPUT');
+  if (typeof testInput.name !== 'string' || testInput.name.trim() === '') {
+    throw new ApolloError('Test name is required and must be a non-empty string', 'INVALID_INPUT');
   }
 
   // *************** Validate description if provided

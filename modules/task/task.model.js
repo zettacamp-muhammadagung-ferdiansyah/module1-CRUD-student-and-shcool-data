@@ -5,6 +5,7 @@ const { Schema, Types } = mongoose;
 // Construct the schema definition for tasks
 const TaskSchema = new Schema(
   {
+
     // The ID of the test to which the task belongs
     test_id: {
       type: Types.ObjectId,
@@ -12,7 +13,14 @@ const TaskSchema = new Schema(
       required: true,
     },
 
-    // The ID of the user to which the task belongs
+    // The ID of the school to which the task belongs (for multi-student assignment)
+    school_id: {
+      type: Types.ObjectId,
+      ref: 'School',
+      required: true,
+    },
+
+    // The ID of the user to which the task belongs (corrector or student)
     user_id: {
       type: Types.ObjectId,
       ref: 'User',

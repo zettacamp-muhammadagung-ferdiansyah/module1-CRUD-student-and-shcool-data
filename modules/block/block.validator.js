@@ -24,8 +24,8 @@ function ValidateCreateBlockParameters(blockInput) {
   }
 
   // *************** Validate name (required, must be non-empty string)
-  if (typeof blockInput.name !== 'string' || blockInput.name === '') {
-    throw new ApolloError('Block name is required and must be a string', 'INVALID_INPUT');
+  if (typeof blockInput.name !== 'string' || blockInput.name.trim() === '') {
+    throw new ApolloError('Block name is required and must be a non-empty string', 'INVALID_INPUT');
   }
 
   // *************** Validate description if provided
@@ -71,8 +71,8 @@ function ValidateUpdateBlockParameters({ id, blockInput }) {
   }
 
   // *************** Validate name (required, must be non-empty string)
-  if (typeof blockInput.name !== 'string' || blockInput.name === '') {
-    throw new ApolloError('Block name is required and must be a string', 'INVALID_INPUT');
+  if (typeof blockInput.name !== 'string' || blockInput.name.trim() === '') {
+    throw new ApolloError('Block name is required and must be a non-empty string', 'INVALID_INPUT');
   }
 
   // *************** Validate description if provided

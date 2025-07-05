@@ -30,10 +30,9 @@ async function GetAllSubjects(_, { page, limit }) {
     // *************** Calculate skip value for pagination
     const skip = page * limit;
 
-    // *************** Execute queries in parallel
-    const [subjects] = await Promise.all([
-      SubjectModel.find({ status: 'active' }).skip(skip).limit(limit).lean(),
-    ]);
+
+    // *************** Execute queries sequentially
+    const subjects = await SubjectModel.find({ status: 'active' }).skip(skip).limit(limit).lean();
 
     // *************** Prepare paginated result
     const paginatedResult = {
@@ -265,6 +264,12 @@ async function DeleteSubject(_, { id, deleted_by }) {
         deleted_by,
       }
     );
+
+    // *************** Remove subject from related block's subject_ids array
+    if (subject.block_id) {
+      await BlockModel.findByIdAndUpdate(subject.block_id, { $pull: { subject_ids: subject._id } });
+    }
+
     return 'subject has been deleted';
   } catch (error) {
     // ************** Log error to database
@@ -305,7 +310,6 @@ async function GetTestsBySubject(parent, _, context) {
 
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.TestLoader) {
-      console.error('TestLoader is not available in the context');
       return [];
     }
 
@@ -343,7 +347,6 @@ async function CreatedByUser(parent, _, context) {
     if (!parent.created_by) return null;
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     // ************** Use the UserLoader to load the user by ID
@@ -378,7 +381,6 @@ async function UpdatedByUser(parent, _, context) {
     if (!parent.updated_by) return null;
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     // ************** Use the UserLoader to load the user by ID
@@ -413,7 +415,6 @@ async function DeletedByUser(parent, _, context) {
     if (!parent.deleted_by) return null;
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     // ************** Use the UserLoader to load the user by ID

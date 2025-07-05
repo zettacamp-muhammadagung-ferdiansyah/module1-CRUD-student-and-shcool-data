@@ -1,19 +1,19 @@
 // *************** IMPORT CORE ***************
 const Mongoose = require('mongoose');
-const { Schema, Types } = Mongoose;
+const { Schema } = Mongoose;
 
 const studentTestResultSchema = new Schema(
   {
     // Reference to the student this result belongs to
     student_id: {
-      type: Types.ObjectId,
+      type: Mongoose.Schema.Types.ObjectId,
       required: true,
       ref: 'Student',
     },
 
     // Reference to the test being evaluated
     test_id: {
-      type: Types.ObjectId,
+      type: Mongoose.Schema.Types.ObjectId,
       required: true,
       ref: 'Test',
     },

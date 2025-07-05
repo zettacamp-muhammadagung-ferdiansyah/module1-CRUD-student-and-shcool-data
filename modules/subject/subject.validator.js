@@ -14,9 +14,9 @@ const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
  * @throws {ApolloError} If any validation fails
  */
 function ValidateCreateSubjectParameters(subjectInput) {
-  // *************** Check if input is provided
-  if (!subjectInput) {
-    throw new ApolloError('Subject input is required', 'INVALID_INPUT');
+  // *************** Validate object and not empty
+  if (!subjectInput || typeof subjectInput !== 'object') {
+    throw new ApolloError('Subject input must be an object', 'INVALID_INPUT');
   }
 
   // *************** Validate block_id
@@ -26,8 +26,8 @@ function ValidateCreateSubjectParameters(subjectInput) {
   ValidateMongoId(subjectInput.block_id);
 
   // *************** Validate name
-  if (typeof subjectInput.name !== 'string' || subjectInput.name === '') {
-    throw new ApolloError('Subject name is required and must be a string', 'INVALID_INPUT');
+  if (typeof subjectInput.name !== 'string' || subjectInput.name.trim() === '') {
+    throw new ApolloError('Subject name is required and must be a non-empty string', 'INVALID_INPUT');
   }
 
   // *************** Validate description if provided
@@ -71,9 +71,9 @@ function ValidateUpdateSubjectParameters({ id, subjectInput }) {
   // *************** Validate ID (required, must be valid MongoId)
   ValidateMongoId(id);
 
-  // *************** Check if input is provided
-  if (!subjectInput) {
-    throw new ApolloError('Subject input is required', 'INVALID_INPUT');
+  // *************** Validate object and not empty
+  if (!subjectInput || typeof subjectInput !== 'object') {
+    throw new ApolloError('Subject input must be an object', 'INVALID_INPUT');
   }
 
   // *************** Validate block_id
@@ -83,8 +83,8 @@ function ValidateUpdateSubjectParameters({ id, subjectInput }) {
   ValidateMongoId(subjectInput.block_id);
 
   // *************** Validate name
-  if (typeof subjectInput.name !== 'string' || subjectInput.name === '') {
-    throw new ApolloError('Subject name is required and must be a string', 'INVALID_INPUT');
+  if (typeof subjectInput.name !== 'string' || subjectInput.name.trim() === '') {
+    throw new ApolloError('Subject name is required and must be a non-empty string', 'INVALID_INPUT');
   }
 
   // *************** Validate description if provided

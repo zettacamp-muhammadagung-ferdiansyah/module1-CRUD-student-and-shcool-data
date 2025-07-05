@@ -22,6 +22,8 @@ const TestTypeDefs = gql`
     _id: ID!
     subject_id: ID!
     subject: Subject
+    school_id: ID!
+    school: School
     name: String!
     description: String
     weight: Float!
@@ -38,6 +40,7 @@ const TestTypeDefs = gql`
 
   input CreateTestInput {
     subject_id: ID!
+    school_id: ID!
     name: String!
     description: String
     weight: Float!
@@ -47,6 +50,7 @@ const TestTypeDefs = gql`
 
   input UpdateTestInput {
     subject_id: ID!
+    school_id: ID!
     name: String!
     description: String
     weight: Float!

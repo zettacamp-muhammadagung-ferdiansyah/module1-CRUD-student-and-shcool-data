@@ -17,6 +17,7 @@ const TaskTypeDefs = gql`
   type Task {
     _id: ID!
     test_id: ID!
+    school_id: ID!
     user_id: ID!
     title: String!
     description: String!
@@ -33,11 +34,13 @@ const TaskTypeDefs = gql`
     updated_at: Date
     test: Test
     user: User
+    school: School
   }
 
 
 input CreateTaskInput {
   test_id: ID!
+  school_id: ID!
   user_id: ID!
   title: String!
   description: String!
@@ -48,6 +51,7 @@ input CreateTaskInput {
 
 input UpdateTaskInput {
   test_id: ID!
+  school_id: ID!
   user_id: ID!
   title: String!
   description: String!

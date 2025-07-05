@@ -317,6 +317,19 @@ async function AssignCorrector(_, { id, input }) {
       throw new ApolloError('AssignCorrector task not found or not active', 'RESOURCE_NOT_FOUND');
     }
 
+    // *************** Fetch test and school
+    const test = await TestModel.findById(assignTask.test_id).lean();
+    if (!test) throw new ApolloError('Test not found', 'RESOURCE_NOT_FOUND');
+    const subject = await SubjectModel.findById(test.subject_id).lean();
+    const corrector = await UserModel.findById(user_id).lean();
+    if (!corrector) throw new ApolloError('Corrector not found', 'RESOURCE_NOT_FOUND');
+
+    // *************** Fetch all students in the test's school
+    const students = await StudentModel.find({ school_id: test.school_id, status: 'active' }).lean();
+    if (!students || students.length === 0) {
+      throw new ApolloError('No students found for the school', 'NO_STUDENTS');
+    }
+
     // *************** Mark ASSIGN_CORRECTOR task as completed
     assignTask.task_status = 'COMPLETED';
     assignTask.updated_by = user_id;
@@ -324,26 +337,20 @@ async function AssignCorrector(_, { id, input }) {
     assignTask.completed_at = new Date();
     await assignTask.save();
 
-    // *************** Create ENTER_MARKS task
-    await TaskModel.create({
-      test_id: assignTask.test_id,
-      user_id,
-      title: 'Enter Marks',
-      description: 'Enter marks for assigned test',
+    // *************** Create ENTER_MARKS task for each student
+    const enterMarksTasks = students.map((student) => ({
+      test_id: test._id,
+      school_id: test.school_id,
+      user_id: student._id, // user_id is the student
+      title: `Enter Marks for ${student.first_name} ${student.last_name}`,
+      description: `Enter marks for student ${student.first_name} ${student.last_name} in test ${test.name}`,
       task_type: 'ENTER_MARKS',
       task_status: 'ACTIVE',
       due_date: due_date ? new Date(due_date) : undefined,
       created_by: user_id,
       updated_by: user_id,
-    });
-
-    // *************** Fetch test, subject, corrector, and students
-    const test = await TestModel.findById(assignTask.test_id).lean();
-    if (!test) throw new ApolloError('Test not found', 'RESOURCE_NOT_FOUND');
-    const subject = await SubjectModel.findById(test.subject_id).lean();
-    const corrector = await UserModel.findById(user_id).lean();
-    if (!corrector) throw new ApolloError('Corrector not found', 'RESOURCE_NOT_FOUND');
-    const students = await StudentModel.find({ test_id: test._id }).select('first_name last_name').lean();
+    }));
+    await TaskModel.insertMany(enterMarksTasks);
 
     // *************** Compose student names
     const studentNames = students.map((s) => `${s.first_name} ${s.last_name}`).join(', ');
@@ -401,7 +408,6 @@ async function GetTestByTask(parent, _, context) {
 
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.TestLoader) {
-      console.error('TestLoader is not available in the context');
       return null;
     }
 
@@ -452,7 +458,6 @@ async function GetUserByTask(parent, _, context) {
 
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
 
@@ -496,7 +501,6 @@ async function CreatedByUser(parent, _, context) {
     if (!parent.created_by) return null;
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     // ************** Use the UserLoader to load the user by ID
@@ -531,7 +535,6 @@ async function UpdatedByUser(parent, _, context) {
     if (!parent.updated_by) return null;
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     // ************** Use the UserLoader to load the user by ID
@@ -566,7 +569,6 @@ async function DeletedByUser(parent, _, context) {
     if (!parent.deleted_by) return null;
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     // ************** Use the UserLoader to load the user by ID

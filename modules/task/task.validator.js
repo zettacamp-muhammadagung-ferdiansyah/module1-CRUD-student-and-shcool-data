@@ -13,15 +13,20 @@ const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
  * @throws {ApolloError} If validation fails
  */
 function ValidateCreateTaskParameters(taskInput) {
-  // *************** Validate task input
-  if (!taskInput) {
-    throw new ApolloError('Task input is required', 'INVALID_INPUT');
+  // *************** Validate object and not empty
+  if (!taskInput || typeof taskInput !== 'object') {
+    throw new ApolloError('Task input must be an object', 'INVALID_INPUT');
   }
   // *************** Validate test_id
   if (!taskInput.test_id) {
     throw new ApolloError('Test ID is required', 'INVALID_INPUT');
   }
   ValidateMongoId(taskInput.test_id);
+  // *************** Validate school_id
+  if (!taskInput.school_id) {
+    throw new ApolloError('School ID is required', 'INVALID_INPUT');
+  }
+  ValidateMongoId(taskInput.school_id);
   // *************** Validate user_id
   if (!taskInput.user_id) {
     throw new ApolloError('User ID is required', 'INVALID_INPUT');
@@ -70,9 +75,9 @@ function ValidateCreateTaskParameters(taskInput) {
 function ValidateUpdateTaskParameters({ id, taskInput }) {
   // *************** Validate ID (required)
   ValidateMongoId(id);
-  // *************** Validate task input
-  if (!taskInput) {
-    throw new ApolloError('Task input is required', 'INVALID_INPUT');
+  // *************** Validate object and not empty
+  if (!taskInput || typeof taskInput !== 'object') {
+    throw new ApolloError('Task input must be an object', 'INVALID_INPUT');
   }
   // *************** Validate test_id
   if (!taskInput.test_id) {

@@ -94,12 +94,13 @@ async function GetTestById(_, { id }) {
 
 // *************** MUTATION ***************
 /**
- * Creates a new test
+* Creates a new test
  *
  * @async
  * @function CreateTest
  * @param {Object} args.test_input - Input containing test data
  * @param {string} args.test_input.subject_id - ID of the subject this test belongs to
+ * @param {string} args.test_input.school_id - ID of the school this test belongs to
  * @param {string} args.test_input.name - Name of the test
  * @param {string} [args.test_input.description] - Description of the test
  * @param {number} args.test_input.weight - Weight for score calculations
@@ -132,6 +133,7 @@ async function CreateTest(_, { test_input }) {
     // *************** Create sanitized test object with only allowed fields
     const testData = {
       subject_id: test_input.subject_id,
+      school_id: test_input.school_id, 
       name: test_input.name,
       description: test_input.description,
       weight: test_input.weight,
@@ -272,6 +274,12 @@ async function DeleteTest(_, { id, deleted_by }) {
         deleted_by,
       }
     );
+
+    // *************** Remove test from related subject's test_ids array
+    if (test.subject_id) {
+      await SubjectModel.findByIdAndUpdate(test.subject_id, { $pull: { test_ids: test._id } });
+    }
+
     return 'test has been deleted';
   } catch (error) {
     // ************** Log error to database
@@ -394,7 +402,6 @@ async function GetSubjectByTest(parent, _, context) {
     }
     // *************** Ensure SubjectLoader is available in context
     if (!context.loaders || !context.loaders.SubjectLoader) {
-      console.error('SubjectLoader is not available in the context');
       return null;
     }
     // *************** Load the subject using DataLoader for efficient batching and caching
@@ -430,7 +437,6 @@ async function CreatedByUser(parent, _, context) {
     if (!parent.created_by) return null;
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     // ************** Use the UserLoader to load the user by ID
@@ -465,7 +471,6 @@ async function UpdatedByUser(parent, _, context) {
     if (!parent.updated_by) return null;
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     // ************** Use the UserLoader to load the user by ID
@@ -500,7 +505,6 @@ async function DeletedByUser(parent, _, context) {
     if (!parent.deleted_by) return null;
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     // ************** Use the UserLoader to load the user by ID

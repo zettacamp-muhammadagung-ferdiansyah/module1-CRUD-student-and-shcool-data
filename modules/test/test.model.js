@@ -3,10 +3,18 @@ const Mongoose = require('mongoose');
 
 const testSchema = new Mongoose.Schema(
   {
+
     // Reference to the Subject this test belongs to
     subject_id: {
       type: Mongoose.Schema.Types.ObjectId,
       ref: 'Subject',
+      required: true,
+    },
+
+    // Reference to the School this test is assigned to
+    school_id: {
+      type: Mongoose.Schema.Types.ObjectId,
+      ref: 'School',
       required: true,
     },
 

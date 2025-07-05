@@ -180,47 +180,47 @@ async function UpdateStudentTestResult(_, { id, student_test_result_input }) {
       studentTestResultInput: student_test_result_input,
     });
 
-    // *************** Find student test result by ID and status
-    const existing = await StudentTestResultModel.findOne({
+    // *************** Find the current student test result document by ID and status
+    const currentStudentTestResult = await StudentTestResultModel.findOne({
       _id: id,
       student_test_result_status: 'ACTIVE',
     });
 
-    if (!existing) {
+    if (!currentStudentTestResult) {
       throw new ApolloError('Student test result not found', 'RESOURCE_NOT_FOUND');
     }
 
     // *************** Calculate average mark if marks are provided
-    let marks = existing.marks;
-    let average_mark = existing.average_mark;
-    if (student_test_result_input.marks && student_test_result_input.marks.length > 0) {
+    let marks = currentStudentTestResult.marks;
+    let average_mark = currentStudentTestResult.average_mark;
+    if (student_test_result_input.marks && student_test_result_input.marks.length) {
       marks = student_test_result_input.marks;
       const sum = marks.reduce((acc, mark) => acc + mark.mark, 0);
       average_mark = sum / marks.length;
     }
 
-    // *************** Build update payload (no spread, no in-memory mutation)
+    // *************** Build update payload 
     const updatePayload = {
-      student_id: student_test_result_input.student_id || existing.student_id,
-      test_id: student_test_result_input.test_id || existing.test_id,
+      student_id: student_test_result_input.student_id,
+      test_id: student_test_result_input.test_id,
       marks,
       average_mark,
       mark_entry_date: new Date(),
-      updated_by: student_test_result_input.updated_by || existing.updated_by,
+      updated_by: student_test_result_input.updated_by,
     };
 
-    // *************** Update and return updated student test result in one step
-    const updated = await StudentTestResultModel.findByIdAndUpdate(
+    // *************** Update and return the updated student test result document in one step
+    const updatedStudentTestResult = await StudentTestResultModel.findByIdAndUpdate(
       id,
       { $set: updatePayload },
       { new: true }
     ).lean();
 
-    if (!updated) {
+    if (!updatedStudentTestResult) {
       throw new ApolloError('Student test result not found after update', 'RESOURCE_NOT_FOUND');
     }
 
-    return updated;
+    return updatedStudentTestResult;
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({
@@ -295,9 +295,15 @@ async function EnterMarks(_, { input }) {
     StudentTestResultValidators.ValidateCreateStudentTestResultParameters(input);
 
     // *************** Find the ENTER_MARKS task and ensure it is ACTIVE
+    // We need to find the task for this test, school, and student (user_id = student_id)
+    const test = await TestModel.findById(input.test_id).lean();
+    if (!test) {
+      throw new ApolloError('Test not found', 'RESOURCE_NOT_FOUND');
+    }
     const enterMarksTask = await TaskModel.findOne({
       test_id: input.test_id,
-      user_id: input.created_by,
+      school_id: test.school_id,
+      user_id: input.student_id,
       task_type: 'ENTER_MARKS',
       task_status: 'ACTIVE',
     });
@@ -311,26 +317,29 @@ async function EnterMarks(_, { input }) {
       test_id: input.test_id,
       marks: input.marks,
       student_test_result_status: 'ACTIVE',
-      created_by: input.created_by || null,
+      created_by: input.created_by,
     };
-
     // *************** Calculate average mark
     const sum = input.marks.reduce((acc, mark) => acc + mark.mark, 0);
     createStudentTestResultPayload.average_mark = sum / input.marks.length;
     createStudentTestResultPayload.mark_entry_date = new Date();
-
     // *************** Create StudentTestResult
     const newStudentTestResult = await StudentTestResultModel.create(createStudentTestResultPayload);
 
     // *************** Mark ENTER_MARKS task as COMPLETED
-    enterMarksTask.task_status = 'COMPLETED';
-    enterMarksTask.updated_by = input.created_by;
-    enterMarksTask.completed_by = input.created_by;
-    enterMarksTask.completed_at = new Date();
-    await enterMarksTask.save();
+    await TaskModel.updateOne(
+      { _id: enterMarksTask._id },
+      {
+        $set: {
+          task_status: 'COMPLETED',
+          updated_by: input.created_by,
+          completed_by: input.created_by,
+          completed_at: new Date(),
+        },
+      }
+    );
 
     // *************** Prepare payload for VALIDATE_MARKS task (with required fields)
-    const test = await TestModel.findById(newStudentTestResult.test_id).lean();
     const validator = await UserModel.findOne({ role: 'ACADEMIC_DIRECTOR', status: 'active' }).lean();
     if (!validator) {
       throw new ApolloError('Academic director not found', 'NOT_FOUND');
@@ -338,7 +347,8 @@ async function EnterMarks(_, { input }) {
     const createValidateMarkPayload = {
       task_type: 'VALIDATE_MARKS',
       test_id: newStudentTestResult.test_id,
-      user_id: validator._id,
+      school_id: test.school_id,
+      user_id: newStudentTestResult.student_id, // Validation is per student
       due_date: input.due_date || null,
       task_status: 'ACTIVE',
       title: test ? test.name : 'Validate Marks',
@@ -352,7 +362,7 @@ async function EnterMarks(_, { input }) {
     }
 
     // *************** Return the created student test result
-    return newStudentTestResult.toObject();
+    return newStudentTestResult;
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({
@@ -385,31 +395,41 @@ async function ValidateMarks(_, { id }) {
       throw new ApolloError('Student test result not found or not active', 'RESOURCE_NOT_FOUND');
     }
 
-    // *************** Update student test result status to VALIDATED
-    studentTestResult.student_test_result_status = 'VALIDATED';
-    studentTestResult.updated_at = new Date();
-    await studentTestResult.save();
-
-    // *************** Check if all student test results for this test are validated
-    const unvalidatedCount = await StudentTestResultModel.countDocuments({
-      test_id: studentTestResult.test_id,
-      student_test_result_status: { $ne: 'VALIDATED' },
-    });
-
-    // *************** If all are validated, mark VALIDATE_MARKS task as COMPLETED
-    if (unvalidatedCount === 0) {
-      await TaskModel.findOneAndUpdate(
-        {
-          test_id: studentTestResult.test_id,
-          task_type: 'VALIDATE_MARKS',
-          task_status: 'ACTIVE',
+    // *************** Update student test result status to VALIDATED 
+    const validatedStudentTestResult = await StudentTestResultModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          student_test_result_status: 'VALIDATED',
+          updated_at: new Date(),
         },
-        { $set: { task_status: 'COMPLETED' } }
-      );
+      },
+      { new: true }
+    );
+
+    // *************** Mark the VALIDATE_MARKS task for this student as COMPLETED
+    const test = await TestModel.findById(validatedStudentTestResult.test_id).lean();
+    if (!test) {
+      throw new ApolloError('Test not found', 'RESOURCE_NOT_FOUND');
     }
+    await TaskModel.updateOne(
+      {
+        test_id: validatedStudentTestResult.test_id,
+        school_id: test.school_id,
+        user_id: validatedStudentTestResult.student_id,
+        task_type: 'VALIDATE_MARKS',
+        task_status: 'ACTIVE',
+      },
+      {
+        $set: {
+          task_status: 'COMPLETED',
+          updated_at: new Date(),
+        },
+      }
+    );
 
     // *************** Return the validated student test result
-    return studentTestResult;
+    return validatedStudentTestResult;
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({
@@ -448,7 +468,6 @@ async function GetStudentByStudentTestResult(parent, _, context) {
 
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.StudentLoader) {
-      console.error('StudentLoader is not available in the context');
       return null;
     }
 
@@ -457,7 +476,7 @@ async function GetStudentByStudentTestResult(parent, _, context) {
 
     // *************** Check if student exists
     if (!student) {
-      throw new ApolloError('Student not found', 'RELATED_RESOURCE_NOT_FOUND');
+      return null;
     }
 
     return student;
@@ -499,16 +518,15 @@ async function GetTestByStudentTestResult(parent, _, context) {
 
     // ************** Guard against missing loader
     if (!context.loaders || !context.loaders.TestLoader) {
-      console.error('TestLoader is not available in the context');
       return null;
     }
 
     // *************** Load test using DataLoader
     const test = await context.loaders.TestLoader.load(parent.test_id);
 
-    // *************** Check if test exists
+    // *************** Return null if test does not exist
     if (!test) {
-      throw new ApolloError('Test not found', 'RELATED_RESOURCE_NOT_FOUND');
+      return null;
     }
 
     return test;
@@ -539,7 +557,6 @@ async function CreatedByUser(parent, _, context) {
     if (!parent || !context) return null;
     if (!parent.created_by) return null;
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     return await context.loaders.UserLoader.load(parent.created_by);
@@ -568,7 +585,6 @@ async function UpdatedByUser(parent, _, context) {
     if (!parent || !context) return null;
     if (!parent.updated_by) return null;
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     return await context.loaders.UserLoader.load(parent.updated_by);
@@ -597,7 +613,6 @@ async function DeletedByUser(parent, _, context) {
     if (!parent || !context) return null;
     if (!parent.deleted_by) return null;
     if (!context.loaders || !context.loaders.UserLoader) {
-      console.error('UserLoader is not available in the context');
       return null;
     }
     return await context.loaders.UserLoader.load(parent.deleted_by);
