@@ -19,7 +19,7 @@ function TestLoader() {
       // *************** Fetch tests with matching IDs and accept multiple status values (case-insensitive)
       const tests = await TestModel.find({
         _id: { $in: testIds },
-        test_status: { $in: ['active'] },
+        test_status: { $in: ['active', 'published'] },
       }).lean();
 
       // *************** Map results to maintain original order
