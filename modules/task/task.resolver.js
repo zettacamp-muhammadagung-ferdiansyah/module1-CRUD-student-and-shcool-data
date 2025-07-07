@@ -367,7 +367,8 @@ async function AssignCorrector(_, { id, input }) {
     const enterMarksTasks = students.map((student) => ({
       test_id: test._id,
       school_id: test.school_id,
-      user_id: student._id, 
+      student_id: student._id, 
+      user_id: user_id, 
       title: `Enter Marks for ${student.first_name} ${student.last_name}`,
       description: `Enter marks for student ${student.first_name} ${student.last_name} in test ${test.name}`,
       task_type: 'ENTER_MARKS',

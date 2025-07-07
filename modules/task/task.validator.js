@@ -32,6 +32,10 @@ function ValidateCreateTaskParameters(taskInput) {
     throw new ApolloError('User ID is required', 'INVALID_INPUT');
   }
   ValidateMongoId(taskInput.user_id);
+  // *************** Validate student_id if provided
+  if (taskInput.student_id) {
+    ValidateMongoId(taskInput.student_id);
+  }
   // *************** Validate title
   if (typeof taskInput.title !== 'string') {
     throw new ApolloError('Title must be a string', 'INVALID_INPUT');
@@ -89,6 +93,10 @@ function ValidateUpdateTaskParameters({ id, taskInput }) {
     throw new ApolloError('User ID is required', 'INVALID_INPUT');
   }
   ValidateMongoId(taskInput.user_id);
+  // *************** Validate student_id if provided
+  if (taskInput.student_id) {
+    ValidateMongoId(taskInput.student_id);
+  }
   // *************** Validate title
   if (!taskInput.title) {
     throw new ApolloError('Title is required', 'INVALID_INPUT');

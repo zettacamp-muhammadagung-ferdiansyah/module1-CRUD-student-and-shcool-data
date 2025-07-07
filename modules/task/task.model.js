@@ -27,6 +27,13 @@ const TaskSchema = new Schema(
       required: true,
     },
 
+    // The ID of the student related to the task (optional, for tasks like ENTER_MARKS and VALIDATE_MARKS
+    student_id: {
+      type: Types.ObjectId,
+      ref: 'Student',
+      required: false,
+    },
+
     // Title of the task
     title: {
       type: String,

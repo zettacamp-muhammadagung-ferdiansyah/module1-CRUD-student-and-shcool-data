@@ -303,7 +303,7 @@ async function EnterMarks(_, { input }) {
     const enterMarksTask = await TaskModel.findOne({
       test_id: input.test_id,
       school_id: test.school_id,
-      user_id: input.student_id,
+      student_id: input.student_id,
       task_type: 'ENTER_MARKS',
       task_status: 'active',
     });
@@ -346,9 +346,10 @@ async function EnterMarks(_, { input }) {
     }
     const createValidateMarkPayload = {
       task_type: 'VALIDATE_MARKS',
-      test_id: newStudentTestResult.test_id,
+      test_id: newStudentTestResult.test_id, 
       school_id: test.school_id,
-      user_id: newStudentTestResult.student_id, // Validation is per student
+      user_id: validator._id, 
+      student_id: newStudentTestResult.student_id, 
       due_date: input.due_date || null,
       task_status: 'active',
       title: test ? test.name : 'Validate Marks',
@@ -416,7 +417,8 @@ async function ValidateMarks(_, { id }) {
       {
         test_id: validatedStudentTestResult.test_id,
         school_id: test.school_id,
-        user_id: validatedStudentTestResult.student_id,
+        user_id: validatedStudentTestResult.user_id,
+        student_id: validatedStudentTestResult.student_id, 
         task_type: 'VALIDATE_MARKS',
         task_status: 'active',
       },

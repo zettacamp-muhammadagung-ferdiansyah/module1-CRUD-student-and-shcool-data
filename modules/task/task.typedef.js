@@ -18,6 +18,7 @@ const TaskTypeDefs = gql`
     _id: ID!
     test_id: Test
     user_id: User
+    student_id: Student
     school_id: School
     title: String!
     description: String!
