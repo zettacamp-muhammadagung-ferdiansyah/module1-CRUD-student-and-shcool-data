@@ -112,6 +112,7 @@ async function GetTaskById(_, { id }) {
  * @param {Object} args.task_input - Input containing task data
  * @param {string} args.task_input.test_id - ID of the test this task belongs to
  * @param {string} args.task_input.user_id - ID of the user this task belongs to
+ * @param {string} args.task_input.school_id - ID of the school this task belongs to
  * @param {string} args.task_input.title - Title of the task
  * @param {string} args.task_input.description - Description of the task
  * @param {string} args.task_input.task_type - Type of the task
@@ -172,6 +173,7 @@ async function CreateTask(_, { task_input }) {
  * @param {Object} args.task_input - Input containing updated task data
  * @param {string} [args.task_input.test_id] - Updated test ID
  * @param {string} [args.task_input.user_id] - Updated user ID
+ * @param {string} [args.task_input.school_id] - Updated school ID
  * @param {string} [args.task_input.title] - Updated title
  * @param {string} [args.task_input.description] - Updated description
  * @param {string} [args.task_input.task_type] - Updated task type
@@ -199,6 +201,7 @@ async function UpdateTask(_, { id, task_input }) {
 
     // *************** Update required fields
     existingTask.test_id = task_input.test_id;
+    existingTask.school_id = task_input.school_id;
     existingTask.user_id = task_input.user_id;
     existingTask.title = task_input.title;
     existingTask.description = task_input.description;
@@ -211,6 +214,8 @@ async function UpdateTask(_, { id, task_input }) {
         existingTask.completed_by = task_input.updated_by;
         existingTask.completed_at = new Date();
       }
+      
+      // *************** Update status after checking the change
       existingTask.task_status = task_input.task_status;
     }
 
@@ -228,6 +233,7 @@ async function UpdateTask(_, { id, task_input }) {
       { _id: id },
       { $set: {
         test_id: existingTask.test_id,
+        school_id: existingTask.school_id,
         user_id: existingTask.user_id,
         title: existingTask.title,
         description: existingTask.description,

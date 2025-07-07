@@ -171,6 +171,7 @@ async function CreateTest(_, { test_input }) {
  * @param {string} args.id - Test ID to update
  * @param {Object} args.test_input - Input containing updated test data
  * @param {string} args.test_input.subject_id - Updated subject ID
+ * @param {string} args.test_input.school_id - Updated school ID
  * @param {string} args.test_input.name - Updated name
  * @param {string} [args.test_input.description] - Updated description
  * @param {number} args.test_input.weight - Updated weight
@@ -210,6 +211,7 @@ async function UpdateTest(_, { id, test_input }) {
     // *************** Create sanitized update object with only allowed fields
     const updateData = {
       subject_id: test_input.subject_id,
+      school_id: test_input.school_id,
       name: test_input.name,
       description: test_input.description,
       weight: test_input.weight,
@@ -223,7 +225,7 @@ async function UpdateTest(_, { id, test_input }) {
 
     // *************** Handle subject_id change if it has changed
     if (test.subject_id && oldTest.subject_id && !test.subject_id.equals(oldTest.subject_id)) {
-      // *************** *************** Remove test from old subject's test_ids
+      // *************** Remove test from old subject's test_ids
       await SubjectModel.findByIdAndUpdate(oldTest.subject_id, { $pull: { test_ids: test._id } });
       // *************** Add test ID to new subject
       await SubjectModel.findByIdAndUpdate(test.subject_id, { $addToSet: { test_ids: test._id } });

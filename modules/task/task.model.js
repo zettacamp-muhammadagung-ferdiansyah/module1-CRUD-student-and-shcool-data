@@ -73,7 +73,7 @@ const TaskSchema = new Schema(
     // The user who created the task
     created_by: {
       type: Types.ObjectId,
-      ref: 'user',
+      ref: 'User',
       default: null,
     },
 
