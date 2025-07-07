@@ -37,7 +37,7 @@ async function GetAllTasks(_, { page, limit }) {
     const skip = page * limit;
 
     // *************** Execute queries sequentially
-    const tasks = await TaskModel.find({ task_status: 'active' }).skip(skip).limit(limit).lean();
+    const tasks = await TaskModel.find({ task_status: 'active'}).skip(skip).limit(limit).lean();
 
     // *************** Prepare paginated result
     const paginatedResult = {
@@ -130,6 +130,7 @@ async function CreateTask(_, { task_input }) {
     const taskData = {
       test_id: task_input.test_id,
       user_id: task_input.user_id,
+      school_id: task_input.school_id,
       title: task_input.title,
       description: task_input.description,
       task_type: task_input.task_type,
@@ -271,8 +272,8 @@ async function DeleteTask(_, { id, deleted_by }) {
     // *************** Validate MongoDB ID
     ValidateMongoId(id);
 
-    // *************** Find the task by id and ensure it is active
-    const task = await TaskModel.findOne({ _id: id, task_status: 'active' }).lean();
+    // *************** Find the task by id and ensure it is active or completed
+    const task = await TaskModel.findOne({ _id: id, task_status: { $in: ['active', 'completed'] } }).lean();
     if (!task) {
       throw new ApolloError('Task not found or already deleted', 'RESOURCE_NOT_FOUND');
     }
