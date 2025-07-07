@@ -381,6 +381,46 @@ async function PublishTest(_, { id, input }) {
 }
 
 // *************** LOADER ***************
+
+/**
+ * Retrieves the school associated with a specific test using DataLoader.
+ *
+ * @async
+ * @function GetSchoolByTest
+ * @param {Object} parent - The parent resolver object containing the test data
+ * @param {Object} context - The context object containing loaders
+ * @throws {ApolloError} Throws ApolloError with the original error message if loading fails
+ * @returns {Promise<Object|null>} A promise that resolves to the school document or null if not found
+ */
+async function GetSchoolByTest(parent, _, context) {
+  try {
+    // ************** Guard against null parent or context
+    if (!parent || !context) {
+      return null;
+    }
+    // ************** Return null if no school_id is associated with the test
+    if (!parent.school_id) {
+      return null;
+    }
+    // *************** Ensure SchoolLoader is available in context
+    if (!context.loaders || !context.loaders.SchoolLoader) {
+      return null;
+    }
+    // *************** Load the school using DataLoader for efficient batching and caching
+    const school = await context.loaders.SchoolLoader.load(parent.school_id);
+    return school;
+  } catch (error) {
+    // ************** Log error to database
+    await ErrorLogModel.create({
+      path: 'modules/test/test.resolver.js',
+      parameter_input: JSON.stringify({ id: parent._id }),
+      function_name: 'GetSchoolByTest',
+      error: String(error.stack),
+    });
+    // ************** Throw error message
+    throw new ApolloError(error.message);
+  }
+}
 /**
  * Retrieves the subject associated with a specific test using DataLoader.
  *
@@ -535,8 +575,9 @@ module.exports = {
     DeleteTest,
     PublishTest,
   },
-  Test: {
-    subject: GetSubjectByTest,
+  Test: {  
+    school_id: GetSchoolByTest, 
+    subject_id: GetSubjectByTest, 
     created_by: CreatedByUser,
     updated_by: UpdatedByUser,
     deleted_by: DeletedByUser,

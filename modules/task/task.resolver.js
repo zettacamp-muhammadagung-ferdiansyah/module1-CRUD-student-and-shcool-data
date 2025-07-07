@@ -356,7 +356,6 @@ async function AssignCorrector(_, { id, input }) {
       }}
     );
    
-
     // *************** Create ENTER_MARKS task for each student
     const enterMarksTasks = students.map((student) => ({
       test_id: test._id,

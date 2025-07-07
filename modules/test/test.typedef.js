@@ -20,10 +20,8 @@ const TestTypeDefs = gql`
 
   type Test {
     _id: ID!
-    subject_id: ID!
-    subject: Subject
-    school_id: ID!
-    school: School
+    subject_id: Subject
+    school_id: School
     name: String!
     description: String
     weight: Float!
