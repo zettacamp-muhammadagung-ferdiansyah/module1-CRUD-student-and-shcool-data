@@ -3,9 +3,9 @@ const { gql } = require('apollo-server');
 
 const StudentTestResultTypeDefs = gql`
   enum StudentTestResultStatus {
-    ACTIVE
-    VALIDATED
-    DELETED
+    active
+    validated
+    deleted
   }
 
   type Mark {
@@ -20,8 +20,8 @@ const StudentTestResultTypeDefs = gql`
 
   type StudentTestResult {
     _id: ID!
-    student_id: ID!
-    test_id: ID!
+    student_id: Student
+    test_id: Test
     marks: [Mark!]!
     average_mark: Float!
     mark_entry_date: Date!
@@ -32,8 +32,6 @@ const StudentTestResultTypeDefs = gql`
     deleted_at: Date
     createdAt: Date
     updatedAt: Date
-    student: Student
-    test: Test
   }
 
 

@@ -9,22 +9,23 @@ const TaskTypeDefs = gql`
   }
 
   enum TaskStatus {
-    ACTIVE
-    IN_PROGRESS
-    COMPLETED
+    active
+    in_progress
+    completed
+    deleted
   }
 
   type Task {
     _id: ID!
-    test_id: ID!
-    school_id: ID!
-    user_id: ID!
+    test_id: Test
+    user_id: User
+    school_id: School
     title: String!
     description: String!
     task_type: TaskType!
     task_status: TaskStatus!
     due_date: Date
-    completed_by: String
+    completed_by: User
     completed_at: Date
     created_by: User!
     updated_by: User!
@@ -32,9 +33,6 @@ const TaskTypeDefs = gql`
     deleted_at: Date
     created_at: Date
     updated_at: Date
-    test: Test
-    user: User
-    school: School
   }
 
 

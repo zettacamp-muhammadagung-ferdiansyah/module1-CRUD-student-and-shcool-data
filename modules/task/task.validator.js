@@ -33,11 +33,11 @@ function ValidateCreateTaskParameters(taskInput) {
   }
   ValidateMongoId(taskInput.user_id);
   // *************** Validate title
-  if (!taskInput.title) {
-    throw new ApolloError('Title is required', 'INVALID_INPUT');
-  }
   if (typeof taskInput.title !== 'string') {
     throw new ApolloError('Title must be a string', 'INVALID_INPUT');
+  }
+  if (!taskInput.title.trim()) {
+    throw new ApolloError('Title is required', 'INVALID_INPUT');
   }
   // *************** Validate description
   if (!taskInput.description) {
@@ -111,7 +111,7 @@ function ValidateUpdateTaskParameters({ id, taskInput }) {
     throw new ApolloError('Invalid task type', 'INVALID_INPUT');
   }
   // *************** Validate task_status if provided
-  if (taskInput.task_status && !['ACTIVE', 'IN_PROGRESS', 'COMPLETED'].includes(taskInput.task_status)) {
+  if (taskInput.task_status && !['active', 'in_progress', 'completed', 'deleted'].includes(taskInput.task_status)) {
     throw new ApolloError('Invalid task status', 'INVALID_INPUT');
   }
   // *************** Validate due_date if provided

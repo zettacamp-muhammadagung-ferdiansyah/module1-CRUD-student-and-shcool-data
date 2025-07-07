@@ -22,6 +22,12 @@ function GetConfig() {
   // *************** Server Configuration
   const port = process.env.PORT || 4000;
 
+  // *************** SendGrid From Email
+  const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL;
+  if (!sendgridFromEmail) {
+    console.warn('SENDGRID_FROM_EMAIL environment variable is not defined. Using fallback if needed.');
+  }
+
   // *************** Return configuration object
   return {
     database: {
@@ -31,6 +37,7 @@ function GetConfig() {
       port,
     },
     SENDGRID_API_KEY: sendgridApiKey,
+    SENDGRID_FROM_EMAIL: sendgridFromEmail,
   };
 }
 

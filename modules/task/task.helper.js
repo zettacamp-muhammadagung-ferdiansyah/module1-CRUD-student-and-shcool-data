@@ -1,10 +1,11 @@
 // *************** IMPORT MODULE ***************
 const sgMail = require('@sendgrid/mail');
 const getConfig = require('../../core/config');
-const { SENDGRID_API_KEY } = getConfig();
+const { SENDGRID_API_KEY, SENDGRID_FROM_EMAIL } = getConfig();
 
-// *************** DEBUG: Log the loaded SendGrid API Key
+// *************** DEBUG: Log the loaded SendGrid API Key and From Email
 console.log('SENDGRID_API_KEY loaded:', SENDGRID_API_KEY);
+console.log('SENDGRID_FROM_EMAIL loaded:', SENDGRID_FROM_EMAIL);
 // *************** INIT SENDGRID
 sgMail.setApiKey(SENDGRID_API_KEY);
 
@@ -18,9 +19,10 @@ sgMail.setApiKey(SENDGRID_API_KEY);
  * @param {string} [options.from] - Sender email (defaults to no-reply)
  * @returns {Promise<void>}
  */
-async function SendEmailViaSendGrid({ to, subject, html, from = 'afstory.121@gmail.com' }) {
+async function SendEmailViaSendGrid({ to, subject, html, from }) {
   try {
-    const msg = { to, from, subject, html };
+    const sender = from || SENDGRID_FROM_EMAIL || 'no-reply@example.com';
+    const msg = { to, from: sender, subject, html };
     const sendMail = await sgMail.send(msg);
     return sendMail;
   } catch (error) {

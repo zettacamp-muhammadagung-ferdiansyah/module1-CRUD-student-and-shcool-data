@@ -269,7 +269,7 @@ async function DeleteTest(_, { id, deleted_by }) {
     await TestModel.updateOne(
       { _id: id },
       {
-        test_status: 'DELETED',
+        test_status: 'deleted',
         deleted_at: new Date(),
         deleted_by,
       }
@@ -300,8 +300,8 @@ async function DeleteTest(_, { id, deleted_by }) {
  *
  * This function performs the following steps:
  * 1. Validates the test ID and user ID
- * 2. Updates the test status from "active" to "PUBLISHED" and sets `published_date`
- * 3. Creates a new task of type `ASSIGN_CORRECTOR` with `PROGRESS` status for the corrector
+ * 2. Updates the test status from "active" to "published" and sets `published_date`
+ * 3. Creates a new task of type `ASSIGN_CORRECTOR` with `progress` status for the corrector
  *
  * @async
  * @function PublishTest
@@ -332,7 +332,7 @@ async function PublishTest(_, { id, input }) {
       { _id: id, test_status: 'active' },
       {
         $set: {
-          test_status: 'PUBLISHED',
+          test_status: 'published',
           published_date: new Date(),
           updated_by: input.user_id,
           updated_at: new Date(),
@@ -347,9 +347,10 @@ async function PublishTest(_, { id, input }) {
     // *************** Prepare and create assign corrector task
     const assignCorrectorPayload = {
       test_id: id,
+      school_id: test.school_id,
       user_id: input.user_id,
       task_type: 'ASSIGN_CORRECTOR',
-      task_status: 'ACTIVE',
+      task_status: 'active',
       due_date: input.due_date ? new Date(input.due_date) : null,
       created_by: input.user_id,
       updated_by: input.user_id,

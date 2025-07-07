@@ -49,8 +49,8 @@ const TaskSchema = new Schema(
     // Status of the task
     task_status: {
       type: String,
-      enum: ['ACTIVE', 'IN_PROGRESS', 'COMPLETED', 'DELETED'],
-      default: 'ACTIVE',
+      enum: ['active', 'in_progress', 'completed', 'deleted'],
+      default: 'active',
     },
 
     // Due date for the task
@@ -58,9 +58,10 @@ const TaskSchema = new Schema(
       type: Date,
     },
 
-    // The ID of user that completed this task
+    // The user who completed this task
     completed_by: {
-      type: String,
+      type: Types.ObjectId,
+      ref: 'user',
       default: null,
     },
 
@@ -73,7 +74,7 @@ const TaskSchema = new Schema(
     created_by: {
       type: Types.ObjectId,
       ref: 'user',
-      required: true,
+      default: null,
     },
 
     // The user who last updated the task

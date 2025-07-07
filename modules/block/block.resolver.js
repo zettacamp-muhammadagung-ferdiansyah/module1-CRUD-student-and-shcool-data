@@ -386,7 +386,7 @@ module.exports = {
     DeleteBlock,
   },
   Block: {
-    subjects: GetSubjectsByBlock,
+    subject_ids: GetSubjectsByBlock,
     created_by: CreatedByUser,
     updated_by: UpdatedByUser,
     deleted_by: DeletedByUser,

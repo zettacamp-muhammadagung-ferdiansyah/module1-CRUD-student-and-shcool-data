@@ -11,8 +11,7 @@ const BlockTypeDefs = gql`
     _id: ID!
     name: String!
     description: String
-    subject_ids: [ID!]
-    subjects: [Subject]
+    subject_ids: [Subject]
     status: BlockStatus
     createdAt: Date
     created_by: User

@@ -48,9 +48,9 @@ const studentTestResultSchema = new Schema(
     // The current validation status of this result
     student_test_result_status: {
       type: String,
-      enum: ['ACTIVE', 'VALIDATED', 'DELETED'],
+      enum: ['active', 'validated', 'deleted'],
       required: true,
-      default: 'ACTIVE',
+      default: 'active',
     },
 
     // The user who created the student test result

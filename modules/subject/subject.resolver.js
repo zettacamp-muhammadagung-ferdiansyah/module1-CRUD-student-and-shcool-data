@@ -444,7 +444,7 @@ module.exports = {
     DeleteSubject,
   },
   Subject: {
-    tests: GetTestsBySubject,
+    test_id: GetTestsBySubject,
     created_by: CreatedByUser,
     updated_by: UpdatedByUser,
     deleted_by: DeletedByUser,

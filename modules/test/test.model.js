@@ -52,7 +52,7 @@ const testSchema = new Mongoose.Schema(
     // Current status of the test
     test_status: {
       type: String,
-      enum: ['active', 'PUBLISHED', 'DELETED'],
+      enum: ['active', 'published', 'deleted'],
       default: 'active',
     },
 

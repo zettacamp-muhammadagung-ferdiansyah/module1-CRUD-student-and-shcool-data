@@ -13,8 +13,7 @@ const SubjectTypeDefs = gql`
     name: String!
     description: String
     coefficient: Float!
-    test_ids: [ID!]
-    tests: [Test]
+    test_id: [Test]
     status: SubjectStatus!
     createdAt: Date!
     created_by: User

@@ -4,8 +4,8 @@ const { gql } = require('apollo-server');
 const TestTypeDefs = gql`
   enum TestStatus {
     active
-    PUBLISHED
-    DELETED
+    published
+    deleted
   }
 
   type Notation {

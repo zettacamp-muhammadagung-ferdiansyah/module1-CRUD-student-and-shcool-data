@@ -19,7 +19,7 @@ function StudentTestResultLoader() {
       // *************** Fetch active student test results with matching IDs
       const studentTestResults = await StudentTestResultModel.find({
         _id: { $in: studentTestResultIds },
-        student_test_result_status: 'ACTIVE',
+        student_test_result_status: 'active',
       }).lean();
 
       // *************** Map results to maintain original order
