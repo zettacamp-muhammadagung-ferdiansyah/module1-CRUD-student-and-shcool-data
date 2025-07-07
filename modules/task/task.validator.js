@@ -111,7 +111,7 @@ function ValidateUpdateTaskParameters({ id, taskInput }) {
     throw new ApolloError('Invalid task type', 'INVALID_INPUT');
   }
   // *************** Validate task_status if provided
-  if (taskInput.task_status && !['active', 'in_progress', 'completed', 'deleted'].includes(taskInput.task_status)) {
+  if (taskInput.task_status && !['active', 'completed', 'deleted'].includes(taskInput.task_status)) {
     throw new ApolloError('Invalid task status', 'INVALID_INPUT');
   }
   // *************** Validate due_date if provided

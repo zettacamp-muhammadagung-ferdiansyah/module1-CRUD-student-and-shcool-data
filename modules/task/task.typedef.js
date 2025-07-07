@@ -10,7 +10,6 @@ const TaskTypeDefs = gql`
 
   enum TaskStatus {
     active
-    in_progress
     completed
     deleted
   }
