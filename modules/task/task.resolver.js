@@ -216,7 +216,7 @@ async function UpdateTask(_, { id, task_input }) {
 
     // *************** Handle status change with completion logic (if task_status is provided)
     if (task_input.task_status) {
-      // If status is being changed to 'completed', set completion fields
+      // ***************  If status is being changed to 'completed', set completion fields
       if (task_input.task_status === 'completed' && existingTask.task_status !== 'completed') {
         updatePayload.completed_by = task_input.updated_by;
         updatePayload.completed_at = new Date();
