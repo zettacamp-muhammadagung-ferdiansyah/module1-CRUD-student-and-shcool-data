@@ -269,10 +269,10 @@ async function DeleteSubject(_, { id, deleted_by }) {
     // *************** Also soft delete all tests within the subject
     if (subject.test_ids && subject.test_ids.length) {
       await TestModel.updateMany(
-        { _id: { $in: subject.test_ids }, status: 'active' },
+        { _id: { $in: subject.test_ids }, test_status: 'active' },
         {
           $set: {
-            status: 'deleted',
+            test_status: 'deleted',
             deleted_at: new Date(),
             deleted_by,
           },
