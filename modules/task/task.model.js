@@ -31,7 +31,6 @@ const TaskSchema = new Schema(
     student_id: {
       type: Types.ObjectId,
       ref: 'Student',
-      required: false,
     },
 
     // Title of the task
