@@ -443,7 +443,7 @@ async function GetTestByTask(parent, _, context) {
 
     // *************** Check if test exists
     if (!test) {
-      throw new ApolloError('Test not found', 'RELATED_RESOURCE_NOT_FOUND');
+      return null;
     }
 
     return test;
