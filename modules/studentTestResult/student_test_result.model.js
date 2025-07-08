@@ -71,8 +71,6 @@ const studentTestResultSchema = new Schema(
       type: Mongoose.Schema.Types.ObjectId,
       ref: 'User',
     },
-
-    // The timestamp when this result was marked as deleted
   },
   {
     // Automatically include created_at and updated_at fields
