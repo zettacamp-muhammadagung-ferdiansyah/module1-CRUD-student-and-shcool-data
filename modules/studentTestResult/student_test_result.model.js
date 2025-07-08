@@ -56,20 +56,20 @@ const studentTestResultSchema = new Schema(
     // The user who created the student test result
     created_by: {
       type: Mongoose.Schema.Types.ObjectId,
-      ref: 'user',
+      ref: 'User',
       required: true,
     },
 
     // The user who last updated the student test result
     updated_by: {
       type: Mongoose.Schema.Types.ObjectId,
-      ref: 'user'
+      ref: 'User'
     },
 
     // The user who deleted the student test result (if applicable)
     deleted_by: {
       type: Mongoose.Schema.Types.ObjectId,
-      ref: 'user',
+      ref: 'User',
     },
 
     // The timestamp when this result was marked as deleted

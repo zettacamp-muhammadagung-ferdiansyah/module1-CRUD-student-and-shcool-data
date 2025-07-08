@@ -8,28 +8,28 @@ const TaskSchema = new Schema(
 
     // The ID of the test to which the task belongs
     test_id: {
-      type: Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'Test',
       required: true,
     },
 
     // The ID of the school to which the task belongs (for multi-student assignment)
     school_id: {
-      type: Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'School',
       required: true,
     },
 
     // The ID of the user to which the task belongs (corrector or student)
     user_id: {
-      type: Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
 
     // The ID of the student related to the task (optional, for tasks like ENTER_MARKS and VALIDATE_MARKS
     student_id: {
-      type: Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'Student',
     },
 
@@ -66,8 +66,8 @@ const TaskSchema = new Schema(
 
     // The user who completed this task
     completed_by: {
-      type: Types.ObjectId,
-      ref: 'user',
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       default: null,
     },
 
@@ -78,21 +78,21 @@ const TaskSchema = new Schema(
 
     // The user who created the task
     created_by: {
-      type: Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null,
     },
 
     // The user who last updated the task
     updated_by: {
-      type: Types.ObjectId,
-      ref: 'user'
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
     },
 
     // The user who deleted the task (if applicable)
     deleted_by: {
-      type: Types.ObjectId,
-      ref: 'user',
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       default: null,
     },
 

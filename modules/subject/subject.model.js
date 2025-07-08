@@ -28,20 +28,20 @@ const subjectSchema = new Mongoose.Schema(
     // The user who created the subject
     created_by: {
       type: Mongoose.Schema.Types.ObjectId,
-      ref: 'user',
+      ref: 'User',
       required: true,
     },
 
     // The user who last updated the subject
     updated_by: {
       type: Mongoose.Schema.Types.ObjectId,
-      ref: 'user'
+      ref: 'User'
     },
 
     // The user who deleted the subject (if applicable)
     deleted_by: {
       type: Mongoose.Schema.Types.ObjectId,
-      ref: 'user',
+      ref: 'User',
     },
     // Timestamp when the subject was deleted
     deleted_at: { type: Date, default: null },
