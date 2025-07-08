@@ -171,13 +171,12 @@ async function CreateTask(_, { task_input }) {
  * @function UpdateTask
  * @param {string} args.id - Task ID to update
  * @param {Object} args.task_input - Input containing updated task data
- * @param {string} [args.task_input.test_id] - Updated test ID
- * @param {string} [args.task_input.user_id] - Updated user ID
- * @param {string} [args.task_input.school_id] - Updated school ID
- * @param {string} [args.task_input.title] - Updated title
- * @param {string} [args.task_input.description] - Updated description
- * @param {string} [args.task_input.task_type] - Updated task type
- * @param {string} [args.task_input.status] - Updated status
+ * @param {string} args.task_input.test_id - Updated test ID
+ * @param {string} args.task_input.user_id - Updated user ID
+ * @param {string} args.task_input.school_id - Updated school ID
+ * @param {string} args.task_input.title - Updated title
+ * @param {string} args.task_input.description - Updated description
+ * @param {string} args.task_input.task_type - Updated task type
  * @param {Date} [args.task_input.due_date] - Updated due date
  * @param {string} args.task_input.updated_by - User ID of updater
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if task doesn't exist
@@ -199,55 +198,41 @@ async function UpdateTask(_, { id, task_input }) {
       throw new ApolloError('Task not found', 'RESOURCE_NOT_FOUND');
     }
 
-    // *************** Update required fields
-    existingTask.test_id = task_input.test_id;
-    existingTask.school_id = task_input.school_id;
-    existingTask.user_id = task_input.user_id;
-    existingTask.title = task_input.title;
-    existingTask.description = task_input.description;
-    existingTask.task_type = task_input.task_type;
+    // *************** Prepare update payload with all required fields
+    const updatePayload = {
+      test_id: task_input.test_id,
+      school_id: task_input.school_id,
+      user_id: task_input.user_id,
+      title: task_input.title,
+      description: task_input.description,
+      task_type: task_input.task_type,
+      updated_by: task_input.updated_by,
+    };
 
-    // *************** Update optional fields
-    if (task_input.task_status) {
-      // *************** If status is changed to completed, set completed information
-      if (task_input.task_status === 'completed' && existingTask.task_status !== 'completed') {
-        existingTask.completed_by = task_input.updated_by;
-        existingTask.completed_at = new Date();
-      }
-      
-      // *************** Update status after checking the change
-      existingTask.task_status = task_input.task_status;
-    }
-
+    // *************** Add optional fields if provided
     if (task_input.due_date) {
-      existingTask.due_date = task_input.due_date;
+      updatePayload.due_date = task_input.due_date;
     }
 
-    // *************** Update updated_by if provided
-    if (task_input.updated_by) {
-      existingTask.updated_by = task_input.updated_by;
+    // *************** Handle status change with completion logic (if task_status is provided)
+    if (task_input.task_status) {
+      // If status is being changed to 'completed', set completion fields
+      if (task_input.task_status === 'completed' && existingTask.task_status !== 'completed') {
+        updatePayload.completed_by = task_input.updated_by;
+        updatePayload.completed_at = new Date();
+      }
+      updatePayload.task_status = task_input.task_status;
     }
 
-    // *************** Save changes using updateOne 
-    await TaskModel.updateOne(
+    // *************** Update the task
+    const updatedTask = await TaskModel.findOneAndUpdate(
       { _id: id },
-      { $set: {
-        test_id: existingTask.test_id,
-        school_id: existingTask.school_id,
-        user_id: existingTask.user_id,
-        title: existingTask.title,
-        description: existingTask.description,
-        task_type: existingTask.task_type,
-        task_status: existingTask.task_status,
-        completed_by: existingTask.completed_by,
-        completed_at: existingTask.completed_at,
-        due_date: existingTask.due_date,
-        updated_by: existingTask.updated_by,
-      }}
+      { $set: updatePayload },
+      { new: true }
     );
 
     // *************** Return updated task
-    return existingTask;
+    return updatedTask;
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({

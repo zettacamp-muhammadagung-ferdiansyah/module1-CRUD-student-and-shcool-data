@@ -118,10 +118,6 @@ function ValidateUpdateTaskParameters({ id, taskInput }) {
   if (!['ASSIGN_CORRECTOR', 'ENTER_MARKS', 'VALIDATE_MARKS'].includes(taskInput.task_type)) {
     throw new ApolloError('Invalid task type', 'INVALID_INPUT');
   }
-  // *************** Validate task_status if provided
-  if (taskInput.task_status && !['active', 'completed', 'deleted'].includes(taskInput.task_status)) {
-    throw new ApolloError('Invalid task status', 'INVALID_INPUT');
-  }
   // *************** Validate due_date if provided
   if (taskInput.due_date && isNaN(new Date(taskInput.due_date).getTime())) {
     throw new ApolloError('Invalid due date format', 'INVALID_INPUT');

@@ -54,7 +54,6 @@ input UpdateTaskInput {
   title: String!
   description: String!
   task_type: TaskType!
-  task_status: TaskStatus
   due_date: Date
   updated_by: ID!
 }
