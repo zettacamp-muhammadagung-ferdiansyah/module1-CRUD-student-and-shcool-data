@@ -214,16 +214,6 @@ async function UpdateTask(_, { id, task_input }) {
       updatePayload.due_date = task_input.due_date;
     }
 
-    // *************** Handle status change with completion logic (if task_status is provided)
-    if (task_input.task_status) {
-      // ***************  If status is being changed to 'completed', set completion fields
-      if (task_input.task_status === 'completed' && existingTask.task_status !== 'completed') {
-        updatePayload.completed_by = task_input.updated_by;
-        updatePayload.completed_at = new Date();
-      }
-      updatePayload.task_status = task_input.task_status;
-    }
-
     // *************** Update the task
     const updatedTask = await TaskModel.findOneAndUpdate(
       { _id: id },
