@@ -4,6 +4,7 @@ const { ApolloError } = require('apollo-server');
 // *************** IMPORT MODULE ***************
 const BlockModel = require('./block.model');
 const ErrorLogModel = require('../errorLogs/error_logs.model');
+const SubjectModel = require('../subject/subject.model');
 
 // *************** IMPORT VALIDATOR ***************
 const BlockValidators = require('./block.validator');
@@ -215,7 +216,21 @@ async function DeleteBlock(_, { id, deleted_by }) {
         deleted_by,
       }
     );
-    return 'block has been deleted';
+
+    // *************** Also soft delete all subjects within the block
+    if (block.subject_ids && block.subject_ids.length) {
+      await SubjectModel.updateMany(
+        { _id: { $in: block.subject_ids }, status: 'active' },
+        {
+          $set: {
+            status: 'deleted',
+            deleted_at: new Date(),
+            deleted_by,
+          },
+        }
+      );
+    }
+    return 'block and its subjects have been deleted';
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({

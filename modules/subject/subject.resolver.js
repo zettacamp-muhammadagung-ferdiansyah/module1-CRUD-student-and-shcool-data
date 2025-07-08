@@ -4,6 +4,7 @@ const { ApolloError } = require('apollo-server');
 // *************** IMPORT MODULE ***************
 const SubjectModel = require('./subject.model');
 const BlockModel = require('../block/block.model');
+const TestModel = require('../test/test.model');
 const ErrorLogModel = require('../errorLogs/error_logs.model');
 
 // *************** IMPORT VALIDATOR ***************
@@ -265,12 +266,26 @@ async function DeleteSubject(_, { id, deleted_by }) {
       }
     );
 
+    // *************** Also soft delete all tests within the subject
+    if (subject.test_ids && subject.test_ids.length) {
+      await TestModel.updateMany(
+        { _id: { $in: subject.test_ids }, status: 'active' },
+        {
+          $set: {
+            status: 'deleted',
+            deleted_at: new Date(),
+            deleted_by,
+          },
+        }
+      );
+    }
+
     // *************** Remove subject from related block's subject_ids array
     if (subject.block_id) {
       await BlockModel.findByIdAndUpdate(subject.block_id, { $pull: { subject_ids: subject._id } });
     }
 
-    return 'subject has been deleted';
+    return 'subject and its tests have been deleted';
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
