@@ -556,19 +556,25 @@ async function GetTestByStudentTestResult(parent, _, context) {
  */
 async function CreatedByUser(parent, _, context) {
   try {
+    // *************** Guard against null parent or context
     if (!parent || !context) return null;
+    // *************** Return null if no created_by is associated
     if (!parent.created_by) return null;
+    // *************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
       return null;
     }
+    // *************** Load user using DataLoader
     return await context.loaders.UserLoader.load(parent.created_by);
   } catch (error) {
+    // *************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/studentTestResult/student_test_result.resolver.js',
       parameter_input: JSON.stringify({ parent_id: parent._id }),
       function_name: 'CreatedByUser',
       error: String(error.stack),
     });
+    // *************** Throw error with context
     throw new ApolloError(`Unable to load creator user: ${error.message}`, 'USER_FETCH_FAILED');
   }
 }
@@ -584,19 +590,25 @@ async function CreatedByUser(parent, _, context) {
  */
 async function UpdatedByUser(parent, _, context) {
   try {
+    // *************** Guard against null parent or context
     if (!parent || !context) return null;
+    // *************** Return null if no updated_by is associated
     if (!parent.updated_by) return null;
+    // *************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
       return null;
     }
+    // *************** Load user using DataLoader
     return await context.loaders.UserLoader.load(parent.updated_by);
   } catch (error) {
+    // *************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/studentTestResult/student_test_result.resolver.js',
       parameter_input: JSON.stringify({ parent_id: parent._id }),
       function_name: 'UpdatedByUser',
       error: String(error.stack),
     });
+    // *************** Throw error with context
     throw new ApolloError(`Unable to load updater user: ${error.message}`, 'USER_FETCH_FAILED');
   }
 }
@@ -612,19 +624,25 @@ async function UpdatedByUser(parent, _, context) {
  */
 async function DeletedByUser(parent, _, context) {
   try {
+    // *************** Guard against null parent or context
     if (!parent || !context) return null;
+    // *************** Return null if no deleted_by is associated
     if (!parent.deleted_by) return null;
+    // *************** Guard against missing loader
     if (!context.loaders || !context.loaders.UserLoader) {
       return null;
     }
+    // *************** Load user using DataLoader
     return await context.loaders.UserLoader.load(parent.deleted_by);
   } catch (error) {
+    // *************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/studentTestResult/student_test_result.resolver.js',
       parameter_input: JSON.stringify({ parent_id: parent._id }),
       function_name: 'DeletedByUser',
       error: String(error.stack),
     });
+    // *************** Throw error with context
     throw new ApolloError(`Unable to load deleter user: ${error.message}`, 'USER_FETCH_FAILED');
   }
 }
