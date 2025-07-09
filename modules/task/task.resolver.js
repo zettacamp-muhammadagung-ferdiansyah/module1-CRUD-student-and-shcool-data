@@ -323,15 +323,15 @@ async function AssignCorrector(_, { id, input }) {
         ]
       })
       .lean();
-      
-    console.log(assignTask && assignTask.test_id);
+
+    // *************** Check if assignTask exists and is active
     if (!assignTask) {
       throw new ApolloError(
         "AssignCorrector task not found or not active",
         "RESOURCE_NOT_FOUND"
       );
     }
-
+    // *************** Check if test_id and school_id are present
     const test = assignTask.test_id;
     if (!test) throw new ApolloError("Test not found", "RESOURCE_NOT_FOUND");
     
@@ -340,6 +340,7 @@ async function AssignCorrector(_, { id, input }) {
     
     if (!school) throw new ApolloError("School not found", "RESOURCE_NOT_FOUND");
     
+    // *************** Check if school has students
     const students = Array.isArray(school.students) ? school.students : [];
     if (!students.length) {
       throw new ApolloError("No students found for the school", "NO_STUDENTS");
