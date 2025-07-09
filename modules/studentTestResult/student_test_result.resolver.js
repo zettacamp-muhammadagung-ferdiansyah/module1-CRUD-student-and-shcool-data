@@ -394,22 +394,7 @@ async function ValidateMarks(_, { id }) {
     // *************** Validate ID
     ValidateMongoId(id);
 
-    // *************** First, find the student test result with populated test to get test details
-    const studentTestResult = await StudentTestResultModel.findOne({
-      _id: id,
-      student_test_result_status: 'active'
-    }).populate({ path: 'test_id', select: 'school_id name description' }).lean();
-
-    if (!studentTestResult) {
-      throw new ApolloError('Student test result not found or not active', 'RESOURCE_NOT_FOUND');
-    }
-
-    const test = studentTestResult.test_id;
-    if (!test) {
-      throw new ApolloError('Test not found', 'RESOURCE_NOT_FOUND');
-    }
-
-    // *************** Update student test result without populate (so test_id remains as ObjectId)
+    // *************** Update student test result and get populated test data in one operation
     const validatedStudentTestResult = await StudentTestResultModel.findOneAndUpdate(
       { _id: id, student_test_result_status: 'active' },
       {
@@ -418,11 +403,16 @@ async function ValidateMarks(_, { id }) {
           updated_at: new Date(),
         },
       },
-      { new: true }
-    ).lean();
+      { new: true } 
+    ).populate({ path: 'test_id', select: 'school_id' }).lean();
 
     if (!validatedStudentTestResult) {
       throw new ApolloError('Student test result not found or not active', 'RESOURCE_NOT_FOUND');
+    }
+
+    const test = validatedStudentTestResult.test_id;
+    if (!test) {
+      throw new ApolloError('Test not found', 'RESOURCE_NOT_FOUND');
     }
 
     // *************** Mark the VALIDATE_MARKS task for this student as COMPLETED
@@ -443,8 +433,9 @@ async function ValidateMarks(_, { id }) {
       }
     );
 
-    // *************** Return the validated student test result (with test_id as ObjectId)
-    return validatedStudentTestResult;
+    // *************** Return null confirming validation
+    return null
+
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({
