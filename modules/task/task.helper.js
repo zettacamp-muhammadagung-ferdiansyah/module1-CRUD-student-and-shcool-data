@@ -1,11 +1,9 @@
 // *************** IMPORT MODULE ***************
-const sgMail = require('@sendgrid/mail');
-const getConfig = require('../../core/config');
+const sgMail = require("@sendgrid/mail");
+const getConfig = require("../../core/config");
+const { ApolloError } = require("apollo-server");
 const { SENDGRID_API_KEY, SENDGRID_FROM_EMAIL } = getConfig();
 
-// *************** DEBUG: Log the loaded SendGrid API Key and From Email
-console.log('SENDGRID_API_KEY loaded:', SENDGRID_API_KEY);
-console.log('SENDGRID_FROM_EMAIL loaded:', SENDGRID_FROM_EMAIL);
 // *************** INIT SENDGRID
 sgMail.setApiKey(SENDGRID_API_KEY);
 
@@ -21,13 +19,25 @@ sgMail.setApiKey(SENDGRID_API_KEY);
  */
 async function SendEmailViaSendGrid({ to, subject, html, from }) {
   try {
-    const sender = from || SENDGRID_FROM_EMAIL || 'no-reply@example.com';
+    const sender = from || SENDGRID_FROM_EMAIL || "no-reply@example.com";
     const msg = { to, from: sender, subject, html };
     const sendMail = await sgMail.send(msg);
     return sendMail;
   } catch (error) {
-    console.error('SendGrid Error:', error.response && error.response.body ? error.response.body : error.message);
-    throw new Error('Failed to send email notification');
+    // *************** Log error to database
+    const ErrorLogModel = require("../errorLogs/error_logs.model");
+    await ErrorLogModel.create({
+      path: "modules/task/task.helper.js",
+      parameter_input: JSON.stringify({ to, subject, from }),
+      function_name: "SendEmailViaSendGrid",
+      error:
+        error.response && error.response.body
+          ? JSON.stringify(error.response.body)
+          : String(error.stack || error.message),
+    });
+
+    // *************** Throw error with context
+    throw new ApolloError(error.message);
   }
 }
 

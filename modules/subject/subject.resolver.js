@@ -178,15 +178,6 @@ async function UpdateSubject(_, { id, subject_input }) {
     // *************** Validate input parameters
     SubjectValidators.ValidateUpdateSubjectParameters({ id, subjectInput: subject_input });
 
-    // *************** Verify block exists and is active
-    const block = await BlockModel.findOne({
-      _id: subject_input.block_id,
-      status: 'active',
-    }).lean();
-    if (!block) {
-      throw new ApolloError('Block not found or deleted', 'RESOURCE_NOT_FOUND');
-    }
-
     // *************** Create sanitized update object with only allowed fields
     const updateData = {
       block_id: subject_input.block_id,
@@ -198,25 +189,18 @@ async function UpdateSubject(_, { id, subject_input }) {
       updatedAt: new Date(),
     };
 
-    // *************** Find the old subject
-    const oldSubject = await SubjectModel.findById(id).lean();
-    if (!oldSubject) {
+    // *************** Update Subject
+    const subject = await SubjectModel.findByIdAndUpdate(id, updateData, { new: true }).lean();
+    if (!subject) {
       throw new ApolloError('Subject not found', 'RESOURCE_NOT_FOUND');
     }
 
-    // *************** Update Subject
-    const subject = await SubjectModel.findByIdAndUpdate(id, updateData, { new: true }).lean();
-
-    // *************** Update block's subject_ids if block_id has changed
-    if (subject.block_id && oldSubject.block_id && !subject.block_id.equals(oldSubject.block_id)) {
-      // ***************  Remove subject from old block
-      await BlockModel.findByIdAndUpdate(oldSubject.block_id, { $pull: { subject_ids: subject._id } });
-
-      // *************** Add subject to new block
-      await BlockModel.findByIdAndUpdate(subject.block_id, { $addToSet: { subject_ids: subject._id } });
-    } else if (subject.block_id && (!oldSubject.block_id || oldSubject.block_id === null)) {
-      // *************** If subject didn't have a block_id before but now has one
-      await BlockModel.findByIdAndUpdate(subject.block_id, { $addToSet: { subject_ids: subject._id } });
+    // *************** Ensure subject is in the block's subject_ids array
+    if (subject.block_id) {
+      await BlockModel.updateOne(
+        { _id: subject.block_id },
+        { $addToSet: { subject_ids: subject._id } }
+      );
     }
 
     return subject;
@@ -282,7 +266,10 @@ async function DeleteSubject(_, { id, deleted_by }) {
 
     // *************** Remove subject from related block's subject_ids array
     if (subject.block_id) {
-      await BlockModel.findByIdAndUpdate(subject.block_id, { $pull: { subject_ids: subject._id } });
+      await BlockModel.updateOne(
+        { _id: subject.block_id },
+        { $pull: { subject_ids: subject._id } }
+      );
     }
 
     return 'subject and its tests have been deleted';

@@ -1,15 +1,16 @@
 // *************** IMPORT LIBRARY ***************
-const { ApolloError } = require('apollo-server');
+const { ApolloError } = require("apollo-server");
 
 // *************** IMPORT MODULE ***************
-const BlockModel = require('./block.model');
-const ErrorLogModel = require('../errorLogs/error_logs.model');
-const SubjectModel = require('../subject/subject.model');
+const BlockModel = require("./block.model");
+const ErrorLogModel = require("../errorLogs/error_logs.model");
+const SubjectModel = require("../subject/subject.model");
+const TestModel = require("../test/test.model");
 
 // *************** IMPORT VALIDATOR ***************
-const BlockValidators = require('./block.validator');
-const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
-const { ValidatePaginationParameters } = require('../../utils/validator/pagination.validator');
+const BlockValidators = require("./block.validator");
+const { ValidateMongoId } = require("../../utils/validator/mongo.validator");
+const { ValidatePaginationParameters,} = require("../../utils/validator/pagination.validator");
 
 // *************** QUERY ***************
 /**
@@ -31,7 +32,10 @@ async function GetAllBlocks(_, { page, limit }) {
     const skip = page * limit;
 
     // *************** Execute queries sequentially
-    const blocks = await BlockModel.find({ status: 'active' }).skip(skip).limit(limit).lean();
+    const blocks = await BlockModel.find({ status: "active" })
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
     // *************** Prepare paginated result
     const paginatedResult = {
@@ -45,9 +49,9 @@ async function GetAllBlocks(_, { page, limit }) {
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/block/block.resolver.js',
+      path: "modules/block/block.resolver.js",
       parameter_input: JSON.stringify({ page, limit }),
-      function_name: 'GetAllBlocks',
+      function_name: "GetAllBlocks",
       error: String(error.stack),
     });
 
@@ -71,18 +75,21 @@ async function GetBlockById(_, { id }) {
     ValidateMongoId(id);
 
     // *************** Find active block by ID
-    const block = await BlockModel.findOne({ _id: id, status: 'active' }).lean();
+    const block = await BlockModel.findOne({
+      _id: id,
+      status: "active",
+    }).lean();
     if (!block) {
-      throw new ApolloError('Block not found', 'RESOURCE_NOT_FOUND');
+      throw new ApolloError("Block not found", "RESOURCE_NOT_FOUND");
     }
 
     return block;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/block/block.resolver.js',
+      path: "modules/block/block.resolver.js",
       parameter_input: JSON.stringify({ id }),
-      function_name: 'GetBlockById',
+      function_name: "GetBlockById",
       error: String(error.stack),
     });
 
@@ -107,7 +114,7 @@ async function GetBlockById(_, { id }) {
  */
 async function CreateBlock(_, { block_input }) {
   try {
-    // *************** Validate Input 
+    // *************** Validate Input
     BlockValidators.ValidateCreateBlockParameters(block_input);
 
     // *************** Create sanitized block object with only allowed fields
@@ -115,7 +122,7 @@ async function CreateBlock(_, { block_input }) {
       name: block_input.name,
       description: block_input.description,
       subject_ids: block_input.subject_ids || [],
-      status: 'active',
+      status: "active",
       created_by: block_input.created_by,
     };
 
@@ -125,9 +132,9 @@ async function CreateBlock(_, { block_input }) {
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/block/block.resolver.js',
+      path: "modules/block/block.resolver.js",
       parameter_input: JSON.stringify(block_input),
-      function_name: 'CreateBlock',
+      function_name: "CreateBlock",
       error: String(error.stack),
     });
 
@@ -151,9 +158,11 @@ async function CreateBlock(_, { block_input }) {
  */
 async function UpdateBlock(_, { id, block_input }) {
   try {
-
-    // *************** Validate Input 
-    BlockValidators.ValidateUpdateBlockParameters({ id, blockInput: block_input });
+    // *************** Validate Input
+    BlockValidators.ValidateUpdateBlockParameters({
+      id,
+      blockInput: block_input,
+    });
 
     // *************** Create sanitized update object with only allowed fields
     const updateData = {
@@ -165,18 +174,20 @@ async function UpdateBlock(_, { id, block_input }) {
     };
 
     // *************** Update Block
-    const block = await BlockModel.findByIdAndUpdate(id, updateData, { new: true }).lean();
+    const block = await BlockModel.findByIdAndUpdate(id, updateData, {
+      new: true,
+    }).lean();
     if (!block) {
-      throw new ApolloError('Block not found', 'RESOURCE_NOT_FOUND');
+      throw new ApolloError("Block not found", "RESOURCE_NOT_FOUND");
     }
 
     return block;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/block/block.resolver.js',
+      path: "modules/block/block.resolver.js",
       parameter_input: JSON.stringify({ id, block_input }),
-      function_name: 'UpdateBlock',
+      function_name: "UpdateBlock",
       error: String(error.stack),
     });
 
@@ -194,53 +205,87 @@ async function UpdateBlock(_, { id, block_input }) {
  * @param {string} args.deleted_by - User ID performing the deletion
  * @throws {ApolloError} Throws 'RESOURCE_NOT_FOUND' if block doesn't exist
  * @throws {ApolloError} Throws 'ALREADY_DELETED' if block is already deleted
- * @returns {Promise<Object>} The deleted block object
+ * @returns {Promise<string>} Success message
  */
 async function DeleteBlock(_, { id, deleted_by }) {
   try {
     // *************** Validate MongoDB ID
     ValidateMongoId(id);
 
-    // *************** Find the block by id and ensure it is active
-    const block = await BlockModel.findOne({ _id: id, status: 'active' }).lean();
+    // *************** First, get the block with populated subjects/tests
+    const block = await BlockModel.findOne({ _id: id, status: "active" })
+      .populate({
+        path: "subject_ids",
+        select: "test_ids",
+      })
+      .lean();
+
     if (!block) {
-      throw new ApolloError('Block not found or already deleted', 'RESOURCE_NOT_FOUND');
+      throw new ApolloError("Block not found or already deleted", "RESOURCE_NOT_FOUND");
     }
+
+    // *************** Extract subject IDs
+    const subjectIds = block.subject_ids.map(subject => subject._id);
+    
+    // *************** Get all test IDs 
+    let allTestIds = [];
+    block.subject_ids.forEach(subject => {
+      const testIds = subject.test_ids || [];
+      allTestIds = allTestIds.concat(testIds);
+    });
 
     // *************** Soft delete the block
     await BlockModel.updateOne(
       { _id: id },
       {
-        status: 'deleted',
-        deleted_at: new Date(),
-        deleted_by,
+        $set: {
+          status: "deleted",
+          deleted_at: new Date(),
+          deleted_by,
+        },
       }
     );
 
-    // *************** Also soft delete all subjects within the block
-    if (block.subject_ids && block.subject_ids.length) {
+    // *************** Soft delete all subjects (if any)
+    if (subjectIds.length) {
       await SubjectModel.updateMany(
-        { _id: { $in: block.subject_ids }, status: 'active' },
+        { _id: { $in: subjectIds } },
         {
           $set: {
-            status: 'deleted',
+            status: "deleted",
             deleted_at: new Date(),
             deleted_by,
           },
         }
       );
     }
-    return 'block and its subjects have been deleted';
+
+    // *************** Soft delete all tests (if any)
+    if (allTestIds.length) {
+      await TestModel.updateMany(
+        { _id: { $in: allTestIds } },
+        {
+          $set: {
+            test_status: "deleted",
+            deleted_at: new Date(),
+            deleted_by,
+          },
+        }
+      );
+    }
+
+    return `Block and its ${subjectIds.length} subjects and ${allTestIds.length} tests have been deleted`;
+
   } catch (error) {
-    // ************** Log error to database
+    // *************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/block/block.resolver.js',
+      path: "modules/block/block.resolver.js",
       parameter_input: JSON.stringify({ id, deleted_by }),
-      function_name: 'DeleteBlock',
+      function_name: "DeleteBlock",
       error: String(error.stack),
     });
 
-    // ************** Throw error message
+    // *************** Throw error message
     throw new ApolloError(error.message);
   }
 }
@@ -274,14 +319,16 @@ async function GetSubjectsByBlock(parent, _, context) {
     }
 
     //************** Use the SubjectLoader to load each subject by ID
-    const subjects = await context.loaders.SubjectLoader.loadMany(parent.subject_ids);
+    const subjects = await context.loaders.SubjectLoader.loadMany(
+      parent.subject_ids
+    );
     return subjects;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/block/block.resolver.js',
+      path: "modules/block/block.resolver.js",
       parameter_input: JSON.stringify({ id: parent._id }),
-      function_name: 'GetSubjectsByBlock',
+      function_name: "GetSubjectsByBlock",
       error: String(error.stack),
     });
 
@@ -313,13 +360,16 @@ async function CreatedByUser(parent, _, context) {
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/block/block.resolver.js',
+      path: "modules/block/block.resolver.js",
       parameter_input: JSON.stringify({ parent_id: parent._id }),
-      function_name: 'CreatedByUser',
+      function_name: "CreatedByUser",
       error: String(error.stack),
     });
     // ************** Throw error message
-    throw new ApolloError(`Unable to load creator user: ${error.message}`, 'USER_FETCH_FAILED');
+    throw new ApolloError(
+      `Unable to load creator user: ${error.message}`,
+      "USER_FETCH_FAILED"
+    );
   }
 }
 
@@ -346,13 +396,16 @@ async function UpdatedByUser(parent, _, context) {
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/block/block.resolver.js',
+      path: "modules/block/block.resolver.js",
       parameter_input: JSON.stringify({ parent_id: parent._id }),
-      function_name: 'UpdatedByUser',
+      function_name: "UpdatedByUser",
       error: String(error.stack),
     });
     // ************** Throw error message
-    throw new ApolloError(`Unable to load updater user: ${error.message}`, 'USER_FETCH_FAILED');
+    throw new ApolloError(
+      `Unable to load updater user: ${error.message}`,
+      "USER_FETCH_FAILED"
+    );
   }
 }
 
@@ -379,13 +432,16 @@ async function DeletedByUser(parent, _, context) {
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/block/block.resolver.js',
+      path: "modules/block/block.resolver.js",
       parameter_input: JSON.stringify({ parent_id: parent._id }),
-      function_name: 'DeletedByUser',
+      function_name: "DeletedByUser",
       error: String(error.stack),
     });
     // ************** Throw error message
-    throw new ApolloError(`Unable to load deleter user: ${error.message}`, 'USER_FETCH_FAILED');
+    throw new ApolloError(
+      `Unable to load deleter user: ${error.message}`,
+      "USER_FETCH_FAILED"
+    );
   }
 }
 

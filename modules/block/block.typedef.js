@@ -1,5 +1,5 @@
 // *************** IMPORT LIBRARY ***************
-const { gql } = require('apollo-server');
+const { gql } = require("apollo-server");
 
 const BlockTypeDefs = gql`
   enum BlockStatus {
@@ -21,19 +21,19 @@ const BlockTypeDefs = gql`
     deleted_by: User
   }
 
-input CreateBlockInput {
-  name: String!
-  description: String
-  subject_ids: [ID!]
-  created_by: ID!
-}
+  input CreateBlockInput {
+    name: String!
+    description: String
+    subject_ids: [ID!]
+    created_by: ID!
+  }
 
-input UpdateBlockInput {
-  name: String!
-  description: String
-  subject_ids: [ID!]
-  updated_by: ID!
-}
+  input UpdateBlockInput {
+    name: String!
+    description: String
+    subject_ids: [ID!]
+    updated_by: ID!
+  }
 
   type PaginatedBlock {
     data: [Block]

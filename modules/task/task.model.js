@@ -1,49 +1,25 @@
-// *************** IMPORT LIBRARY ***************
-const mongoose = require('mongoose');
-const { Schema, Types } = mongoose;
+// *************** IMPORT CORE ***************
+const Mongoose = require('mongoose');
 
-// Construct the schema definition for tasks
-const TaskSchema = new Schema(
+const taskSchema = new Mongoose.Schema(
   {
+    // Reference to the Test this task belongs to
+    test_id: { type: Mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
 
-    // The ID of the test to which the task belongs
-    test_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Test',
-      required: true,
-    },
+    // Reference to the School this task belongs to
+    school_id: { type: Mongoose.Schema.Types.ObjectId, ref: 'School', required: true },
 
-    // The ID of the school to which the task belongs (for multi-student assignment)
-    school_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'School',
-      required: true,
-    },
+    // Reference to the User this task belongs to (corrector or student)
+    user_id: { type: Mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
-    // The ID of the user to which the task belongs (corrector or student)
-    user_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-
-    // The ID of the student related to the task for tasks like ENTER_MARKS and VALIDATE_MARKS
-    student_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Student',
-    },
+    // Reference to the Student related to the task (for ENTER_MARKS and VALIDATE_MARKS)
+    student_id: { type: Mongoose.Schema.Types.ObjectId, ref: 'Student' },
 
     // Title of the task
-    title: {
-      type: String,
-      required: true,
-    },
+    title: { type: String, required: true },
 
     // Description of the task
-    description: {
-      type: String,
-      required: true,
-    },
+    description: { type: String, required: true },
 
     // Type of the task
     task_type: {
@@ -55,64 +31,36 @@ const TaskSchema = new Schema(
     // Status of the task
     task_status: {
       type: String,
-      enum: ['active', 'completed', 'deleted'], 
+      enum: ['active', 'completed', 'deleted'],
       default: 'active',
     },
 
     // Due date for the task
-    due_date: {
-      type: Date,
-    },
+    due_date: { type: Date },
 
     // The user who completed this task
-    completed_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      default: null,
-    },
+    completed_by: { type: Mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 
     // Timestamp for when this task was completed
-    completed_at: {
-      type: Date,
-    },
+    completed_at: { type: Date },
 
     // The user who created the task
-    created_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      default: null,
-    },
+    created_by: { type: Mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 
     // The user who last updated the task
-    updated_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    },
+    updated_by: { type: Mongoose.Schema.Types.ObjectId, ref: 'User' },
 
     // The user who deleted the task (if applicable)
-    deleted_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      default: null,
-    },
+    deleted_by: { type: Mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 
     // Timestamp when the task was marked as deleted
-    deleted_at: {
-      type: Date,
-      default: null,
-    },
+    deleted_at: { type: Date, default: null },
   },
   {
-    // Enable automatic timestamp tracking
-    timestamps: {
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-    },
+    // Automatically include created_at and updated_at fields
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   }
 );
 
-// Register the model with Mongoose
-const TaskModel = mongoose.model('Task', TaskSchema);
-
 // *************** EXPORT MODULE ***************
-module.exports = TaskModel;
+module.exports = Mongoose.model('Task', taskSchema);

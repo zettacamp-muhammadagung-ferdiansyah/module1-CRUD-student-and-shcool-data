@@ -1,21 +1,21 @@
 // *************** IMPORT LIBRARY ***************
-const { ApolloError } = require('apollo-server');
+const { ApolloError } = require("apollo-server");
 
 // *************** IMPORT MODULE ***************
-const TaskModel = require('./task.model');
-const ErrorLogModel = require('../errorLogs/error_logs.model');
-const { SendEmailViaSendGrid } = require('./task.helper');
-const StudentModel = require('../student/student.model');
-const UserModel = require('../user/user.model');
-const TestModel = require('../test/test.model');
-const SubjectModel = require('../subject/subject.model');
-const SchoolModel = require('../school/school.model');
+const TaskModel = require("./task.model");
+const ErrorLogModel = require("../errorLogs/error_logs.model");
+const { SendEmailViaSendGrid } = require("./task.helper");
+const StudentModel = require("../student/student.model");
+const UserModel = require("../user/user.model");
+const TestModel = require("../test/test.model");
+const SubjectModel = require("../subject/subject.model");
+const SchoolModel = require("../school/school.model");
 
 // *************** IMPORT VALIDATOR ***************
-const TaskValidators = require('./task.validator');
-const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
-const { ValidatePaginationParameters } = require('../../utils/validator/pagination.validator');
-const { ValidateAssignCorrector } = require('./task.validator');
+const TaskValidators = require("./task.validator");
+const { ValidateMongoId } = require("../../utils/validator/mongo.validator");
+const {ValidatePaginationParameters,} = require("../../utils/validator/pagination.validator");
+const { ValidateAssignCorrector } = require("./task.validator");
 
 // *************** QUERY ***************
 /**
@@ -37,7 +37,10 @@ async function GetAllTasks(_, { page, limit }) {
     const skip = page * limit;
 
     // *************** Execute queries sequentially
-    const tasks = await TaskModel.find({ task_status: 'active'}).skip(skip).limit(limit).lean();
+    const tasks = await TaskModel.find({ task_status: "active" })
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
     // *************** Prepare paginated result
     const paginatedResult = {
@@ -51,9 +54,9 @@ async function GetAllTasks(_, { page, limit }) {
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/task/task.resolver.js',
+      path: "modules/task/task.resolver.js",
       parameter_input: JSON.stringify({ page, limit }),
-      function_name: 'GetAllTasks',
+      function_name: "GetAllTasks",
       error: String(error.stack),
     });
 
@@ -79,12 +82,12 @@ async function GetTaskById(_, { id }) {
     // *************** Find task by ID
     const task = await TaskModel.findOne({
       _id: id,
-      task_status: 'active',
+      task_status: "active",
     }).lean();
 
     // *************** Check if task exists
     if (!task) {
-      throw new ApolloError('Task not found', 'RESOURCE_NOT_FOUND');
+      throw new ApolloError("Task not found", "RESOURCE_NOT_FOUND");
     }
 
     // *************** Return the task
@@ -92,9 +95,9 @@ async function GetTaskById(_, { id }) {
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/task/task.resolver.js',
+      path: "modules/task/task.resolver.js",
       parameter_input: JSON.stringify({ id }),
-      function_name: 'GetTaskById',
+      function_name: "GetTaskById",
       error: String(error.stack),
     });
 
@@ -135,7 +138,7 @@ async function CreateTask(_, { task_input }) {
       title: task_input.title,
       description: task_input.description,
       task_type: task_input.task_type,
-      task_status: 'active',
+      task_status: "active",
       created_by: task_input.created_by,
       updated_by: task_input.updated_by,
     };
@@ -153,9 +156,9 @@ async function CreateTask(_, { task_input }) {
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/task/task.resolver.js',
+      path: "modules/task/task.resolver.js",
       parameter_input: JSON.stringify({ task_input }),
-      function_name: 'CreateTask',
+      function_name: "CreateTask",
       error: String(error.stack),
     });
 
@@ -187,17 +190,6 @@ async function UpdateTask(_, { id, task_input }) {
     // *************** Validate input parameters
     TaskValidators.ValidateUpdateTaskParameters({ id, taskInput: task_input });
 
-    // *************** Find task by ID
-    const existingTask = await TaskModel.findOne({
-      _id: id,
-      task_status: 'active',
-    });
-
-    // *************** Check if task exists
-    if (!existingTask) {
-      throw new ApolloError('Task not found', 'RESOURCE_NOT_FOUND');
-    }
-
     // *************** Prepare update payload with all required fields
     const updatePayload = {
       test_id: task_input.test_id,
@@ -214,21 +206,26 @@ async function UpdateTask(_, { id, task_input }) {
       updatePayload.due_date = task_input.due_date;
     }
 
-    // *************** Update the task
+    // *************** Update the task and return the updated document
     const updatedTask = await TaskModel.findOneAndUpdate(
-      { _id: id },
+      { _id: id, task_status: "active" },
       { $set: updatePayload },
       { new: true }
     );
+
+    // *************** Check if task exists and was updated
+    if (!updatedTask) {
+      throw new ApolloError("Task not found", "RESOURCE_NOT_FOUND");
+    }
 
     // *************** Return updated task
     return updatedTask;
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/task/task.resolver.js',
+      path: "modules/task/task.resolver.js",
       parameter_input: JSON.stringify({ id, task_input }),
-      function_name: 'UpdateTask',
+      function_name: "UpdateTask",
       error: String(error.stack),
     });
 
@@ -253,28 +250,29 @@ async function DeleteTask(_, { id, deleted_by }) {
     // *************** Validate MongoDB ID
     ValidateMongoId(id);
 
-    // *************** Find the task by id and ensure it is active or completed
-    const task = await TaskModel.findOne({ _id: id, task_status: { $in: ['active', 'completed'] } }).lean();
-    if (!task) {
-      throw new ApolloError('Task not found or already deleted', 'RESOURCE_NOT_FOUND');
-    }
-
     // *************** Soft delete the task
-    await TaskModel.updateOne(
-      { _id: id },
+    const result = await TaskModel.updateOne(
+      { _id: id, task_status: { $in: ["active", "completed"] } },
       {
-        task_status: 'deleted',
+        task_status: "deleted",
         deleted_at: new Date(),
         deleted_by,
       }
     );
-    return 'task has been deleted';
+    // *************** Check if any document was actually modified
+    if (result.modifiedCount === 0) {
+      throw new ApolloError(
+        "Task not found or already deleted",
+        "RESOURCE_NOT_FOUND"
+      );
+    }
+    return "task has been deleted";
   } catch (error) {
     // *************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/task/task.resolver.js',
+      path: "modules/task/task.resolver.js",
       parameter_input: JSON.stringify({ id, deleted_by }),
-      function_name: 'DeleteTask',
+      function_name: "DeleteTask",
       error: String(error.stack),
     });
 
@@ -298,56 +296,72 @@ async function DeleteTask(_, { id, deleted_by }) {
 async function AssignCorrector(_, { id, input }) {
   try {
     // *************** Validate input
-    const { user_id, due_date } = ValidateAssignCorrector(id, input);
+    ValidateAssignCorrector(id, input);
+    const { user_id, due_date } = input;
 
-    // *************** Find the ASSIGN_CORRECTOR task
+    // *************** Find the ASSIGN_CORRECTOR task and populate test only
     const assignTask = await TaskModel.findOne({
       _id: id,
-      task_type: 'ASSIGN_CORRECTOR',
-      task_status: 'active',
-    });
+      task_type: "ASSIGN_CORRECTOR",
+      task_status: "active",
+    })
+      .populate("test_id")
+      .lean();
+      
+    console.log(assignTask && assignTask.test_id);
     if (!assignTask) {
-      throw new ApolloError('AssignCorrector task not found or not active', 'RESOURCE_NOT_FOUND');
+      throw new ApolloError(
+        "AssignCorrector task not found or not active",
+        "RESOURCE_NOT_FOUND"
+      );
     }
 
-    // *************** Fetch test and school
-    const test = await TestModel.findById(assignTask.test_id).lean();
-    if (!test) throw new ApolloError('Test not found', 'RESOURCE_NOT_FOUND');
-    const subject = await SubjectModel.findById(test.subject_id).lean();
+    const test = assignTask.test_id;
+    if (!test) throw new ApolloError("Test not found", "RESOURCE_NOT_FOUND");
+    const subject = test.subject_id;
     const corrector = await UserModel.findById(user_id).lean();
-    if (!corrector) throw new ApolloError('Corrector not found', 'RESOURCE_NOT_FOUND');
+    if (!corrector)
+      throw new ApolloError("Corrector not found", "RESOURCE_NOT_FOUND");
 
-    // *************** Fetch all students in the test's school
-    const students = await StudentModel.find({ school_id: test.school_id, status: 'active' }).lean();
-    if (!students || students.length === 0) {
-      throw new ApolloError('No students found for the school', 'NO_STUDENTS');
+    // *************** Fetch all students from the school data using populate
+    const school = await SchoolModel.findById(test.school_id)
+      .populate({ path: "students", match: { status: "active" } })
+      .lean();
+    if (!school)
+      throw new ApolloError("School not found", "RESOURCE_NOT_FOUND");
+    const students = Array.isArray(school.students) ? school.students : [];
+    if (!students.length) {
+      throw new ApolloError("No students found for the school", "NO_STUDENTS");
     }
 
-    // *************** Mark ASSIGN_CORRECTOR task as completed
-    assignTask.task_status = 'completed';
-    assignTask.updated_by = user_id;
-    assignTask.completed_by = user_id;
-    assignTask.completed_at = new Date();
-    await TaskModel.updateOne(
+    // *************** Mark ASSIGN_CORRECTOR task as completed 
+    const updatedAssignTask = await TaskModel.findOneAndUpdate(
       { _id: assignTask._id },
-      { $set: {
-        task_status: assignTask.task_status,
-        updated_by: assignTask.updated_by,
-        completed_by: assignTask.completed_by,
-        completed_at: assignTask.completed_at,
-      }}
-    );
-   
+      {
+        $set: {
+          task_status: "completed",
+          updated_by: user_id,
+          completed_by: user_id,
+          completed_at: new Date(),
+        },
+      },
+      { new: true }
+    ).lean();
+
+    if (!updatedAssignTask) {
+      throw new ApolloError("Failed to update assign task", "UPDATE_FAILED");
+    }
+
     // *************** Create ENTER_MARKS task for each student
     const enterMarksTasks = students.map((student) => ({
       test_id: test._id,
       school_id: test.school_id,
-      student_id: student._id, 
-      user_id: user_id, 
+      student_id: student._id,
+      user_id: user_id,
       title: `Enter Marks for ${student.first_name} ${student.last_name}`,
       description: `Enter marks for student ${student.first_name} ${student.last_name} in test ${test.name}`,
-      task_type: 'ENTER_MARKS',
-      task_status: 'active',
+      task_type: "ENTER_MARKS",
+      task_status: "active",
       due_date: due_date ? new Date(due_date) : undefined,
       created_by: user_id,
       updated_by: user_id,
@@ -355,30 +369,36 @@ async function AssignCorrector(_, { id, input }) {
     await TaskModel.insertMany(enterMarksTasks);
 
     // *************** Compose student names
-    const studentNames = students.map((s) => `${s.first_name} ${s.last_name}`).join(', ');
+    const studentNames = students
+      .map((s) => `${s.first_name} ${s.last_name}`)
+      .join(", ");
 
     // *************** Send notification email
     const emailPayload = {
       to: corrector.email,
-      subject: 'You have been assigned as a Test Corrector!',
+      subject: "You have been assigned as a Test Corrector!",
       html: `
         <h2>You have been assigned as a Test Corrector!</h2>
         <p><strong>Test:</strong> ${test.name}</p>
-        <p><strong>Subject:</strong> ${subject ? subject.name : '-'}</p>
-        <p><strong>Description:</strong> ${test.description || '-'}</p>
+        <p><strong>Subject:</strong> ${subject ? subject.name : "-"}</p>
+        <p><strong>Description:</strong> ${test.description || "-"}</p>
         <p><strong>Students to correct:</strong> ${studentNames}</p>
       `,
     };
     const sendEmailResult = await SendEmailViaSendGrid(emailPayload);
-    if (!sendEmailResult) throw new ApolloError('Failed to send email notification', 'EMAIL_FAILED');
+    if (!sendEmailResult)
+      throw new ApolloError(
+        "Failed to send email notification",
+        "EMAIL_FAILED"
+      );
 
     // *************** Return the updated assignTask
-    return assignTask;
+    return updatedAssignTask;
   } catch (error) {
     await ErrorLogModel.create({
-      path: 'modules/task/task.resolver.js',
+      path: "modules/task/task.resolver.js",
       parameter_input: JSON.stringify({ id, input }),
-      function_name: 'AssignCorrector',
+      function_name: "AssignCorrector",
       error: String(error.stack),
     });
     throw new ApolloError(error.message);
@@ -425,9 +445,9 @@ async function GetTestByTask(parent, _, context) {
   } catch (error) {
     // ***************  Log error to database
     await ErrorLogModel.create({
-      path: 'modules/task/task.resolver.js',
+      path: "modules/task/task.resolver.js",
       parameter_input: JSON.stringify({ parent_id: parent._id }),
-      function_name: 'GetTestByTask',
+      function_name: "GetTestByTask",
       error: String(error.stack),
     });
 
@@ -475,9 +495,9 @@ async function GetSchoolByTask(parent, _, context) {
   } catch (error) {
     // ***************  Log error to database
     await ErrorLogModel.create({
-      path: 'modules/task/task.resolver.js',
+      path: "modules/task/task.resolver.js",
       parameter_input: JSON.stringify({ parent_id: parent._id }),
-      function_name: 'GetSchoolByTask',
+      function_name: "GetSchoolByTask",
       error: String(error.stack),
     });
 
@@ -525,9 +545,9 @@ async function GetUserByTask(parent, _, context) {
   } catch (error) {
     //************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/task/task.resolver.js',
+      path: "modules/task/task.resolver.js",
       parameter_input: JSON.stringify({ parent_id: parent._id }),
-      function_name: 'GetUserByTask',
+      function_name: "GetUserByTask",
       error: String(error.stack),
     });
 
@@ -560,13 +580,16 @@ async function CreatedByUser(parent, _, context) {
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/task/task.resolver.js',
+      path: "modules/task/task.resolver.js",
       parameter_input: JSON.stringify({ parent_id: parent._id }),
-      function_name: 'CreatedByUser',
+      function_name: "CreatedByUser",
       error: String(error.stack),
     });
     // ************** Throw error message
-    throw new ApolloError(`Unable to load creator user: ${error.message}`, 'USER_FETCH_FAILED');
+    throw new ApolloError(
+      `Unable to load creator user: ${error.message}`,
+      "USER_FETCH_FAILED"
+    );
   }
 }
 
@@ -594,13 +617,16 @@ async function UpdatedByUser(parent, _, context) {
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/task/task.resolver.js',
+      path: "modules/task/task.resolver.js",
       parameter_input: JSON.stringify({ parent_id: parent._id }),
-      function_name: 'UpdatedByUser',
+      function_name: "UpdatedByUser",
       error: String(error.stack),
     });
     // ************** Throw error message
-    throw new ApolloError(`Unable to load updater user: ${error.message}`, 'USER_FETCH_FAILED');
+    throw new ApolloError(
+      `Unable to load updater user: ${error.message}`,
+      "USER_FETCH_FAILED"
+    );
   }
 }
 
@@ -628,13 +654,16 @@ async function DeletedByUser(parent, _, context) {
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/task/task.resolver.js',
+      path: "modules/task/task.resolver.js",
       parameter_input: JSON.stringify({ parent_id: parent._id }),
-      function_name: 'DeletedByUser',
+      function_name: "DeletedByUser",
       error: String(error.stack),
     });
     // ************** Throw error message
-    throw new ApolloError(`Unable to load deleter user: ${error.message}`, 'USER_FETCH_FAILED');
+    throw new ApolloError(
+      `Unable to load deleter user: ${error.message}`,
+      "USER_FETCH_FAILED"
+    );
   }
 }
 
@@ -671,13 +700,16 @@ async function CompletedByUser(parent, _, context) {
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
-      path: 'modules/task/task.resolver.js',
+      path: "modules/task/task.resolver.js",
       parameter_input: JSON.stringify({ parent_id: parent._id }),
-      function_name: 'CompletedByUser',
+      function_name: "CompletedByUser",
       error: String(error.stack),
     });
     // ************** Throw error message
-    throw new ApolloError(`Unable to load completed_by user: ${error.message}`, 'USER_FETCH_FAILED');
+    throw new ApolloError(
+      `Unable to load completed_by user: ${error.message}`,
+      "USER_FETCH_FAILED"
+    );
   }
 }
 

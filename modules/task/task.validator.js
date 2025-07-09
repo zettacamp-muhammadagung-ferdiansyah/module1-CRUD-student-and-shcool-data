@@ -152,11 +152,6 @@ function ValidateAssignCorrector(taskId, input) {
   if (input.due_date && isNaN(new Date(input.due_date).getTime())) {
     throw new ApolloError('Invalid due date format', 'INVALID_INPUT');
   }
-
-  return {
-    user_id: input.user_id,
-    due_date: input.due_date,
-  };
 }
 
 // *************** EXPORT MODULE ***************

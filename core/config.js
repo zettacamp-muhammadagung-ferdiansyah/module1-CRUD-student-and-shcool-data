@@ -25,7 +25,7 @@ function GetConfig() {
   // *************** SendGrid From Email
   const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL;
   if (!sendgridFromEmail) {
-    console.warn('SENDGRID_FROM_EMAIL environment variable is not defined. Using fallback if needed.');
+    console.error('SENDGRID_FROM_EMAIL environment variable is not defined. Using fallback if needed.');
   }
 
   // *************** Return configuration object

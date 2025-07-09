@@ -205,7 +205,6 @@ async function UpdateTest(_, { id, test_input }) {
       subject_id: test_input.subject_id,
       weight: test_input.weight,
       test_id: id,
-      TestModel,
     });
 
     // *************** Create sanitized update object with only allowed fields
@@ -319,18 +318,8 @@ async function PublishTest(_, { id, input }) {
     // ***************  validate input for PublishTest
     TestValidators.ValidatePublishTestInput({ id, input });
 
-    // *************** Find and validate test
-    const test = await TestModel.findOne({
-      _id: id,
-      test_status: 'active',
-    }).lean();
-
-    if (!test) {
-      throw new ApolloError('Test not found or not in active status', 'RESOURCE_NOT_FOUND');
-    }
-
     // *************** Update Test to Published status
-    const publishResult = await TestModel.updateOne(
+    const publishResult = await TestModel.findOneAndUpdate(
       { _id: id, test_status: 'active' },
       {
         $set: {
@@ -339,17 +328,18 @@ async function PublishTest(_, { id, input }) {
           updated_by: input.user_id,
           updated_at: new Date(),
         },
-      }
-    );
+      },
+      { new: true }
+    ).lean();
 
-    if (!publishResult || publishResult.modifiedCount === 0) {
-      throw new ApolloError('Failed to publish test', 'INTERNAL_SERVER_ERROR');
+    if (!publishResult) {
+      throw new ApolloError('Test not found or not in active status', 'RESOURCE_NOT_FOUND');
     }
 
     // *************** Prepare and create assign corrector task
     const assignCorrectorPayload = {
       test_id: id,
-      school_id: test.school_id,
+      school_id: publishResult.school_id,
       user_id: input.user_id,
       task_type: 'ASSIGN_CORRECTOR',
       task_status: 'active',
@@ -366,8 +356,7 @@ async function PublishTest(_, { id, input }) {
     }
 
     // *************** Return the full Test object
-    const updatedTest = await TestModel.findById(id).lean();
-    return updatedTest;
+    return publishResult;
   } catch (error) {
     // ************** Log error to database
     await ErrorLogModel.create({
