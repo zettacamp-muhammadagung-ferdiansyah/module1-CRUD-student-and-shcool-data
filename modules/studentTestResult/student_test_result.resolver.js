@@ -521,19 +521,26 @@ async function GetStudentByStudentTestResult(parent, _, context) {
  */
 async function GetTestByStudentTestResult(parent, _, context) {
   try {
+    // *************** Guard against null parent or context
     if (!parent || !context) return null;
+    // *************** Return null if no test_id is associated
     if (!parent.test_id) return null;
+    // *************** Guard against missing loader
     if (!context.loaders || !context.loaders.TestLoader) return null;
+    // *************** Load test using DataLoader
     const test = await context.loaders.TestLoader.load(parent.test_id);
+    // *************** Check if test exists
     if (!test) return null;
     return test;
   } catch (error) {
+    // *************** Log error to database
     await ErrorLogModel.create({
       path: 'modules/studentTestResult/student_test_result.resolver.js',
       parameter_input: JSON.stringify({ parent_id: parent._id }),
       function_name: 'GetTestByStudentTestResult',
       error: String(error.stack),
     });
+    // *************** Throw error with context
     throw new ApolloError(`Failed to load test: ${error.message}`);
   }
 }
