@@ -260,15 +260,9 @@ async function DeleteTest(_, { id, deleted_by }) {
     // *************** Validate MongoDB ID
     ValidateMongoId(id);
 
-    // *************** Find the test by id and ensure it is active
-    const test = await TestModel.findOne({ _id: id, test_status: 'active' }).lean();
-    if (!test) {
-      throw new ApolloError('Test not found or already deleted', 'RESOURCE_NOT_FOUND');
-    }
-
     // *************** Soft delete the test
-    await TestModel.updateOne(
-      { _id: id },
+    const updateResult = await TestModel.updateOne(
+      { _id: id, test_status: 'active' },
       {
         test_status: 'deleted',
         deleted_at: new Date(),
@@ -276,9 +270,15 @@ async function DeleteTest(_, { id, deleted_by }) {
       }
     );
 
+    // *************** Check if test was found and updated
+    if (updateResult.matchedCount === 0) {
+      throw new ApolloError('Test not found or already deleted', 'RESOURCE_NOT_FOUND');
+    }
+
     // *************** Remove test from related subject's test_ids array
-    if (test.subject_id) {
-      await SubjectModel.findByIdAndUpdate(test.subject_id, { $pull: { test_ids: test._id } });
+    const test = await TestModel.findById(id, { subject_id: 1 }).lean();
+    if (test?.subject_id) {
+      await SubjectModel.findByIdAndUpdate(test.subject_id, { $pull: { test_ids: id } });
     }
 
     return 'test has been deleted';
@@ -295,7 +295,6 @@ async function DeleteTest(_, { id, deleted_by }) {
     throw new ApolloError(error.message);
   }
 }
-
 /**
  * Publishes a test and assigns a corrector by creating an ASSIGN_CORRECTOR task.
  *
