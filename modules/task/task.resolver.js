@@ -299,13 +299,29 @@ async function AssignCorrector(_, { id, input }) {
     ValidateAssignCorrector(id, input);
     const { user_id, due_date } = input;
 
-    // *************** Find the ASSIGN_CORRECTOR task and populate test only
+    // *************** Find the ASSIGN_CORRECTOR task and populate test with subject AND school with students
     const assignTask = await TaskModel.findOne({
       _id: id,
       task_type: "ASSIGN_CORRECTOR",
       task_status: "active",
     })
-      .populate("test_id")
+      .populate({
+        path: "test_id",
+        populate: [
+          {
+            path: "subject_id",
+            select: "name"
+          },
+          {
+            path: "school_id",
+            populate: {
+              path: "students",
+              match: { status: "active" },
+              select: "first_name last_name _id"
+            }
+          }
+        ]
+      })
       .lean();
       
     console.log(assignTask && assignTask.test_id);
@@ -318,21 +334,21 @@ async function AssignCorrector(_, { id, input }) {
 
     const test = assignTask.test_id;
     if (!test) throw new ApolloError("Test not found", "RESOURCE_NOT_FOUND");
+    
     const subject = test.subject_id;
-    const corrector = await UserModel.findById(user_id).lean();
-    if (!corrector)
-      throw new ApolloError("Corrector not found", "RESOURCE_NOT_FOUND");
-
-    // *************** Fetch all students from the school data using populate
-    const school = await SchoolModel.findById(test.school_id)
-      .populate({ path: "students", match: { status: "active" } })
-      .lean();
-    if (!school)
-      throw new ApolloError("School not found", "RESOURCE_NOT_FOUND");
+    const school = test.school_id;
+    
+    if (!school) throw new ApolloError("School not found", "RESOURCE_NOT_FOUND");
+    
     const students = Array.isArray(school.students) ? school.students : [];
     if (!students.length) {
       throw new ApolloError("No students found for the school", "NO_STUDENTS");
     }
+
+    // *************** Fetch corrector user
+    const corrector = await UserModel.findById(user_id).lean();
+    if (!corrector)
+      throw new ApolloError("Corrector not found", "RESOURCE_NOT_FOUND");
 
     // *************** Mark ASSIGN_CORRECTOR task as completed 
     const updatedAssignTask = await TaskModel.findOneAndUpdate(
@@ -355,7 +371,7 @@ async function AssignCorrector(_, { id, input }) {
     // *************** Create ENTER_MARKS task for each student
     const enterMarksTasks = students.map((student) => ({
       test_id: test._id,
-      school_id: test.school_id,
+      school_id: school._id,
       student_id: student._id,
       user_id: user_id,
       title: `Enter Marks for ${student.first_name} ${student.last_name}`,
