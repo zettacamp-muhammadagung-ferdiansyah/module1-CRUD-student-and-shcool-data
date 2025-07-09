@@ -260,25 +260,25 @@ async function DeleteTest(_, { id, deleted_by }) {
     // *************** Validate MongoDB ID
     ValidateMongoId(id);
 
-    // *************** Soft delete the test
-    const updateResult = await TestModel.updateOne(
+    // *************** Soft delete the test and get the original document
+    const deletedTest = await TestModel.findOneAndUpdate(
       { _id: id, test_status: 'active' },
       {
         test_status: 'deleted',
         deleted_at: new Date(),
         deleted_by,
-      }
-    );
+      },
+      { projection: { subject_id: 1 } }
+    ).lean();
 
     // *************** Check if test was found and updated
-    if (updateResult.matchedCount === 0) {
+    if (!deletedTest) {
       throw new ApolloError('Test not found or already deleted', 'RESOURCE_NOT_FOUND');
     }
 
     // *************** Remove test from related subject's test_ids array
-    const test = await TestModel.findById(id, { subject_id: 1 }).lean();
-    if (test?.subject_id) {
-      await SubjectModel.findByIdAndUpdate(test.subject_id, { $pull: { test_ids: id } });
+    if (deletedTest.subject_id) {
+      await SubjectModel.findByIdAndUpdate(deletedTest.subject_id, { $pull: { test_ids: id } });
     }
 
     return 'test has been deleted';
