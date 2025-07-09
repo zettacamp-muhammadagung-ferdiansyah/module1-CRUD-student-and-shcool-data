@@ -131,7 +131,6 @@ function ValidateUpdateTaskParameters({ id, taskInput }) {
  * @param {string} taskId - Task ID
  * @param {Object} input - Input object
  * @throws {ApolloError} If validation fails
- * @returns {Object} { user_id, due_date }
  */
 function ValidateAssignCorrector(taskId, input) {
   // ***************  Validate taskId
