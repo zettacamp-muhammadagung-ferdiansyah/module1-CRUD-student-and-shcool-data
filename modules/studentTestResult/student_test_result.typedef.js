@@ -1,5 +1,5 @@
 // *************** IMPORT LIBRARY ***************
-const { gql } = require('apollo-server');
+const { gql } = require("apollo-server");
 
 const StudentTestResultTypeDefs = gql`
   enum StudentTestResultStatus {
@@ -34,22 +34,21 @@ const StudentTestResultTypeDefs = gql`
     updatedAt: Date
   }
 
+  input CreateStudentTestResultInput {
+    student_id: ID!
+    test_id: ID!
+    marks: [MarkInput!]!
+    created_by: ID!
+    due_date: Date
+  }
 
-input CreateStudentTestResultInput {
-  student_id: ID!
-  test_id: ID!
-  marks: [MarkInput!]!
-  created_by: ID!
-  due_date: Date
-}
-
-input UpdateStudentTestResultInput {
-  student_id: ID!
-  test_id: ID!
-  marks: [MarkInput!]!
-  updated_by: ID!
-  due_date: Date
-}
+  input UpdateStudentTestResultInput {
+    student_id: ID!
+    test_id: ID!
+    marks: [MarkInput!]!
+    updated_by: ID!
+    due_date: Date
+  }
 
   type PaginatedStudentTestResult {
     data: [StudentTestResult]
@@ -58,15 +57,31 @@ input UpdateStudentTestResultInput {
   }
 
   extend type Query {
-    GetAllStudentTestResults(page: Int!, limit: Int!): PaginatedStudentTestResult
+    GetAllStudentTestResults(
+      page: Int!
+      limit: Int!
+    ): PaginatedStudentTestResult
     GetStudentTestResultById(id: ID!): StudentTestResult
-    GetStudentTestResultsByStudent(student_id: ID!, page: Int!, limit: Int!): PaginatedStudentTestResult
-    GetStudentTestResultsByTest(test_id: ID!, page: Int!, limit: Int!): PaginatedStudentTestResult
+    GetStudentTestResultsByStudent(
+      student_id: ID!
+      page: Int!
+      limit: Int!
+    ): PaginatedStudentTestResult
+    GetStudentTestResultsByTest(
+      test_id: ID!
+      page: Int!
+      limit: Int!
+    ): PaginatedStudentTestResult
   }
 
   extend type Mutation {
-    CreateStudentTestResult(student_test_result_input: CreateStudentTestResultInput!): StudentTestResult
-    UpdateStudentTestResult(id: ID!, student_test_result_input: UpdateStudentTestResultInput!): StudentTestResult
+    CreateStudentTestResult(
+      student_test_result_input: CreateStudentTestResultInput!
+    ): StudentTestResult
+    UpdateStudentTestResult(
+      id: ID!
+      student_test_result_input: UpdateStudentTestResultInput!
+    ): StudentTestResult
     DeleteStudentTestResult(id: ID!, deleted_by: ID!): String
     EnterMarks(input: CreateStudentTestResultInput!): StudentTestResult
     ValidateMarks(id: ID!): StudentTestResult

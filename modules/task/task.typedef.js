@@ -1,5 +1,5 @@
 // *************** IMPORT LIBRARY ***************
-const { gql } = require('apollo-server');
+const { gql } = require("apollo-server");
 
 const TaskTypeDefs = gql`
   enum TaskType {
@@ -35,28 +35,27 @@ const TaskTypeDefs = gql`
     updated_at: Date
   }
 
+  input CreateTaskInput {
+    test_id: ID!
+    school_id: ID!
+    user_id: ID!
+    title: String!
+    description: String!
+    task_type: TaskType!
+    due_date: Date
+    created_by: ID!
+  }
 
-input CreateTaskInput {
-  test_id: ID!
-  school_id: ID!
-  user_id: ID!
-  title: String!
-  description: String!
-  task_type: TaskType!
-  due_date: Date
-  created_by: ID!
-}
-
-input UpdateTaskInput {
-  test_id: ID!
-  school_id: ID!
-  user_id: ID!
-  title: String!
-  description: String!
-  task_type: TaskType!
-  due_date: Date
-  updated_by: ID!
-}
+  input UpdateTaskInput {
+    test_id: ID!
+    school_id: ID!
+    user_id: ID!
+    title: String!
+    description: String!
+    task_type: TaskType!
+    due_date: Date
+    updated_by: ID!
+  }
 
   input AssignCorrectorInput {
     user_id: ID!
