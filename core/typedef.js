@@ -11,6 +11,7 @@ const SubjectModule = require('../modules/subject');
 const TestModule = require('../modules/test');
 const StudentTestResultModule = require('../modules/studentTestResult');
 const TaskModule = require('../modules/task');
+const CalculationResultTypeDefs = require('../modules/calculationResult/calculation_result.typedef');
 
 // *************** Base Type Declarations
 const BaseTypeDefs = gql`
@@ -30,4 +31,5 @@ module.exports = mergeTypeDefs([
   TestModule.typeDefs,
   StudentTestResultModule.typeDefs,
   TaskModule.typeDefs,
+  CalculationResultTypeDefs,
 ]);

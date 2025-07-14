@@ -382,14 +382,14 @@ async function EnterMarks(_, { input }) {
 }
 
 /**
- * Validates student marks and completes the VALIDATE_MARKS task.
+ * Validates student marks, completes the VALIDATE_MARKS task, and triggers transcript calculation.
  *
  * @async
  * @function ValidateMarks
  * @throws {ApolloError} If validation or update fails
  * @returns {Promise<Object>} The validated student test result object
  */
-async function ValidateMarks(_, { id }) {
+async function ValidateMarks(_, { id }, context) {
   try {
     // *************** Validate ID
     ValidateMongoId(id);
@@ -404,7 +404,10 @@ async function ValidateMarks(_, { id }) {
         },
       },
       { new: true } 
-    ).populate({ path: 'test_id', select: 'school_id' }).lean();
+    ).populate([
+      { path: 'test_id', select: 'school_id subject_id name' },
+      { path: 'student_id', select: '_id' }
+    ]).lean();
 
     if (!validatedStudentTestResult) {
       throw new ApolloError('Student test result not found or not active', 'RESOURCE_NOT_FOUND');
@@ -433,8 +436,47 @@ async function ValidateMarks(_, { id }) {
       }
     );
 
+    // *************** Get subject info to get the block ID
+    const SubjectModel = require('../subject/subject.model');
+    const subject = await SubjectModel.findById(test.subject_id).lean();
+    
+    if (!subject) {
+      throw new ApolloError('Subject not found', 'RESOURCE_NOT_FOUND');
+    }
+
+    // *************** Trigger transcript calculation in a worker thread
+    const { QueueTranscriptCalculation } = require('../../utils/worker.manager');
+    
+    // *************** Current user ID from context or use a system default
+    const calculatedBy = (context && context.user && context.user._id) || 
+                         validatedStudentTestResult.user_id || 
+                         // *************** Use a default system ID if none available
+                         '000000000000000000000000'; 
+    
+    // *************** Use a default system ID if none available Queue the calculation without waiting for it to complete
+    QueueTranscriptCalculation({
+      studentId: validatedStudentTestResult.student_id._id.toString(),
+      blockId: subject.block_id.toString(),
+      calculatedBy: calculatedBy.toString()
+    }).catch(error => {
+      // *************** Log worker queue error but don't throw (non-blocking)
+      console.error('Failed to queue transcript calculation:', error);
+      ErrorLogModel.create({
+        path: 'modules/studentTestResult/student_test_result.resolver.js',
+        parameter_input: JSON.stringify({ 
+          studentTestResultId: id,
+          studentId: validatedStudentTestResult.student_id._id.toString(),
+          blockId: subject.block_id.toString() 
+        }),
+        function_name: 'ValidateMarks.QueueTranscriptCalculation',
+        error: String(error.stack),
+      }).catch(logError => {
+        console.error('Failed to log worker queue error:', logError);
+      });
+    });
+
     // *************** Return null confirming validation
-    return null
+    return null;
 
   } catch (error) {
     // *************** Log error to database

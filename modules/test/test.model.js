@@ -49,6 +49,48 @@ const testSchema = new Mongoose.Schema(
       },
     ],
 
+    // Passing criteria definition for test completion
+    passing_criteria: [
+      {
+        // Expected outcome when rules are evaluated (PASS/FAIL)
+        expected_outcome: {
+          type: String,
+          enum: ['PASS', 'FAIL'],
+          required: true
+        },
+        // Array of rule objects that make up this criteria
+        rules: [
+          {
+            // Optional logical operator to connect with previous rule (AND/OR)
+            logical_operator: {
+              type: String,
+              enum: ['AND', 'OR']
+            },
+            // Type of rule (NOTATION_SCORE, TOTAL_SCORE)
+            type: {
+              type: String,
+              enum: ['NOTATION_SCORE', 'TOTAL_SCORE'],
+              required: true
+            },
+            // Optional notation index for notation-specific rules
+            notation_index: {
+              type: Number,
+              default: null
+            },
+            // Comparison operator (GTE, GT, LTE, LT, EQ)
+            operator: {
+              type: String,
+              enum: ['GTE', 'GT', 'LTE', 'LT', 'EQ']
+            },
+            // Threshold value for comparison
+            value: {
+              type: Number
+            }
+          }
+        ]
+      }
+    ],
+
     // Current status of the test
     test_status: {
       type: String,
