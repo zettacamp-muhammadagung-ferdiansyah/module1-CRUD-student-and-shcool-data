@@ -7,11 +7,49 @@ const BlockTypeDefs = gql`
     deleted
   }
 
+  enum BlockRuleType {
+    SUBJECT_RESULT
+    SUBJECT_MARK
+    BLOCK_AVERAGE
+  }
+
+  enum LogicalOperator {
+    AND
+    OR
+  }
+
+  enum ComparisonOperator {
+    GTE
+    GT
+    LTE
+    LT
+    EQ
+  }
+
+  enum ExpectedOutcome {
+    PASS
+    FAIL
+  }
+
+  type BlockRule {
+    logical_operator: LogicalOperator
+    type: BlockRuleType!
+    subject_id: ID
+    operator: ComparisonOperator
+    value: Float
+  }
+
+  type BlockPassingCriteria {
+    expected_outcome: ExpectedOutcome!
+    rules: [BlockRule!]!
+  }
+
   type Block {
     _id: ID!
     name: String!
     description: String
     subject_ids: [Subject]
+    passing_criteria: [BlockPassingCriteria]
     status: BlockStatus
     createdAt: Date
     created_by: User
@@ -21,10 +59,24 @@ const BlockTypeDefs = gql`
     deleted_by: User
   }
 
+  input BlockRuleInput {
+    logical_operator: LogicalOperator
+    type: BlockRuleType!
+    subject_id: ID
+    operator: ComparisonOperator
+    value: Float
+  }
+
+  input BlockPassingCriteriaInput {
+    expected_outcome: ExpectedOutcome!
+    rules: [BlockRuleInput!]!
+  }
+
   input CreateBlockInput {
     name: String!
     description: String
     subject_ids: [ID!]
+    passing_criteria: [BlockPassingCriteriaInput]
     created_by: ID!
   }
 
@@ -32,6 +84,7 @@ const BlockTypeDefs = gql`
     name: String!
     description: String
     subject_ids: [ID!]
+    passing_criteria: [BlockPassingCriteriaInput]
     updated_by: ID!
   }
 

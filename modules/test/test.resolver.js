@@ -138,6 +138,7 @@ async function CreateTest(_, { test_input }) {
       description: test_input.description,
       weight: test_input.weight,
       notations: test_input.notations,
+      passing_criteria: test_input.passing_criteria,
       test_status: 'active',
       created_by: test_input.created_by,
     };
@@ -215,6 +216,7 @@ async function UpdateTest(_, { id, test_input }) {
       description: test_input.description,
       weight: test_input.weight,
       notations: test_input.notations,
+      passing_criteria: test_input.passing_criteria,
       updated_by: test_input.updated_by,
       updatedAt: new Date(),
     };

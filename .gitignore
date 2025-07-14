@@ -4,3 +4,7 @@ node_modules/
 package-lock.json
 .env.example
 .gitignore
+.vscode/mcp-readonly.json
+.vscode/mcp.json
+.vscode/tasks.json
+.gitignore
