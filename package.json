@@ -5,6 +5,7 @@
   "main": "app.js",
   "dependencies": {
     "@graphql-tools/merge": "^6.0.0",
+    "@sendgrid/mail": "^7.7.0",
     "apollo-server": "^2.25.2",
     "dataloader": "^2.2.3",
     "dotenv": "^16.5.0",

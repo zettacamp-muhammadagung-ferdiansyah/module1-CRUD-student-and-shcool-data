@@ -2,11 +2,16 @@
 const UserLoader = require('../modules/user').UserLoader;
 const StudentLoader = require('../modules/student').StudentLoader;
 const SchoolLoader = require('../modules/school').SchoolLoader;
+const BlockLoader = require('../modules/block').BlockLoader;
+const SubjectLoader = require('../modules/subject').SubjectLoader;
+const TestLoader = require('../modules/test').TestLoader;
+const StudentTestResultLoader = require('../modules/studentTestResult').StudentTestResultLoader;
+const TaskLoader = require('../modules/task').TaskLoader;
 
 /**
  * Creates and initializes all DataLoader instances for the application
  * Centralizes loader instantiation to maintain consistent caching behavior
- * 
+ *
  * @returns {Object} - Object containing all initialized DataLoader instances
  */
 function LoaderModule() {
@@ -15,6 +20,11 @@ function LoaderModule() {
     UserLoader: UserLoader(),
     StudentLoader: StudentLoader(),
     SchoolLoader: SchoolLoader(),
+    BlockLoader: BlockLoader(),
+    SubjectLoader: SubjectLoader(),
+    TestLoader: TestLoader(),
+    StudentTestResultLoader: StudentTestResultLoader(),
+    TaskLoader: TaskLoader(),
   };
 }
 
