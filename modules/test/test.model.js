@@ -1,5 +1,7 @@
 // *************** IMPORT CORE ***************
 const Mongoose = require('mongoose');
+// *************** IMPORT MODULE ***************
+const ENUM = require('../../enum');
 
 const testSchema = new Mongoose.Schema(
   {
@@ -64,12 +66,12 @@ const testSchema = new Mongoose.Schema(
             // Optional logical operator to connect with previous rule (AND/OR)
             logical_operator: {
               type: String,
-              enum: ['AND', 'OR']
+              enum: ENUM.LOGICAL_OPERATOR
             },
             // Type of rule (NOTATION_SCORE, TOTAL_SCORE)
             type: {
               type: String,
-              enum: ['NOTATION_SCORE', 'TOTAL_SCORE'],
+              enum: ENUM.TEST_RULE_TYPE,
               required: true
             },
             // Optional notation index for notation-specific rules
@@ -80,7 +82,7 @@ const testSchema = new Mongoose.Schema(
             // Comparison operator (GTE, GT, LTE, LT, EQ)
             operator: {
               type: String,
-              enum: ['GTE', 'GT', 'LTE', 'LT', 'EQ']
+              enum: ENUM.COMPARISON_OPERATOR
             },
             // Threshold value for comparison
             value: {
@@ -94,7 +96,7 @@ const testSchema = new Mongoose.Schema(
     // Current status of the test
     test_status: {
       type: String,
-      enum: ['active', 'published', 'deleted'],
+      enum: ENUM.TEST_STATUS,
       default: 'active',
     },
 

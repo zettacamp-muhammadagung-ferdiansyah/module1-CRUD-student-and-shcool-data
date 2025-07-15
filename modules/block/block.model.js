@@ -1,5 +1,7 @@
 // *************** IMPORT CORE ***************
 const Mongoose = require("mongoose");
+// *************** IMPORT MODULE ***************
+const ENUM = require('../../enum');
 
 const blockSchema = new Mongoose.Schema(
   {
@@ -20,7 +22,7 @@ const blockSchema = new Mongoose.Schema(
         // Expected outcome when rules are evaluated (PASS/FAIL)
         expected_outcome: {
           type: String,
-          enum: ["PASS", "FAIL"],
+          enum: ENUM.EXPECTED_OUTCOME,
           required: true,
         },
         // Array of rule objects that make up this criteria
@@ -29,12 +31,12 @@ const blockSchema = new Mongoose.Schema(
             // Optional logical operator to connect with previous rule (AND/OR)
             logical_operator: {
               type: String,
-              enum: ["AND", "OR"],
+              enum: ENUM.LOGICAL_OPERATOR,
             },
             // Type of rule (SUBJECT_RESULT, SUBJECT_MARK, BLOCK_AVERAGE)
             type: {
               type: String,
-              enum: ["SUBJECT_RESULT", "SUBJECT_MARK", "BLOCK_AVERAGE"],
+              enum: ENUM.BLOCK_RULE_TYPE,
               required: true,
             },
             // Optional subject reference for subject-specific rules
@@ -46,7 +48,7 @@ const blockSchema = new Mongoose.Schema(
             // Comparison operator (GTE, GT, LTE, LT, EQ)
             operator: {
               type: String,
-              enum: ["GTE", "GT", "LTE", "LT", "EQ"],
+              enum: ENUM.COMPARISON_OPERATOR,
             },
             // Threshold value for comparison
             value: {
@@ -58,7 +60,7 @@ const blockSchema = new Mongoose.Schema(
     ],
 
     // Current condition of the block status
-    status: { type: String, enum: ["active", "deleted"], default: "active" },
+    status: { type: String, enum: ENUM.STATUS, default: "active" },
 
     // ID of the user who created this block record
     created_by: {
