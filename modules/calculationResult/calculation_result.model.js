@@ -142,11 +142,6 @@ const calculationResultSchema = new Mongoose.Schema(
                   required: true,
                 },
 
-                // Percentage score (total_points / max_points * 100)
-                percentage: {
-                  type: Number,
-                  required: true,
-                },
 
                 // Detailed results for each notation
                 notation_results: [
@@ -175,11 +170,6 @@ const calculationResultSchema = new Mongoose.Schema(
                       required: true,
                     },
 
-                    // Percentage score for this notation
-                    percentage: {
-                      type: Number,
-                      required: true,
-                    },
                   }
                 ],
 

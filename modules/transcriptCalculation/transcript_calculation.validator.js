@@ -93,8 +93,7 @@ function ValidateCalculateStudentCompleteTranscriptParameters({ studentId, block
     });
   }
 
-  // *************** Validate calculated by (required, must be valid MongoId)
-  // *************** Note: Can be user ID or system-generated ObjectId
+  // *************** Validate calculated by (can be system-generated ObjectId)
   if (!calculatedBy) {
     throw new ApolloError('Calculated by ID is required', 'INVALID_INPUT');
   }
