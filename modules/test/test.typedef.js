@@ -13,24 +13,6 @@ const TestTypeDefs = gql`
     TOTAL_SCORE
   }
 
-  enum LogicalOperator {
-    AND
-    OR
-  }
-
-  enum ComparisonOperator {
-    GTE
-    GT
-    LTE
-    LT
-    EQ
-  }
-
-  enum ExpectedOutcome {
-    PASS
-    FAIL
-  }
-
   type TestRule {
     logical_operator: LogicalOperator
     type: TestRuleType!

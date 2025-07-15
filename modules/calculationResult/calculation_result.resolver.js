@@ -1,5 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
+const mongoose = require('mongoose');
 
 // *************** IMPORT MODULE ***************
 const CalculationResultModel = require('./calculation_result.model');
@@ -210,14 +211,15 @@ async function TriggerCalculation(_, { studentId, blockId }, context) {
     // *************** Validate input parameters
     ValidateTriggerCalculationParameters({ studentId, blockId });
 
-    // *************** Get current user ID from context
-    const calculatedBy = (context && context.user && context.user._id) || '000000000000000000000000';
+    // *************** System calculation - create a system ObjectId
+    const systemObjectId = new mongoose.Types.ObjectId();
+    const calculatedBy = (context && context.user && context.user._id) || systemObjectId;
 
     // *************** Queue the calculation
     QueueTranscriptCalculation({
       studentId,
       blockId,
-      calculatedBy: calculatedBy.toString()
+      calculatedBy: String(calculatedBy)
     });
 
     // *************** Return success response
@@ -256,9 +258,6 @@ function GetCalculationWorkerStatus() {
       timestamp: new Date(),
     };
   } catch (error) {
-    // *************** Log error to console (non-critical)
-    console.error('Failed to get worker status:', error);
-    
     // *************** Return error status
     return {
       error: error.message,

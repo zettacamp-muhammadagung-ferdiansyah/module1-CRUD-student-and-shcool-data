@@ -13,24 +13,6 @@ const SubjectTypeDefs = gql`
     SUBJECT_AVERAGE
   }
 
-  enum LogicalOperator {
-    AND
-    OR
-  }
-
-  enum ComparisonOperator {
-    GTE
-    GT
-    LTE
-    LT
-    EQ
-  }
-
-  enum ExpectedOutcome {
-    PASS
-    FAIL
-  }
-
   type SubjectRule {
     logical_operator: LogicalOperator
     type: SubjectRuleType!

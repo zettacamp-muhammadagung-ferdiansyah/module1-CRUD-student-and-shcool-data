@@ -44,7 +44,8 @@ function ValidateCreateBlockParameters(blockInput) {
     });
   }  // *************** Validate passing_criteria if provided
   if (blockInput.passing_criteria) {
-    ValidatePassingCriteria(blockInput.passing_criteria, true); // true = creation mode (lenient)
+     //  *************** true = creation mode (lenient)
+    ValidatePassingCriteria(blockInput.passing_criteria, true);
   }
 
   // *************** Validate created_by (required, must be valid MongoId)

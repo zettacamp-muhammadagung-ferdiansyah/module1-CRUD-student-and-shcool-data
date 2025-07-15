@@ -1,5 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
+const mongoose = require('mongoose');
 
 // *************** IMPORT MODULE ***************
 const StudentTestResultModel = require('./student_test_result.model');
@@ -7,11 +8,18 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
 const TestModel = require('../test/test.model');
 const TaskModel = require('../task/task.model');
 const UserModel = require('../user/user.model');
+const SubjectModel = require('../subject/subject.model');
+
+// *************** IMPORT UTILITIES *************** 
+ const { QueueTranscriptCalculation } = require('../../utils/worker.manager');
 
 // *************** IMPORT VALIDATOR ***************
 const StudentTestResultValidators = require('./student_test_result.validator');
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 const { ValidatePaginationParameters } = require('../../utils/validator/pagination.validator');
+
+// *************** IMPORT HELPER FUNCTION ***************
+const { CalculateAverageMark } = require('./student_test_result.helper');
 
 // *************** QUERY ***************
 /**
@@ -125,11 +133,8 @@ async function CreateStudentTestResult(_, { student_test_result_input }) {
       student_test_result_status: 'active',
     };
 
-    // *************** Calculate the total marks and average mark from the provided marks
-    const totalMarks = student_test_result_input.marks.reduce((total, markObject) => {
-      return total + markObject.mark;
-    }, 0);
-    studentTestResultData.average_mark = totalMarks / student_test_result_input.marks.length;
+    // *************** Calculate the average mark using helper function
+    studentTestResultData.average_mark = CalculateAverageMark(student_test_result_input.marks);
     studentTestResultData.mark_entry_date = new Date();
 
     // *************** Add optional fields if they exist
@@ -192,15 +197,12 @@ async function UpdateStudentTestResult(_, { id, student_test_result_input }) {
       throw new ApolloError('Student test result not found', 'RESOURCE_NOT_FOUND');
     }
 
-    // *************** Calculate the total marks and average mark if marks are provided
+    // *************** Calculate the average mark using helper function if marks are provided
     let marks = currentStudentTestResult.marks;
     let average_mark = currentStudentTestResult.average_mark;
     if (student_test_result_input.marks && student_test_result_input.marks.length) {
       marks = student_test_result_input.marks;
-      const totalMarks = marks.reduce((total, markObject) => {
-        return total + markObject.mark;
-      }, 0);
-      average_mark = totalMarks / marks.length;
+      average_mark = CalculateAverageMark(marks);
     }
 
     // *************** Build update payload 
@@ -334,11 +336,8 @@ async function EnterMarks(_, { input }) {
       student_test_result_status: 'active',
       created_by: input.created_by,
     };
-    // *************** Calculate the total marks and average mark
-    const totalMarks = input.marks.reduce((total, markObject) => {
-      return total + markObject.mark;
-    }, 0);
-    createStudentTestResultPayload.average_mark = totalMarks / input.marks.length;
+    // *************** Calculate the average mark using helper function
+    createStudentTestResultPayload.average_mark = CalculateAverageMark(input.marks);
     createStudentTestResultPayload.mark_entry_date = new Date();
     // *************** Create StudentTestResult
     const newStudentTestResult = await StudentTestResultModel.create(createStudentTestResultPayload);
@@ -437,43 +436,39 @@ async function ValidateMarks(_, { id }, context) {
     );
 
     // *************** Get subject info to get the block ID
-    const SubjectModel = require('../subject/subject.model');
     const subject = await SubjectModel.findById(test.subject_id).lean();
     
     if (!subject) {
       throw new ApolloError('Subject not found', 'RESOURCE_NOT_FOUND');
     }
-
-    // *************** Trigger transcript calculation in a worker thread
-    const { QueueTranscriptCalculation } = require('../../utils/worker.manager');
     
-    // *************** Current user ID from context or use a system default
+    // *************** Use the current user from context, or the user who performed the validation
+    // *************** System calculation - create a system ObjectId
+    const systemObjectId = new mongoose.Types.ObjectId();
     const calculatedBy = (context && context.user && context.user._id) || 
                          validatedStudentTestResult.user_id || 
-                         // *************** Use a default system ID if none available
-                         '000000000000000000000000'; 
+                         systemObjectId; 
     
-    // *************** Use a default system ID if none available Queue the calculation without waiting for it to complete
-    QueueTranscriptCalculation({
-      studentId: validatedStudentTestResult.student_id._id.toString(),
-      blockId: subject.block_id.toString(),
-      calculatedBy: calculatedBy.toString()
-    }).catch(error => {
-      // *************** Log worker queue error but don't throw (non-blocking)
-      console.error('Failed to queue transcript calculation:', error);
-      ErrorLogModel.create({
+    // *************** Queue the calculation and await it properly
+    try {
+      await QueueTranscriptCalculation({
+        studentId: String(validatedStudentTestResult.student_id._id),
+        blockId: String(subject.block_id),
+        calculatedBy: String(calculatedBy)
+      });
+    } catch (error) {
+      // *************** Log worker queue error but don't throw (non-blocking for the main operation)
+      await ErrorLogModel.create({
         path: 'modules/studentTestResult/student_test_result.resolver.js',
         parameter_input: JSON.stringify({ 
           studentTestResultId: id,
-          studentId: validatedStudentTestResult.student_id._id.toString(),
-          blockId: subject.block_id.toString() 
+          studentId: String(validatedStudentTestResult.student_id._id),
+          blockId: String(subject.block_id)
         }),
         function_name: 'ValidateMarks.QueueTranscriptCalculation',
         error: String(error.stack),
-      }).catch(logError => {
-        console.error('Failed to log worker queue error:', logError);
       });
-    });
+    }
 
     // *************** Return null confirming validation
     return null;

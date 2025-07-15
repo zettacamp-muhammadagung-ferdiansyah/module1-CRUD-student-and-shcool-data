@@ -12,12 +12,12 @@
  * @returns {number} The weighted test mark
  */
 function CalculateTestWeightedMark(mark, weight) {
-  // Validate inputs
+  // *************** Validate inputs
   if (typeof mark !== 'number' || typeof weight !== 'number') {
     return 0;
   }
   
-  // Apply test weight to the mark
+  // *************** Apply test weight to the mark
   return mark * weight;
 }
 
@@ -29,26 +29,26 @@ function CalculateTestWeightedMark(mark, weight) {
  * @returns {number} The total subject mark
  */
 function CalculateSubjectTotalMark(testResults, coefficient) {
-  // Validate inputs
+  // *************** Validate inputs
   if (!Array.isArray(testResults) || testResults.length === 0 || typeof coefficient !== 'number') {
     return 0;
   }
   
-  // Calculate the sum of weighted test marks
+  // *************** Calculate the sum of weighted test marks
   const totalWeightedMarks = testResults.reduce((sum, test) => {
     const weightedMark = CalculateTestWeightedMark(test.average_mark || 0, test.weight || 0);
     return sum + weightedMark;
   }, 0);
   
-  // Calculate the total weight of all tests
+  // *************** Calculate the total weight of all tests
   const totalWeight = testResults.reduce((sum, test) => sum + (test.weight || 0), 0);
   
-  // If there are no weights, return 0 to avoid division by zero
+  // *************** If there are no weights, return 0 to avoid division by zero
   if (totalWeight === 0) {
     return 0;
   }
   
-  // Calculate the weighted average and apply the subject coefficient
+  // *************** Calculate the weighted average and apply the subject coefficient
   return (totalWeightedMarks / totalWeight) * coefficient;
 }
 
@@ -59,27 +59,27 @@ function CalculateSubjectTotalMark(testResults, coefficient) {
  * @returns {number} The block's average mark
  */
 function CalculateBlockTotalMark(subjectResults) {
-  // Validate inputs
+  // *************** Validate inputs
   if (!Array.isArray(subjectResults) || subjectResults.length === 0) {
     return 0;
   }
   
-  // Calculate the sum of weighted subject marks
+  // *************** Calculate the sum of weighted subject marks
   const totalWeightedMarks = subjectResults.reduce((sum, subject) => {
     return sum + (subject.total_mark || 0) * (subject.coefficient || 1);
   }, 0);
   
-  // Calculate the total coefficient sum
+  // *************** Calculate the total coefficient sum
   const totalCoefficient = subjectResults.reduce((sum, subject) => {
     return sum + (subject.coefficient || 1);
   }, 0);
   
-  // If there are no coefficients, return 0 to avoid division by zero
+  // *************** If there are no coefficients, return 0 to avoid division by zero
   if (totalCoefficient === 0) {
     return 0;
   }
   
-  // Calculate the weighted average of subject marks
+  // *************** Calculate the weighted average of subject marks
   return totalWeightedMarks / totalCoefficient;
 }
 
@@ -90,17 +90,17 @@ function CalculateBlockTotalMark(subjectResults) {
  * @returns {number} The final overall mark
  */
 function CalculateFinalMark(blockResults) {
-  // Validate inputs
+  // *************** Validate inputs
   if (!Array.isArray(blockResults) || blockResults.length === 0) {
     return 0;
   }
   
-  // Calculate the sum of all block marks
+  // *************** Calculate the sum of all block marks
   const totalMarks = blockResults.reduce((sum, block) => {
     return sum + (block.total_mark || 0);
   }, 0);
   
-  // Calculate the average mark across all blocks
+  // *************** Calculate the average mark across all blocks
   return totalMarks / blockResults.length;
 }
 

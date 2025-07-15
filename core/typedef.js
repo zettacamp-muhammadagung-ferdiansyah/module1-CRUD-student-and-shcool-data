@@ -2,6 +2,9 @@
 const { gql } = require('apollo-server');
 const { mergeTypeDefs } = require('@graphql-tools/merge');
 
+// *************** IMPORT SHARED TYPES 
+const SharedTypeDefs = require('./shared.typedef');
+
 // *************** IMPORT MODULES ***************
 const UserModule = require('../modules/user');
 const StudentModule = require('../modules/student');
@@ -11,7 +14,7 @@ const SubjectModule = require('../modules/subject');
 const TestModule = require('../modules/test');
 const StudentTestResultModule = require('../modules/studentTestResult');
 const TaskModule = require('../modules/task');
-const CalculationResultTypeDefs = require('../modules/calculationResult/calculation_result.typedef');
+const CalculationResultModule = require('../modules/calculationResult');
 
 // *************** Base Type Declarations
 const BaseTypeDefs = gql`
@@ -23,6 +26,7 @@ const BaseTypeDefs = gql`
 // *************** EXPORT MODULE ***************
 module.exports = mergeTypeDefs([
   BaseTypeDefs,
+  SharedTypeDefs,
   UserModule.typeDefs,
   StudentModule.typeDefs,
   SchoolModule.typeDefs,
@@ -31,5 +35,5 @@ module.exports = mergeTypeDefs([
   TestModule.typeDefs,
   StudentTestResultModule.typeDefs,
   TaskModule.typeDefs,
-  CalculationResultTypeDefs,
+  CalculationResultModule.typeDefs,
 ]);

@@ -9,7 +9,7 @@ const Test = require("../test/test.model");
 const Student = require("../student/student.model");
 const StudentTestResult = require("../studentTestResult/student_test_result.model");
 const CalculationResult = require("../calculationResult/calculation_result.model");
-const ErrorLog = require("../errorLogs/error_logs.model");
+const ErrorLogModel = require("../errorLogs/error_logs.model");
 
 // *************** IMPORT VALIDATOR ***************
 const {
@@ -31,6 +31,9 @@ const {
   EvaluateTestCriteria,
   EvaluateSubjectCriteria,
   EvaluateBlockCriteria,
+  EvaluateTestCriteriaDetailed,
+  EvaluateSubjectCriteriaDetailed,
+  EvaluateBlockCriteriaDetailed,
 } = require("../../utils/calculation/criteria.evaluator");
 
 /**
@@ -80,7 +83,7 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
 
     // *************** Create a map of subject IDs for quick lookups
     const subjectIdsMap = subjects.reduce((map, subject) => {
-      map[subject._id.toString()] = subject;
+      map[String(subject._id)] = subject;
       return map;
     }, {});
 
@@ -102,13 +105,13 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
 
     // *************** Create a map of tests by ID for quick lookups
     const testsMap = tests.reduce((map, test) => {
-      map[test._id.toString()] = test;
+      map[String(test._id)] = test;
       return map;
     }, {});
 
     // *************** Create a map of tests grouped by subject ID
     const testsBySubject = tests.reduce((map, test) => {
-      const subjectId = test.subject_id.toString();
+      const subjectId = String(test.subject_id);
       if (!map[subjectId]) {
         map[subjectId] = [];
       }
@@ -125,34 +128,22 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
       test_id: { $in: testIds },
       student_test_result_status: { $in: ["active", "validated"] },
     });
-
-    console.log(
-      `Found ${tests.length} tests and ${studentTestResults.length} student test results for student ${studentId}`
-    );
-    console.log(`Created testsMap with ${Object.keys(testsMap).length} entries`);
-    console.log(`Created subjectIdsMap with ${Object.keys(subjectIdsMap).length} entries`);
     
     // *************** Validate data relationships using helper function
     const validation = ValidateTestSubjectRelationships(testsMap, subjectIdsMap);
     if (!validation.isValid) {
-      console.warn('Data inconsistencies detected:', validation.inconsistencies);
-    }
-    
-    if (studentTestResults.length === 0) {
-      console.log(
-        "Available test IDs:",
-        testIds.map((id) => id.toString())
-      );
-      console.log("Student test result query:", {
-        student_id: studentId,
-        test_id: { $in: testIds },
-        student_test_result_status: { $in: ["active", "validated"] },
+      // *************** Log validation issues to database
+      await ErrorLogModel.create({
+        path: 'modules/transcriptCalculation/transcript_calculation.js',
+        parameter_input: JSON.stringify({ studentId, blockId, inconsistencies: validation.inconsistencies }),
+        function_name: 'CalculateStudentBlockResults',
+        error: `Data inconsistencies detected: ${JSON.stringify(validation.inconsistencies)}`,
       });
     }
 
     // *************** Create a map of test results by test ID for quick lookups
     const testResultsMap = studentTestResults.reduce((map, result) => {
-      map[result.test_id.toString()] = result;
+      map[String(result.test_id)] = result;
       return map;
     }, {});
 
@@ -160,28 +151,32 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
     let blockResult = {
       block_id: block._id,
       block_name: block.name,
-      status: "INCOMPLETE", // *************** Will be updated after evaluation
-      average_score: 0, // *************** Will be calculated
+       // *************** Will be updated after evaluation
+      status: "INCOMPLETE",
+      // *************** Will be calculated
+      average_score: 0, 
       subject_results: [],
       criteria_evaluation: [], // *************** Ensure this is initialized
     };
 
     // *************** Process each subject
     for (const subject of subjects) {
-      const subjectId = subject._id.toString();
+      const subjectId = String(subject._id);
       const subjectTests = testsBySubject[subjectId] || [];
 
       // *************** Validate data integrity using validator
       try {
         ValidateTestSubjectDataIntegrity(testsMap, subjectIdsMap, null, subjectId);
       } catch (error) {
-        console.warn(error.message);
+        // *************** Log error to database
+        await ErrorLogModel.create({
+          path: 'modules/transcriptCalculation/transcript_calculation.js',
+          parameter_input: JSON.stringify({ studentId, blockId, subjectId, error: error.message }),
+          function_name: 'CalculateStudentBlockResults',
+          error: String(error.stack),
+        });
         continue;
       }
-
-      console.log(
-        `Processing subject: ${subject.name} (ID: ${subjectId}) with ${subjectTests.length} tests`
-      );
 
       const subjectResult = {
         subject_id: subject._id,
@@ -200,30 +195,27 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
 
       // *************** Process each test in the subject
       for (const test of subjectTests) {
-        const testId = test._id.toString();
+        const testId = String(test._id);
         const testResult = testResultsMap[testId];
 
         // *************** Validate data integrity using validator
         try {
           ValidateTestSubjectDataIntegrity(testsMap, subjectIdsMap, testId, subjectId);
         } catch (error) {
-          console.warn(error.message);
+          // *************** Log error to database
+          await ErrorLogModel.create({
+            path: 'modules/transcriptCalculation/transcript_calculation.js',
+            parameter_input: JSON.stringify({ studentId, blockId, testId, subjectId, error: error.message }),
+            function_name: 'CalculateStudentBlockResults',
+            error: String(error.stack),
+          });
           continue;
         }
-
-        console.log(`Processing test: ${test.name} (ID: ${testId})`);
-        console.log(`Test result found:`, !!testResult);
 
         // *************** Skip if no result exists
         if (!testResult) {
-          console.log(
-            `No test results found for test ${test.name} (ID: ${testId}) in subject ${subject.name}`
-          );
           continue;
         }
-
-        console.log(`Test result marks:`, testResult.marks);
-        console.log(`Test notations:`, test.notations);
 
         // *************** Calculate notation-level results
         const notationResults = test.notations.map((notation, index) => {
@@ -282,23 +274,32 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
           createdAt: new Date(),
         };
 
-        // *************** Evaluate test criteria using utility
+        // *************** Evaluate test criteria using detailed utility
         if (test.passing_criteria && test.passing_criteria.length > 0) {
-          const criteriaResult = EvaluateTestCriteria(
-            test.passing_criteria,
-            processedTestResult
-          );
+          try {
+            const detailedEvaluation = EvaluateTestCriteriaDetailed(
+              test.passing_criteria,
+              processedTestResult
+            );
 
-          // *************** Create simplified evaluation record
-          processedTestResult.criteria_evaluation = [
-            {
-              expected_outcome: "PASS",
-              result: criteriaResult,
-              rule_evaluations: [], // *************** Detailed rules evaluated by utility
-            },
-          ];
-
-          processedTestResult.status = criteriaResult ? "PASS" : "FAIL";
+            // *************** Use detailed evaluation results
+            processedTestResult.criteria_evaluation = detailedEvaluation.criteria_evaluation;
+            processedTestResult.status = detailedEvaluation.passed ? "PASS" : "FAIL";
+          } catch (evaluationError) {
+            // *************** Fallback to basic evaluation if detailed evaluation fails
+            const basicResult = EvaluateTestCriteria(
+              test.passing_criteria,
+              processedTestResult
+            );
+            processedTestResult.criteria_evaluation = [
+              {
+                expected_outcome: "PASS",
+                result: basicResult,
+                rule_evaluations: [],
+              },
+            ];
+            processedTestResult.status = basicResult ? "PASS" : "FAIL";
+          }
         } else {
           // *************** If no criteria defined, default to pass if any points achieved
           processedTestResult.status =
@@ -327,24 +328,34 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
         );
         subjectResult.average_score = subjectTotalWithoutCoefficient;
 
-        // *************** Evaluate subject criteria using utility
+        // *************** Evaluate subject criteria using detailed utility
         if (subject.passing_criteria && subject.passing_criteria.length > 0) {
-          const criteriaResult = EvaluateSubjectCriteria(
-            subject.passing_criteria,
-            subjectResult,
-            subjectTestResultsMap
-          );
+          try {
+            const detailedEvaluation = EvaluateSubjectCriteriaDetailed(
+              subject.passing_criteria,
+              subjectResult,
+              subjectTestResultsMap
+            );
 
-          // *************** Create evaluation record based on utility result
-          subjectResult.criteria_evaluation = [
-            {
-              expected_outcome: "PASS",
-              result: criteriaResult,
-              rule_evaluations: [], // *************** Detailed rules would be populated by utility if needed
-            },
-          ];
-
-          subjectResult.status = criteriaResult ? "PASS" : "FAIL";
+            // *************** Use detailed evaluation results
+            subjectResult.criteria_evaluation = detailedEvaluation.criteria_evaluation;
+            subjectResult.status = detailedEvaluation.passed ? "PASS" : "FAIL";
+          } catch (evaluationError) {
+            // *************** Fallback to basic evaluation if detailed evaluation fails
+            const basicResult = EvaluateSubjectCriteria(
+              subject.passing_criteria,
+              subjectResult,
+              subjectTestResultsMap
+            );
+            subjectResult.criteria_evaluation = [
+              {
+                expected_outcome: "PASS",
+                result: basicResult,
+                rule_evaluations: [],
+              },
+            ];
+            subjectResult.status = basicResult ? "PASS" : "FAIL";
+          }
         } else {
           // *************** If no criteria defined, create a default evaluation based on average score
           const passed = subjectResult.average_score >= 50;
@@ -370,8 +381,6 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
         }
       } else {
         // *************** No test results for this subject
-        console.log(`No test results found for subject ${subject.name}`);
-
         // *************** Create a default criteria evaluation indicating incomplete status
         subjectResult.criteria_evaluation = [
           {
@@ -416,30 +425,40 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
       // *************** Create a map of subject results by ID for block criteria evaluation
       const subjectResultsMap = blockResult.subject_results.reduce(
         (map, subjectResult) => {
-          map[subjectResult.subject_id.toString()] = subjectResult;
+          map[String(subjectResult.subject_id)] = subjectResult;
           return map;
         },
         {}
       );
 
-      // *************** Evaluate block criteria using utility
+      // *************** Evaluate block criteria using detailed utility
       if (block.passing_criteria && block.passing_criteria.length > 0) {
-        const criteriaResult = EvaluateBlockCriteria(
-          block.passing_criteria,
-          blockResult,
-          subjectResultsMap
-        );
+        try {
+          const detailedEvaluation = EvaluateBlockCriteriaDetailed(
+            block.passing_criteria,
+            blockResult,
+            subjectResultsMap
+          );
 
-        // *************** Create simplified evaluation record
-        blockResult.criteria_evaluation = [
-          {
-            expected_outcome: "PASS",
-            result: criteriaResult,
-            rule_evaluations: [], // *************** Detailed rules evaluated by utility
-          },
-        ];
-
-        blockResult.status = criteriaResult ? "PASS" : "FAIL";
+          // *************** Use detailed evaluation results
+          blockResult.criteria_evaluation = detailedEvaluation.criteria_evaluation;
+          blockResult.status = detailedEvaluation.passed ? "PASS" : "FAIL";
+        } catch (evaluationError) {
+          // *************** Fallback to basic evaluation if detailed evaluation fails
+          const basicResult = EvaluateBlockCriteria(
+            block.passing_criteria,
+            blockResult,
+            subjectResultsMap
+          );
+          blockResult.criteria_evaluation = [
+            {
+              expected_outcome: "PASS",
+              result: basicResult,
+              rule_evaluations: [],
+            },
+          ];
+          blockResult.status = basicResult ? "PASS" : "FAIL";
+        }
       } else {
         // ***************  If no criteria defined, create a default criteria evaluation based on block average and subject statuses
         const allSubjectsPassed = blockResult.subject_results.every(
@@ -479,9 +498,7 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
         blockResult.status = blockPassed ? "PASS" : "FAIL";
       }
     } else {
-      // ***************  No subject results for this block
-      console.log(`No subject results found for block ${block.name}`);
-
+      
       // ***************  Create a default criteria evaluation indicating incomplete status
       blockResult.criteria_evaluation = [
         {
@@ -526,15 +543,14 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
     return serializedResult;
   } catch (error) {
     // *************** Log error to database
-    await ErrorLog.create({
-      path: "modules/transcriptCalculation/transcript_calculation.service.js",
+    await ErrorLogModel.create({
+      path: 'modules/transcriptCalculation/transcript_calculation.js',
       parameter_input: JSON.stringify({ studentId, blockId, calculatedBy }),
-      function_name: "CalculateStudentBlockResults",
+      function_name: 'CalculateStudentBlockResults',
       error: String(error.stack),
     });
-
-    // *************** Throw error message
-    throw new ApolloError(error.message);
+    // *************** Throw error with context
+    throw new ApolloError(`Failed to calculate student block results: ${error.message}`);
   }
 }
 
@@ -550,11 +566,11 @@ function ValidateTestSubjectRelationships(testsMap, subjectIdsMap) {
   
   // *************** Check if all tests reference valid subjects using maps
   Object.values(testsMap).forEach(test => {
-    const subjectId = test.subject_id.toString();
+    const subjectId = String(test.subject_id);
     if (!subjectIdsMap[subjectId]) {
       inconsistencies.push({
         type: 'ORPHANED_TEST',
-        testId: test._id.toString(),
+        testId: String(test._id),
         testName: test.name,
         subjectId: subjectId,
         message: `Test ${test.name} references non-existent subject ${subjectId}`
@@ -635,19 +651,18 @@ async function SaveCalculationResult(studentId, blockResult, calculatedBy) {
     }
   } catch (error) {
     // *************** Log error to database
-    await ErrorLog.create({
-      path: "modules/transcriptCalculation/transcript_calculation.service.js",
+    await ErrorLogModel.create({
+      path: 'modules/transcriptCalculation/transcript_calculation.js',
       parameter_input: JSON.stringify({
         studentId,
         blockId: blockResult.block_id,
         calculatedBy,
       }),
-      function_name: "SaveCalculationResult",
+      function_name: 'SaveCalculationResult',
       error: String(error.stack),
     });
-
-    // *************** Throw error message
-    throw new ApolloError(error.message);
+    // *************** Throw error with context
+    throw new ApolloError(`Failed to save calculation result: ${error.message}`);
   }
 }
 
@@ -699,7 +714,7 @@ async function CalculateStudentCompleteTranscript(
         school_id: student.school_id,
         status: "active",
       });
-      blocksToCalculate = allBlocks.map((block) => block._id.toString());
+      blocksToCalculate = allBlocks.map((block) => String(block._id));
     }
 
     if (blocksToCalculate.length === 0) {
@@ -714,8 +729,6 @@ async function CalculateStudentCompleteTranscript(
     const blockCalculationData = [];
 
     for (const blockId of blocksToCalculate) {
-      console.log(`Calculating block ${blockId} for student ${studentId}`);
-
       // *************** Calculate single block results
       const blockResult = await CalculateStudentBlockResults(
         studentId,
@@ -727,7 +740,7 @@ async function CalculateStudentCompleteTranscript(
         // *************** Extract the block data from the saved calculation result
         const savedCalculation = blockResult.result;
         const blockData = savedCalculation.block_results.find(
-          (br) => br.block_id.toString() === blockId
+          (br) => String(br.block_id) === blockId
         );
 
         if (blockData) {
@@ -805,15 +818,14 @@ async function CalculateStudentCompleteTranscript(
     return JSON.parse(JSON.stringify(result));
   } catch (error) {
     // *************** Log error to database
-    await ErrorLog.create({
-      path: "modules/transcriptCalculation/transcript_calculation.service.js",
+    await ErrorLogModel.create({
+      path: 'modules/transcriptCalculation/transcript_calculation.js',
       parameter_input: JSON.stringify({ studentId, blockIds, calculatedBy }),
-      function_name: "CalculateStudentCompleteTranscript",
+      function_name: 'CalculateStudentCompleteTranscript',
       error: String(error.stack),
     });
-
-    // *************** Throw error message
-    throw new ApolloError(error.message);
+    // *************** Throw error with context
+    throw new ApolloError(`Failed to calculate complete transcript: ${error.message}`);
   }
 }
 

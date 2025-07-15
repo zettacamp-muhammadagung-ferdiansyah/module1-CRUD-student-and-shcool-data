@@ -12,6 +12,9 @@ const BlockValidators = require("./block.validator");
 const { ValidateMongoId } = require("../../utils/validator/mongo.validator");
 const { ValidatePaginationParameters,} = require("../../utils/validator/pagination.validator");
 
+// *************** IMPORT HELPER FUNCTION ***************
+const { SanitizePassingCriteria } = require("./block.helper");
+
 // *************** QUERY ***************
 /**
  * Retrieves a paginated list of active blocks.
@@ -117,24 +120,8 @@ async function CreateBlock(_, { block_input }) {
     // *************** Validate Input
     BlockValidators.ValidateCreateBlockParameters(block_input);
 
-    // *************** Sanitize passing_criteria to handle empty subject_ids
-    let sanitizedPassingCriteria = [];
-    if (block_input.passing_criteria) {
-      sanitizedPassingCriteria = block_input.passing_criteria.map(criteria => {
-        return {
-          expected_outcome: criteria.expected_outcome,
-          rules: criteria.rules.map(rule => {
-            return {
-              logical_operator: rule.logical_operator,
-              type: rule.type,
-              subject_id: rule.subject_id === "" ? null : rule.subject_id,
-              operator: rule.operator,
-              value: rule.value
-            };
-          })
-        };
-      });
-    }
+    // *************** Sanitize passing_criteria using helper function
+    const sanitizedPassingCriteria = SanitizePassingCriteria(block_input.passing_criteria);
 
     // *************** Create sanitized block object with only allowed fields
     const blockData = {
@@ -184,24 +171,8 @@ async function UpdateBlock(_, { id, block_input }) {
       blockInput: block_input,
     });
 
-    // *************** Sanitize passing_criteria to handle empty subject_ids
-    let sanitizedPassingCriteria = block_input.passing_criteria;
-    if (block_input.passing_criteria) {
-      sanitizedPassingCriteria = block_input.passing_criteria.map(criteria => {
-        return {
-          expected_outcome: criteria.expected_outcome,
-          rules: criteria.rules.map(rule => {
-            return {
-              logical_operator: rule.logical_operator,
-              type: rule.type,
-              subject_id: rule.subject_id === "" ? null : rule.subject_id,
-              operator: rule.operator,
-              value: rule.value
-            };
-          })
-        };
-      });
-    }
+    // *************** Sanitize passing_criteria using helper function
+    const sanitizedPassingCriteria = SanitizePassingCriteria(block_input.passing_criteria);
 
     // *************** Create sanitized update object with only allowed fields
     const updateData = {

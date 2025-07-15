@@ -13,24 +13,6 @@ const BlockTypeDefs = gql`
     BLOCK_AVERAGE
   }
 
-  enum LogicalOperator {
-    AND
-    OR
-  }
-
-  enum ComparisonOperator {
-    GTE
-    GT
-    LTE
-    LT
-    EQ
-  }
-
-  enum ExpectedOutcome {
-    PASS
-    FAIL
-  }
-
   type BlockRule {
     logical_operator: LogicalOperator
     type: BlockRuleType!

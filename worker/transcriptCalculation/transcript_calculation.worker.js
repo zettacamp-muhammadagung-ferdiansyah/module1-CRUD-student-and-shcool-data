@@ -5,7 +5,8 @@ const mongoose = require("mongoose");
 // *************** IMPORT MODULE ***************
 const {
   CalculateStudentBlockResults,
-} = require("../../modules/transcriptCalculation/transcript_calculation.service");
+} = require("../../modules/transcriptCalculation/transcript_calculation");
+const ErrorLogModel = require("../../modules/errorLogs/error_logs.model");
 
 // *************** Connect to database
 // *************** Initialize database connection
@@ -21,9 +22,7 @@ async function connectToDatabase() {
       useCreateIndex: true,
     });
 
-    console.log("[Worker] Connected to MongoDB");
   } catch (error) {
-    console.error("[Worker] MongoDB connection error:", error);
     throw error;
   }
 }
@@ -53,8 +52,17 @@ async function calculateTranscript() {
     // *************** Close the database connection
     await mongoose.connection.close();
   } catch (error) {
-    // *************** Log the error in the worker
-    console.error("[Worker] Calculation error:", error);
+    // *************** Log error to database
+    try {
+      await ErrorLogModel.create({
+        path: 'worker/transcriptCalculation/transcript_calculation.worker.js',
+        parameter_input: JSON.stringify(workerData),
+        function_name: 'calculateTranscript',
+        error: String(error.stack),
+      });
+    } catch (logError) {
+      console.error("[Worker] Failed to log error to database:", logError);
+    }
 
     // *************** Safely serialize the error to avoid DataCloneError
     const serializedError = {
@@ -79,16 +87,26 @@ async function calculateTranscript() {
   }
 }
 
-// *************** EXECUTE THE WORKER ***************
+// *************** EXECUTE THE WORKER 
 (async () => {
   try {
     // *************** First connect to the database
     await connectToDatabase();
 
-    // await calculateTranscript(); Then perform the calculation
+    // ***************await calculateTranscript(); Then perform the calculation
     await calculateTranscript();
   } catch (error) {
-    console.error("[Worker] Fatal worker error:", error);
+    // *************** Log error to database
+    try {
+      await ErrorLogModel.create({
+        path: 'worker/transcriptCalculation/transcript_calculation.worker.js',
+        parameter_input: JSON.stringify(workerData || {}),
+        function_name: 'workerMain',
+        error: String(error.stack),
+      });
+    } catch (logError) {
+      console.error("[Worker] Failed to log fatal error to database:", logError);
+    }
 
     // *************** Safely serialize the error to avoid DataCloneError
     const serializedError = {

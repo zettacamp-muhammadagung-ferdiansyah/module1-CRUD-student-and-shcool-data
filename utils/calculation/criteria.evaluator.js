@@ -369,11 +369,311 @@ function EvaluateBlockCriteria(criteria, blockResult, subjectResultsMap) {
   return false;
 }
 
+/**
+ * *************** Enhanced version that returns detailed evaluation with rule breakdowns
+ * @function EvaluateTestCriteriaDetailed
+ * @param {Array} criteria - Array of criteria objects with rules
+ * @param {Object} testResult - The test result data
+ * @returns {Object} Detailed evaluation with rule_evaluations array
+ */
+function EvaluateTestCriteriaDetailed(criteria, testResult) {
+  // *************** If no criteria defined, return default pass
+  if (!Array.isArray(criteria) || criteria.length === 0) {
+    return {
+      passed: true,
+      criteria_evaluation: [
+        {
+          expected_outcome: "PASS",
+          result: true,
+          rule_evaluations: [],
+        },
+      ],
+    };
+  }
+
+  // *************** Process each criteria group
+  const evaluationResults = [];
+  let overallPassed = false;
+
+  for (const criteriaGroup of criteria) {
+    // *************** Skip non-PASS criteria groups
+    if (criteriaGroup.expected_outcome !== "PASS") {
+      continue;
+    }
+
+    // *************** If no rules in this group, skip
+    if (!Array.isArray(criteriaGroup.rules) || criteriaGroup.rules.length === 0) {
+      continue;
+    }
+
+    // *************** Evaluate each rule and collect detailed results
+    const rule_evaluations = [];
+    let criteriaResult = true;
+
+    for (let i = 0; i < criteriaGroup.rules.length; i++) {
+      const rule = criteriaGroup.rules[i];
+      const ruleResult = EvaluateTestRule(rule, testResult);
+
+      // *************** Get actual value for detailed logging
+      let actualValue = 0;
+      if (rule.type === "NOTATION_SCORE" && rule.notation_index !== undefined) {
+        const notation = testResult.notation_results && testResult.notation_results.find(
+          (n) => n.notation_id === rule.notation_index
+        );
+        actualValue = notation ? notation.achieved_points : 0;
+      } else if (rule.type === "TOTAL_SCORE") {
+        actualValue = testResult.percentage || 0;
+      }
+
+      // *************** Create detailed rule evaluation
+      rule_evaluations.push({
+        type: rule.type,
+        logical_operator: rule.logical_operator || null,
+        target_id:
+          rule.notation_index !== undefined
+            ? String(rule.notation_index)
+            : null,
+        operator: rule.operator,
+        value: rule.value,
+        actual_value: actualValue,
+        passed: ruleResult,
+      });
+
+      // *************** Apply logical operators
+      if (i > 0 && rule.logical_operator) {
+        if (rule.logical_operator === "AND") {
+          criteriaResult = criteriaResult && ruleResult;
+        } else if (rule.logical_operator === "OR") {
+          criteriaResult = criteriaResult || ruleResult;
+        }
+      } else {
+        criteriaResult = ruleResult;
+      }
+    }
+
+    // *************** Add this criteria group's evaluation
+    evaluationResults.push({
+      expected_outcome: "PASS",
+      result: criteriaResult,
+      rule_evaluations: rule_evaluations,
+    });
+
+    // *************** If any criteria group passes, overall result is pass
+    if (criteriaResult) {
+      overallPassed = true;
+    }
+  }
+
+  return {
+    passed: overallPassed,
+    criteria_evaluation: evaluationResults,
+  };
+}
+
+/**
+ * *************** Enhanced version that returns detailed evaluation with rule breakdowns
+ * @function EvaluateSubjectCriteriaDetailed
+ * @param {Array} criteria - Array of criteria objects with rules
+ * @param {Object} subjectResult - The subject result data
+ * @param {Object} testResultsMap - Map of test results by ID
+ * @returns {Object} Detailed evaluation with rule_evaluations array
+ */
+function EvaluateSubjectCriteriaDetailed(criteria, subjectResult, testResultsMap) {
+  // *************** If no criteria defined, return default pass
+  if (!Array.isArray(criteria) || criteria.length === 0) {
+    return {
+      passed: true,
+      criteria_evaluation: [
+        {
+          expected_outcome: "PASS",
+          result: true,
+          rule_evaluations: [],
+        },
+      ],
+    };
+  }
+
+  // *************** Process each criteria group
+  const evaluationResults = [];
+  let overallPassed = false;
+
+  for (const criteriaGroup of criteria) {
+    // *************** Skip non-PASS criteria groups
+    if (criteriaGroup.expected_outcome !== "PASS") {
+      continue;
+    }
+
+    // *************** If no rules in this group, skip
+    if (!Array.isArray(criteriaGroup.rules) || criteriaGroup.rules.length === 0) {
+      continue;
+    }
+
+    // *************** Evaluate each rule and collect detailed results
+    const rule_evaluations = [];
+    let criteriaResult = true;
+
+    for (let i = 0; i < criteriaGroup.rules.length; i++) {
+      const rule = criteriaGroup.rules[i];
+      const ruleResult = EvaluateSubjectRule(rule, subjectResult, testResultsMap);
+
+      // *************** Get actual value for detailed logging
+      let actualValue = 0;
+      if (rule.type === "TEST_RESULT" && rule.test_id) {
+        actualValue = testResultsMap[rule.test_id] && testResultsMap[rule.test_id].status === "PASS" ? 1 : 0;
+      } else if (rule.type === "TEST_MARK" && rule.test_id) {
+        actualValue = testResultsMap[rule.test_id] ? testResultsMap[rule.test_id].percentage || 0 : 0;
+      } else if (rule.type === "SUBJECT_AVERAGE") {
+        actualValue = subjectResult.average_score || 0;
+      }
+
+      // *************** Create detailed rule evaluation
+      rule_evaluations.push({
+        type: rule.type,
+        logical_operator: rule.logical_operator || null,
+        target_id: rule.test_id ? String(rule.test_id) : null,
+        operator: rule.operator,
+        value: rule.value,
+        actual_value: actualValue,
+        passed: ruleResult,
+      });
+
+      // *************** Apply logical operators
+      if (i > 0 && rule.logical_operator) {
+        if (rule.logical_operator === "AND") {
+          criteriaResult = criteriaResult && ruleResult;
+        } else if (rule.logical_operator === "OR") {
+          criteriaResult = criteriaResult || ruleResult;
+        }
+      } else {
+        criteriaResult = ruleResult;
+      }
+    }
+
+    // *************** Add this criteria group's evaluation
+    evaluationResults.push({
+      expected_outcome: "PASS",
+      result: criteriaResult,
+      rule_evaluations: rule_evaluations,
+    });
+
+    // *************** If any criteria group passes, overall result is pass
+    if (criteriaResult) {
+      overallPassed = true;
+    }
+  }
+
+  return {
+    passed: overallPassed,
+    criteria_evaluation: evaluationResults,
+  };
+}
+
+/**
+ * *************** Enhanced version that returns detailed evaluation with rule breakdowns
+ * @function EvaluateBlockCriteriaDetailed
+ * @param {Array} criteria - Array of criteria objects with rules
+ * @param {Object} blockResult - The block result data
+ * @param {Object} subjectResultsMap - Map of subject results by ID
+ * @returns {Object} Detailed evaluation with rule_evaluations array
+ */
+function EvaluateBlockCriteriaDetailed(criteria, blockResult, subjectResultsMap) {
+  // *************** If no criteria defined, return default pass
+  if (!Array.isArray(criteria) || criteria.length === 0) {
+    return {
+      passed: true,
+      criteria_evaluation: [
+        {
+          expected_outcome: "PASS",
+          result: true,
+          rule_evaluations: [],
+        },
+      ],
+    };
+  }
+
+  // *************** Process each criteria group
+  const evaluationResults = [];
+  let overallPassed = false;
+
+  for (const criteriaGroup of criteria) {
+    // *************** Skip non-PASS criteria groups
+    if (criteriaGroup.expected_outcome !== "PASS") {
+      continue;
+    }
+
+    // *************** If no rules in this group, skip
+    if (!Array.isArray(criteriaGroup.rules) || criteriaGroup.rules.length === 0) {
+      continue;
+    }
+
+    // *************** Evaluate each rule and collect detailed results
+    const rule_evaluations = [];
+    let criteriaResult = true;
+
+    for (let i = 0; i < criteriaGroup.rules.length; i++) {
+      const rule = criteriaGroup.rules[i];
+      const ruleResult = EvaluateBlockRule(rule, blockResult, subjectResultsMap);
+
+      // *************** Get actual value for detailed logging
+      let actualValue = 0;
+      if (rule.type === "SUBJECT_RESULT" && rule.subject_id) {
+        actualValue = subjectResultsMap[rule.subject_id] && subjectResultsMap[rule.subject_id].status === "PASS" ? 1 : 0;
+      } else if (rule.type === "SUBJECT_MARK" && rule.subject_id) {
+        actualValue = subjectResultsMap[rule.subject_id] ? subjectResultsMap[rule.subject_id].average_score || 0 : 0;
+      } else if (rule.type === "BLOCK_AVERAGE") {
+        actualValue = blockResult.average_score || 0;
+      }
+
+      // *************** Create detailed rule evaluation
+      rule_evaluations.push({
+        type: rule.type,
+        logical_operator: rule.logical_operator || null,
+        target_id: rule.subject_id ? String(rule.subject_id) : null,
+        operator: rule.operator,
+        value: rule.value,
+        actual_value: actualValue,
+        passed: ruleResult,
+      });
+
+      // *************** Apply logical operators
+      if (i > 0 && rule.logical_operator) {
+        if (rule.logical_operator === "AND") {
+          criteriaResult = criteriaResult && ruleResult;
+        } else if (rule.logical_operator === "OR") {
+          criteriaResult = criteriaResult || ruleResult;
+        }
+      } else {
+        criteriaResult = ruleResult;
+      }
+    }
+
+    // *************** Add this criteria group's evaluation
+    evaluationResults.push({
+      expected_outcome: "PASS",
+      result: criteriaResult,
+      rule_evaluations: rule_evaluations,
+    });
+
+    // *************** If any criteria group passes, overall result is pass
+    if (criteriaResult) {
+      overallPassed = true;
+    }
+  }
+
+  return {
+    passed: overallPassed,
+    criteria_evaluation: evaluationResults,
+  };
+}
+
 // *************** EXPORT MODULE ***************
 module.exports = {
   EvaluateTestCriteria,
   EvaluateSubjectCriteria,
   EvaluateBlockCriteria,
+  EvaluateTestCriteriaDetailed,
+  EvaluateSubjectCriteriaDetailed,
+  EvaluateBlockCriteriaDetailed,
   CompareValues,
   EvaluateTestRule,
   EvaluateSubjectRule,

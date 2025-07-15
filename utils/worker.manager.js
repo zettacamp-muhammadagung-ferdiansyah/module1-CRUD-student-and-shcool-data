@@ -1,9 +1,10 @@
 // *************** IMPORT LIBRARY ***************
+const path = require('path');
+const { ApolloError } = require('apollo-server');
 let Worker, isMainThread, parentPort, workerData;
+
 // *************** IMPORT MODULE ***************
-const {
-  CalculateStudentBlockResults,
-} = require("../modules/transcriptCalculation/transcript_calculation.service");
+const ErrorLogModel = require('../modules/errorLogs/error_logs.model');
 
 // *************** Check node version and worker suppport
 let workerThreadsAvailable = false;
@@ -17,22 +18,13 @@ try {
   parentPort = workerThreads.parentPort;
   workerData = workerThreads.workerData;
   workerThreadsAvailable = true;
-  console.log(
-    `[WorkerManager] Worker threads available in Node.js ${nodeVersion}`
-  );
 } catch (error) {
   // *************** Worker threads not available
-  console.log(
-    `[WorkerManager] Worker threads not available in Node.js ${nodeVersion}:`,
-    error.message
-  );
-  console.log("[WorkerManager] Falling back to synchronous execution");
   workerThreadsAvailable = false;
 }
 
-const path = require("path");
-const { ApolloError } = require("apollo-server");
-const ErrorLogModel = require("../modules/errorLogs/error_logs.model");
+
+
 
 // *************** WORKER POOL CONFIG
 // *************** Maximum number of concurrent workers
@@ -42,35 +34,7 @@ const activeWorkers = new Map();
 // *************** Queue for pending tasks
 const taskQueue = [];
 
-/**
- * *************** Logs an error to the database and console
- * @function LogWorkerError
- * @param {string} operation - The operation that was being performed
- * @param {string} errorMessage - The error message
- * @param {Object} additionalInfo - Additional context about the error
- */
-async function LogWorkerError(operation, errorMessage, additionalInfo = {}) {
-  try {
-    // *************** Create an error log entry
-    await ErrorLogModel.create({
-      operation,
-      error_message: errorMessage,
-      additional_info: additionalInfo,
-      timestamp: new Date(),
-    });
 
-    // *************** Also log to console for debugging
-    console.error(
-      `Error in worker manager (${operation}):`,
-      errorMessage,
-      additionalInfo
-    );
-  } catch (error) {
-    // *************** If error logging itself fails, at least log to console
-    console.error("Failed to log worker error to database:", error);
-    console.error("Original error:", errorMessage, additionalInfo);
-  }
-}
 
 /**
  * *************** Process the next task in the queue if workers are available
@@ -147,55 +111,74 @@ function runCalculationInWorker(
 
     // *************** Handle errors from the worker
     worker.on("error", async (error) => {
-      activeWorkers.delete(workerId);
+      try {
+        activeWorkers.delete(workerId);
 
-      // *************** Log the error
-      await LogWorkerError("Worker Execution", error.message, {
-        workerScript,
-        workerId,
-        workerData,
-      });
+        // ************** Log error to database
+        await ErrorLogModel.create({
+          path: 'utils/worker.manager.js',
+          parameter_input: JSON.stringify({ workerScript, workerId, workerData }),
+          function_name: 'runCalculationInWorker',
+          error: String(error.stack),
+        });
 
-      rejectCallback(
-        new ApolloError(`Worker error: ${error.message}`, "WORKER_ERROR")
-      );
+        // ************** Reject with ApolloError
+        rejectCallback(new ApolloError(error.message));
 
-      // *************** Process next task if any
-      processNextTask();
+        // *************** Process next task if any
+        processNextTask();
+      } catch (logError) {
+        // *************** If error logging fails, still reject with original error
+        rejectCallback(new ApolloError(error.message));
+        processNextTask();
+      }
     });
 
     // *************** Handle worker exit
-    worker.on("exit", (code) => {
-      activeWorkers.delete(workerId);
+    worker.on("exit", async (code) => {
+      try {
+        activeWorkers.delete(workerId);
 
-      if (code !== 0) {
-        // *************** Only reject if not already handled by error event
-        rejectCallback(
-          new ApolloError(
-            `Worker stopped with exit code ${code}`,
-            "WORKER_EXIT"
-          )
-        );
+        if (code !== 0) {
+          const errorMessage = `Worker stopped with exit code ${code}`;
+          
+          // ************** Log error to database
+          await ErrorLogModel.create({
+            path: 'utils/worker.manager.js',
+            parameter_input: JSON.stringify({ workerScript, workerId, workerData, exitCode: code }),
+            function_name: 'runCalculationInWorker',
+            error: errorMessage,
+          });
+
+          // ************** Reject the promise with ApolloError
+          rejectCallback(new ApolloError(errorMessage));
+        }
+
+        // ***************  Process next task if any
+        processNextTask();
+      } catch (logError) {
+        // *************** If error logging fails, still reject
+        const errorMessage = `Worker stopped with exit code ${code}`;
+        if (code !== 0) {
+          rejectCallback(new ApolloError(errorMessage));
+        }
+        processNextTask();
       }
-
-      // ***************  Process next task if any
-      processNextTask();
     });
   } catch (error) {
-    // *************** Log synchronous errors during worker creation
-    LogWorkerError("Worker Creation", error.message, {
-      workerScript,
-      workerData,
+    // *************** Handle synchronous errors during worker creation
+    ErrorLogModel.create({
+      path: 'utils/worker.manager.js',
+      parameter_input: JSON.stringify({ workerScript, workerData }),
+      function_name: 'runCalculationInWorker',
+      error: String(error.stack),
+    }).then(() => {
+      rejectCallback(new ApolloError(error.message));
+      processNextTask();
+    }).catch((logError) => {
+      rejectCallback(new ApolloError(error.message));
+      processNextTask();
     });
-    rejectCallback(
-      new ApolloError(
-        `Failed to create worker: ${error.message}`,
-        "WORKER_CREATION_ERROR"
-      )
-    );
-
-    // *************** Process next task if any
-    processNextTask();
   }
 }
 
@@ -210,84 +193,47 @@ function runCalculationInWorker(
  */
 function QueueTranscriptCalculation(calculationData) {
   return new Promise((resolve, reject) => {
-    // *************** If worker threads are not available, execute synchronously
-    if (!workerThreadsAvailable) {
-      console.log(
-        "[WorkerManager] Worker threads not available, executing calculation synchronously"
-      );
+    try {
+      // *************** If worker threads are not available, reject with error
+      if (!workerThreadsAvailable) {
+        reject(new ApolloError(
+          "Worker threads not available for transcript calculation", 
+          "WORKER_NOT_AVAILABLE"
+        ));
+        return;
+      }
 
-      // *************** Execute the calculation directly in the main thread
-      executeSynchronousCalculation(calculationData)
-        .then(resolve)
-        .catch(reject);
+      // *************** If worker threads are available, use them
+      const task = {
+        workerScript: path.join(
+          __dirname,
+          "../worker/transcriptCalculation/transcript_calculation.worker.js"
+        ),
+        workerData: calculationData,
+        resolveCallback: resolve,
+        rejectCallback: reject,
+      };
 
-      return;
+      // *************** Add task to queue
+      taskQueue.push(task);
+
+      // *************** Try to process immediately if workers are available
+      processNextTask();
+    } catch (error) {
+      // ************** Log error to database
+      ErrorLogModel.create({
+        path: 'utils/worker.manager.js',
+        parameter_input: JSON.stringify(calculationData),
+        function_name: 'QueueTranscriptCalculation',
+        error: String(error.stack),
+      }).then(() => {
+        // ************** Reject with ApolloError
+        reject(new ApolloError(error.message));
+      }).catch((logError) => {
+        reject(new ApolloError(error.message));
+      });
     }
-
-    // *************** If worker threads are available, use them
-    const task = {
-      workerScript: path.join(
-        __dirname,
-        "../worker/transcriptCalculation/transcript_calculation.worker.js"
-      ),
-      workerData: calculationData,
-      resolveCallback: resolve,
-      rejectCallback: reject,
-    };
-
-    // *************** Add task to queue
-    taskQueue.push(task);
-
-    // *************** Try to process immediately if workers are available
-    processNextTask();
   });
-}
-
-/**
- * *************** Executes transcript calculation synchronously when worker threads are not available
- * @function executeSynchronousCalculation
- * @param {Object} calculationData - Data needed for the calculation
- * @returns {Promise<Object>} A promise that resolves with the calculation result
- */
-async function executeSynchronousCalculation(calculationData) {
-  try {
-    console.log(
-      "[WorkerManager] Starting synchronous calculation for student:",
-      calculationData.studentId
-    );
-
-    // *************** Execute the calculation
-    const result = await CalculateStudentBlockResults(
-      calculationData.studentId,
-      calculationData.blockId,
-      calculationData.calculatedBy
-    );
-
-    console.log(
-      "[WorkerManager] Synchronous calculation completed successfully"
-    );
-    return result;
-  } catch (error) {
-    console.error("[WorkerManager] Synchronous calculation failed:", error);
-
-    // *************** Log the error
-    await LogWorkerError(
-      "Synchronous Calculation",
-      error.message,
-      calculationData
-    );
-
-    // *************** Return error in the same format as worker results
-    return {
-      success: false,
-      message: `Synchronous calculation failed: ${error.message}`,
-      error: {
-        name: error.name || "Error",
-        message: error.message || "Unknown error",
-        type: error.constructor ? error.constructor.name : "Error",
-      },
-    };
-  }
 }
 
 /**
@@ -296,10 +242,26 @@ async function executeSynchronousCalculation(calculationData) {
  * @returns {Object} Object containing active worker count and queued task count
  */
 function GetWorkerStatus() {
-  return {
-    activeWorkers: activeWorkers.size,
-    queuedTasks: taskQueue.length,
-  };
+  try {
+    return {
+      activeWorkers: activeWorkers.size,
+      queuedTasks: taskQueue.length,
+      maxWorkers: MAX_WORKERS,
+      workerThreadsAvailable: workerThreadsAvailable,
+      nodeVersion: nodeVersion
+    };
+  } catch (error) {
+    // ************** Log error to database (don't await here to avoid blocking)
+    ErrorLogModel.create({
+      path: 'utils/worker.manager.js',
+      parameter_input: JSON.stringify({}),
+      function_name: 'GetWorkerStatus',
+      error: String(error.stack),
+    });
+
+    // ************** Throw ApolloError
+    throw new ApolloError(error.message);
+  }
 }
 
 // *************** EXPORT MODULE ***************

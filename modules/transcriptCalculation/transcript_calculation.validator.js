@@ -29,8 +29,7 @@ function ValidateCalculateStudentBlockResultsParameters({ studentId, blockId, ca
   }
   ValidateMongoId(blockId);
 
-  // *************** Validate calculated by (required, must be valid MongoId)
-  // *************** Note: Can be user ID or system default ('000000000000000000000000')
+  // *************** Validate calculated by (required, must be valid MongoId) (can be system-generated)
   if (!calculatedBy) {
     throw new ApolloError('Calculated by ID is required', 'INVALID_INPUT');
   }
@@ -59,8 +58,7 @@ function ValidateSaveCalculationResultParameters({ studentId, blockResult, calcu
     throw new ApolloError('Block result is required and must be an object', 'INVALID_INPUT');
   }
 
-  // *************** Validate calculated by (required, must be valid MongoId)
-  // *************** Note: Can be user ID or system default ('000000000000000000000000')
+  // *************** Validate calculated by (required, must be valid MongoId) (can be system-generated)
   if (!calculatedBy) {
     throw new ApolloError('Calculated by ID is required', 'INVALID_INPUT');
   }
@@ -96,7 +94,7 @@ function ValidateCalculateStudentCompleteTranscriptParameters({ studentId, block
   }
 
   // *************** Validate calculated by (required, must be valid MongoId)
-  // *************** Note: Can be user ID or system default ('000000000000000000000000')
+  // *************** Note: Can be user ID or system-generated ObjectId
   if (!calculatedBy) {
     throw new ApolloError('Calculated by ID is required', 'INVALID_INPUT');
   }
