@@ -442,19 +442,14 @@ async function ValidateMarks(_, { id }, context) {
       throw new ApolloError('Subject not found', 'RESOURCE_NOT_FOUND');
     }
     
-    // *************** Use the current user from context, or the user who performed the validation
-    // *************** System calculation - create a system ObjectId
+    // *************** System calculation - always use a system ObjectId
     const systemObjectId = new mongoose.Types.ObjectId();
-    const calculatedBy = (context && context.user && context.user._id) || 
-                         validatedStudentTestResult.user_id || 
-                         systemObjectId; 
-    
     // *************** Queue the calculation and await it properly
     try {
       await QueueTranscriptCalculation({
         studentId: String(validatedStudentTestResult.student_id._id),
         blockId: String(subject.block_id),
-        calculatedBy: String(calculatedBy)
+        calculatedBy: String(systemObjectId)
       });
     } catch (error) {
       // *************** Log worker queue error but don't throw (non-blocking for the main operation)

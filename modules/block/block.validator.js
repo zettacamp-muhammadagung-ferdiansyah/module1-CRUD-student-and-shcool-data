@@ -42,10 +42,10 @@ function ValidateCreateBlockParameters(blockInput) {
     blockInput.subject_ids.forEach((subjectId) => {
       ValidateMongoId(subjectId);
     });
-  }  // *************** Validate passing_criteria if provided
+  }
+  // *************** Validate passing_criteria if provided (optional on create)
   if (blockInput.passing_criteria) {
-     //  *************** true = creation mode (lenient)
-    ValidatePassingCriteria(blockInput.passing_criteria, true);
+    ValidatePassingCriteria(blockInput.passing_criteria);
   }
 
   // *************** Validate created_by (required, must be valid MongoId)
@@ -156,60 +156,59 @@ function ValidateUpdateBlockParameters({ id, blockInput }) {
 
 /**
  * Validates the structure of passing criteria
- * 
+ *
  * @function ValidatePassingCriteria
  * @param {Array} passingCriteria - Array of passing criteria objects
- * @param {boolean} isCreate - Whether this is for block creation (more lenient) or update (stricter)
  * @throws {ApolloError} Throws error if validation fails
  */
-function ValidatePassingCriteria(passingCriteria, isCreate = false) {
+function ValidatePassingCriteria(passingCriteria) {
   if (!Array.isArray(passingCriteria)) {
     throw new ApolloError('Passing criteria must be an array', 'INVALID_INPUT');
   }
-  
+
   // *************** Validate each passing criteria
   passingCriteria.forEach((criteria) => {
     // *************** Validate expected_outcome
     if (!criteria.expected_outcome || !['PASS', 'FAIL'].includes(criteria.expected_outcome)) {
       throw new ApolloError('Expected outcome must be either PASS or FAIL', 'INVALID_INPUT');
     }
-    
+
     // *************** Validate rules
     if (!Array.isArray(criteria.rules) || criteria.rules.length === 0) {
       throw new ApolloError('Each passing criteria must have at least one rule', 'INVALID_INPUT');
     }
-    
+
     // *************** Validate each rule
     criteria.rules.forEach((rule, index) => {
       // *************** First rule shouldn't have logical operator
       if (index === 0 && rule.logical_operator) {
         throw new ApolloError('First rule should not have a logical operator', 'INVALID_INPUT');
       }
-      
+
       // *************** Subsequent rules must have logical operator
       if (index > 0 && (!rule.logical_operator || !['AND', 'OR'].includes(rule.logical_operator))) {
         throw new ApolloError('Subsequent rules must have a logical operator (AND/OR)', 'INVALID_INPUT');
       }
-      
+
       // *************** Validate rule type
       if (!rule.type || !['SUBJECT_RESULT', 'SUBJECT_MARK', 'BLOCK_AVERAGE'].includes(rule.type)) {
         throw new ApolloError('Rule type must be SUBJECT_RESULT, SUBJECT_MARK, or BLOCK_AVERAGE', 'INVALID_INPUT');
       }
-      
+
       // *************** Validate subject_id for subject-specific rules
       if ((rule.type === 'SUBJECT_RESULT' || rule.type === 'SUBJECT_MARK')) {
         if (rule.subject_id && rule.subject_id !== "") {
           ValidateMongoId(rule.subject_id);
-        } else if (!isCreate && rule.subject_id === "") {
+        } else if (rule.subject_id === "") {
           throw new ApolloError('Subject ID cannot be empty for subject-specific rules', 'INVALID_INPUT');
         }
       }
-      
+
       // *************** Validate operator and value
       if (!rule.operator || !['GTE', 'GT', 'LTE', 'LT', 'EQ'].includes(rule.operator)) {
         throw new ApolloError('Rule operator must be GTE, GT, LTE, LT, or EQ', 'INVALID_INPUT');
       }
-      
+
       if (typeof rule.value !== 'number') {
         throw new ApolloError('Rule value must be a number', 'INVALID_INPUT');
       }

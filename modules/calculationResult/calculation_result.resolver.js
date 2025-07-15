@@ -211,15 +211,14 @@ async function TriggerCalculation(_, { studentId, blockId }, context) {
     // *************** Validate input parameters
     ValidateTriggerCalculationParameters({ studentId, blockId });
 
-    // *************** System calculation - create a system ObjectId
+    // *************** System calculation - always use a system ObjectId
     const systemObjectId = new mongoose.Types.ObjectId();
-    const calculatedBy = (context && context.user && context.user._id) || systemObjectId;
 
     // *************** Queue the calculation
     QueueTranscriptCalculation({
       studentId,
       blockId,
-      calculatedBy: String(calculatedBy)
+      calculatedBy: String(systemObjectId)
     });
 
     // *************** Return success response
