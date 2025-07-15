@@ -445,25 +445,11 @@ async function ValidateMarks(_, { id }, context) {
     // *************** System calculation - always use a system ObjectId
     const systemObjectId = new mongoose.Types.ObjectId();
     // *************** Queue the calculation and await it properly
-    try {
-      await QueueTranscriptCalculation({
-        studentId: String(validatedStudentTestResult.student_id._id),
-        blockId: String(subject.block_id),
-        calculatedBy: String(systemObjectId)
-      });
-    } catch (error) {
-      // *************** Log worker queue error but don't throw (non-blocking for the main operation)
-      await ErrorLogModel.create({
-        path: 'modules/studentTestResult/student_test_result.resolver.js',
-        parameter_input: JSON.stringify({ 
-          studentTestResultId: id,
-          studentId: String(validatedStudentTestResult.student_id._id),
-          blockId: String(subject.block_id)
-        }),
-        function_name: 'ValidateMarks.QueueTranscriptCalculation',
-        error: String(error.stack),
-      });
-    }
+    await QueueTranscriptCalculation({
+      studentId: String(validatedStudentTestResult.student_id._id),
+      blockId: String(subject.block_id),
+      calculatedBy: String(systemObjectId)
+    });
 
     // *************** Return null confirming validation
     return null;
