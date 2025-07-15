@@ -5,12 +5,13 @@
  */
 
 /**
- * *************** Compares two values using the specified operator
+ * Compares two values using the specified operator.
+ *
  * @function CompareValues
- * @param {number} actualValue - The actual value to compare
- * @param {string} operator - The comparison operator (GTE, GT, LTE, LT, EQ)
- * @param {number} expectedValue - The threshold value to compare against
- * @returns {boolean} The result of the comparison
+ * @param {number} actualValue - The actual value to compare.
+ * @param {string} operator - The comparison operator ("GTE", "GT", "LTE", "LT", "EQ").
+ * @param {number} expectedValue - The threshold value to compare against.
+ * @returns {boolean} True if the comparison is satisfied, false otherwise.
  */
 function CompareValues(actualValue, operator, expectedValue) {
   switch (operator) {
@@ -31,11 +32,12 @@ function CompareValues(actualValue, operator, expectedValue) {
 }
 
 /**
- * *************** Evaluates a single rule within a test's criteria
+ * Evaluates a single rule within a test's criteria.
+ *
  * @function EvaluateTestRule
- * @param {Object} rule - The rule to evaluate
- * @param {Object} testResult - The test result data
- * @returns {boolean} The result of the rule evaluation
+ * @param {Object} rule - The rule object to evaluate.
+ * @param {Object} testResult - The test result data object.
+ * @returns {boolean} True if the rule is satisfied, false otherwise.
  */
 function EvaluateTestRule(rule, testResult) {
   // *************** Default to false if required data is missing
@@ -76,11 +78,12 @@ function EvaluateTestRule(rule, testResult) {
 }
 
 /**
- * *************** Determines if a test result meets the test's passing criteria
+ * Determines if a test result meets the test's passing criteria.
+ *
  * @function EvaluateTestCriteria
- * @param {Array} criteria - Array of criteria objects with rules
- * @param {Object} testResult - The test result data
- * @returns {boolean} True if passing criteria are met, false otherwise
+ * @param {Array<Object>} criteria - Array of criteria group objects, each with rules.
+ * @param {Object} testResult - The test result data object.
+ * @returns {boolean} True if passing criteria are met, false otherwise.
  */
 function EvaluateTestCriteria(criteria, testResult) {
   // *************** If no criteria defined, default to pass
@@ -137,12 +140,13 @@ function EvaluateTestCriteria(criteria, testResult) {
 }
 
 /**
- * *************** Evaluates a single rule within a subject's criteria
+ * Evaluates a single rule within a subject's criteria.
+ *
  * @function EvaluateSubjectRule
- * @param {Object} rule - The rule to evaluate
- * @param {Object} subjectResult - The subject result data
- * @param {Object} testResultsMap - Map of test results by ID
- * @returns {boolean} The result of the rule evaluation
+ * @param {Object} rule - The rule object to evaluate.
+ * @param {Object} subjectResult - The subject result data object.
+ * @param {Object} testResultsMap - Map of test results by test ID.
+ * @returns {boolean} True if the rule is satisfied, false otherwise.
  */
 function EvaluateSubjectRule(rule, subjectResult, testResultsMap) {
   // *************** Default to false if required data is missing
@@ -187,12 +191,13 @@ function EvaluateSubjectRule(rule, subjectResult, testResultsMap) {
 }
 
 /**
- * *************** Determines if a subject result meets the subject's passing criteria
+ * Determines if a subject result meets the subject's passing criteria.
+ *
  * @function EvaluateSubjectCriteria
- * @param {Array} criteria - Array of criteria objects with rules
- * @param {Object} subjectResult - The subject result data
- * @param {Object} testResultsMap - Map of test results by ID
- * @returns {boolean} True if passing criteria are met, false otherwise
+ * @param {Array<Object>} criteria - Array of criteria group objects, each with rules.
+ * @param {Object} subjectResult - The subject result data object.
+ * @param {Object} testResultsMap - Map of test results by test ID.
+ * @returns {boolean} True if passing criteria are met, false otherwise.
  */
 function EvaluateSubjectCriteria(criteria, subjectResult, testResultsMap) {
   // *************** If no criteria defined, default to pass
@@ -253,12 +258,13 @@ function EvaluateSubjectCriteria(criteria, subjectResult, testResultsMap) {
 }
 
 /**
- * *************** Evaluates a single rule within a block's criteria
+ * Evaluates a single rule within a block's criteria.
+ *
  * @function EvaluateBlockRule
- * @param {Object} rule - The rule to evaluate
- * @param {Object} blockResult - The block result data
- * @param {Object} subjectResultsMap - Map of subject results by ID
- * @returns {boolean} The result of the rule evaluation
+ * @param {Object} rule - The rule object to evaluate.
+ * @param {Object} blockResult - The block result data object.
+ * @param {Object} subjectResultsMap - Map of subject results by subject ID.
+ * @returns {boolean} True if the rule is satisfied, false otherwise.
  */
 function EvaluateBlockRule(rule, blockResult, subjectResultsMap) {
   // *************** Default to false if required data is missing
@@ -304,12 +310,13 @@ function EvaluateBlockRule(rule, blockResult, subjectResultsMap) {
 }
 
 /**
- * *************** Determines if a block result meets the block's passing criteria
+ * Determines if a block result meets the block's passing criteria.
+ *
  * @function EvaluateBlockCriteria
- * @param {Array} criteria - Array of criteria objects with rules
- * @param {Object} blockResult - The block result data
- * @param {Object} subjectResultsMap - Map of subject results by ID
- * @returns {boolean} True if passing criteria are met, false otherwise
+ * @param {Array<Object>} criteria - Array of criteria group objects, each with rules.
+ * @param {Object} blockResult - The block result data object.
+ * @param {Object} subjectResultsMap - Map of subject results by subject ID.
+ * @returns {boolean} True if passing criteria are met, false otherwise.
  */
 function EvaluateBlockCriteria(criteria, blockResult, subjectResultsMap) {
   // *************** If no criteria defined, default to pass
@@ -370,11 +377,12 @@ function EvaluateBlockCriteria(criteria, blockResult, subjectResultsMap) {
 }
 
 /**
- * *************** Enhanced version that returns detailed evaluation with rule breakdowns
+ * Returns a detailed evaluation of test criteria, including rule breakdowns.
+ *
  * @function EvaluateTestCriteriaDetailed
- * @param {Array} criteria - Array of criteria objects with rules
- * @param {Object} testResult - The test result data
- * @returns {Object} Detailed evaluation with rule_evaluations array
+ * @param {Array<Object>} criteria - Array of criteria group objects, each with rules.
+ * @param {Object} testResult - The test result data object.
+ * @returns {Object} An object with { passed: boolean, criteria_evaluation: Array }.
  */
 function EvaluateTestCriteriaDetailed(criteria, testResult) {
   // *************** If no criteria defined, return default pass
@@ -471,12 +479,13 @@ function EvaluateTestCriteriaDetailed(criteria, testResult) {
 }
 
 /**
- * *************** Enhanced version that returns detailed evaluation with rule breakdowns
+ * Returns a detailed evaluation of subject criteria, including rule breakdowns.
+ *
  * @function EvaluateSubjectCriteriaDetailed
- * @param {Array} criteria - Array of criteria objects with rules
- * @param {Object} subjectResult - The subject result data
- * @param {Object} testResultsMap - Map of test results by ID
- * @returns {Object} Detailed evaluation with rule_evaluations array
+ * @param {Array<Object>} criteria - Array of criteria group objects, each with rules.
+ * @param {Object} subjectResult - The subject result data object.
+ * @param {Object} testResultsMap - Map of test results by test ID.
+ * @returns {Object} An object with { passed: boolean, criteria_evaluation: Array }.
  */
 function EvaluateSubjectCriteriaDetailed(criteria, subjectResult, testResultsMap) {
   // *************** If no criteria defined, return default pass
@@ -569,12 +578,13 @@ function EvaluateSubjectCriteriaDetailed(criteria, subjectResult, testResultsMap
 }
 
 /**
- * *************** Enhanced version that returns detailed evaluation with rule breakdowns
+ * Returns a detailed evaluation of block criteria, including rule breakdowns.
+ *
  * @function EvaluateBlockCriteriaDetailed
- * @param {Array} criteria - Array of criteria objects with rules
- * @param {Object} blockResult - The block result data
- * @param {Object} subjectResultsMap - Map of subject results by ID
- * @returns {Object} Detailed evaluation with rule_evaluations array
+ * @param {Array<Object>} criteria - Array of criteria group objects, each with rules.
+ * @param {Object} blockResult - The block result data object.
+ * @param {Object} subjectResultsMap - Map of subject results by subject ID.
+ * @returns {Object} An object with { passed: boolean, criteria_evaluation: Array }.
  */
 function EvaluateBlockCriteriaDetailed(criteria, blockResult, subjectResultsMap) {
   // *************** If no criteria defined, return default pass

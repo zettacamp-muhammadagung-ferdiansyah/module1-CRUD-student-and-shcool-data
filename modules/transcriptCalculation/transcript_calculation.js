@@ -36,12 +36,15 @@ const {
 } = require("../../utils/calculation/criteria.evaluator");
 
 /**
- * *************** Calculates and saves a student's transcript results for a specific block
+ * Calculates and saves a student's transcript results for a specific block
+ *
+ * @async
  * @function CalculateStudentBlockResults
  * @param {string} studentId - The ID of the student
  * @param {string} blockId - The ID of the block to calculate
  * @param {string} calculatedBy - The ID of the user performing the calculation
- * @returns {Object} The calculation result with success/failure status
+ * @throws {ApolloError} Throws error if validation fails or data is missing
+ * @returns {Promise<Object>} The calculation result with success/failure status
  */
 async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
   try {
@@ -507,43 +510,18 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
   }
 }
 
-/**
- * *************** Helper function to validate test-subject relationships using maps
- * @function ValidateTestSubjectRelationships
- * @param {Object} testsMap - Map of tests by ID
- * @param {Object} subjectIdsMap - Map of subjects by ID
- * @returns {Object} Validation results with any inconsistencies found
- */
-function ValidateTestSubjectRelationships(testsMap, subjectIdsMap) {
-  const inconsistencies = [];
-  
-  // *************** Check if all tests reference valid subjects using maps
-  Object.values(testsMap).forEach(test => {
-    const subjectId = String(test.subject_id);
-    if (!subjectIdsMap[subjectId]) {
-      inconsistencies.push({
-        type: 'ORPHANED_TEST',
-        testId: String(test._id),
-        testName: test.name,
-        subjectId: subjectId,
-        message: `Test ${test.name} references non-existent subject ${subjectId}`
-      });
-    }
-  });
-  
-  return {
-    isValid: inconsistencies.length === 0,
-    inconsistencies
-  };
-}
+
 
 /**
- * *************** Saves a calculation result to the database
+ * Saves a calculation result to the database
+ *
+ * @async
  * @function SaveCalculationResult
  * @param {string} studentId - The ID of the student
  * @param {Object} blockResult - The calculated block result
  * @param {string} calculatedBy - The ID of the user performing the calculation
- * @returns {Object} The saved calculation result
+ * @throws {ApolloError} Throws error if validation fails or DB error occurs
+ * @returns {Promise<Object>} The saved calculation result
  */
 async function SaveCalculationResult(studentId, blockResult, calculatedBy) {
   try {
@@ -620,7 +598,8 @@ async function SaveCalculationResult(studentId, blockResult, calculatedBy) {
 }
 
 /**
- * *************** Ensures all arrays in calculation results are properly initialized
+ * Ensures all arrays in calculation results are properly initialized
+ *
  * @function EnsureCalculationResultArrays
  * @param {Object} blockResult - The block result object
  * @returns {Object} The block result with guaranteed arrays
@@ -631,12 +610,15 @@ function EnsureCalculationResultArrays(blockResult) {
 }
 
 /**
- * *************** Calculates and saves a student's complete transcript results across all blocks
+ * Calculates and saves a student's complete transcript results across all blocks
+ *
+ * @async
  * @function CalculateStudentCompleteTranscript
  * @param {string} studentId - The ID of the student
  * @param {Array} blockIds - Array of block IDs to calculate (if empty, calculates all blocks)
  * @param {string} calculatedBy - The ID of the user performing the calculation
- * @returns {Object} The complete transcript calculation result with final mark
+ * @throws {ApolloError} Throws error if validation fails or data is missing
+ * @returns {Promise<Object>} The complete transcript calculation result with final mark
  */
 async function CalculateStudentCompleteTranscript(
   studentId,

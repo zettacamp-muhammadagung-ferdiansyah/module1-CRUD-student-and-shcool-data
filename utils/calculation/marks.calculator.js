@@ -5,11 +5,12 @@
  */
 
 /**
- * *************** Calculates the weighted mark for a test based on its weight
+ * Calculates the weighted mark for a test based on its weight.
+ *
  * @function CalculateTestWeightedMark
- * @param {number} mark - The test's average mark (0-20)
- * @param {number} weight - The test's weight factor (0-1)
- * @returns {number} The weighted test mark
+ * @param {number} mark - The test's average mark (0-20).
+ * @param {number} weight - The test's weight factor (0-1).
+ * @returns {number} The weighted test mark (mark * weight). Returns 0 if inputs are invalid.
  */
 function CalculateTestWeightedMark(mark, weight) {
   // *************** Validate inputs
@@ -22,11 +23,12 @@ function CalculateTestWeightedMark(mark, weight) {
 }
 
 /**
- * *************** Calculates the total mark for a subject based on test results and subject coefficient
+ * Calculates the total mark for a subject based on test results and subject coefficient.
+ *
  * @function CalculateSubjectTotalMark
- * @param {Array} testResults - Array of test result objects with marks and weights
- * @param {number} coefficient - The subject's coefficient for weighted calculations
- * @returns {number} The total subject mark
+ * @param {Array<Object>} testResults - Array of test result objects, each with average_mark and weight.
+ * @param {number} coefficient - The subject's coefficient for weighted calculations.
+ * @returns {number} The total subject mark (weighted average * coefficient). Returns 0 if inputs are invalid.
  */
 function CalculateSubjectTotalMark(testResults, coefficient) {
   // *************** Validate inputs
@@ -53,10 +55,11 @@ function CalculateSubjectTotalMark(testResults, coefficient) {
 }
 
 /**
- * *************** Calculates the total mark for a block based on subject results
+ * Calculates the total mark for a block based on subject results.
+ *
  * @function CalculateBlockTotalMark
- * @param {Array} subjectResults - Array of subject result objects with total marks and coefficients
- * @returns {number} The block's average mark
+ * @param {Array<Object>} subjectResults - Array of subject result objects, each with total_mark and coefficient.
+ * @returns {number} The block's average mark (weighted average of subject marks). Returns 0 if inputs are invalid.
  */
 function CalculateBlockTotalMark(subjectResults) {
   // *************** Validate inputs
@@ -84,10 +87,11 @@ function CalculateBlockTotalMark(subjectResults) {
 }
 
 /**
- * *************** Calculates the final mark across all blocks
+ * Calculates the final mark across all blocks.
+ *
  * @function CalculateFinalMark
- * @param {Array} blockResults - Array of block result objects with total marks
- * @returns {number} The final overall mark
+ * @param {Array<Object>} blockResults - Array of block result objects, each with total_mark.
+ * @returns {number} The final overall mark (average of all block total marks). Returns 0 if inputs are invalid.
  */
 function CalculateFinalMark(blockResults) {
   // *************** Validate inputs
