@@ -16,7 +16,6 @@ const {
   ValidateCalculateStudentBlockResultsParameters,
   ValidateSaveCalculationResultParameters,
   ValidateCalculateStudentCompleteTranscriptParameters,
-  ValidateTestSubjectDataIntegrity,
 } = require("./transcript_calculation.validator");
 
 // *************** IMPORT UTILITIES ***************
@@ -149,19 +148,7 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
       const subjectId = String(subject._id);
       const subjectTests = testsBySubject[subjectId] || [];
 
-      // *************** Validate data integrity using validator
-      try {
-        ValidateTestSubjectDataIntegrity(testsMap, subjectIdsMap, null, subjectId);
-      } catch (error) {
-        // *************** Log error to database
-        await ErrorLogModel.create({
-          path: 'modules/transcriptCalculation/transcript_calculation.js',
-          parameter_input: JSON.stringify({ studentId, blockId, subjectId, error: error.message }),
-          function_name: 'CalculateStudentBlockResults',
-          error: String(error.stack),
-        });
-        continue;
-      }
+    
 
       const subjectResult = {
         subject_id: subject._id,
@@ -183,19 +170,6 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
         const testId = String(test._id);
         const testResult = testResultsMap[testId];
 
-        // *************** Validate data integrity using validator
-        try {
-          ValidateTestSubjectDataIntegrity(testsMap, subjectIdsMap, testId, subjectId);
-        } catch (error) {
-          // *************** Log error to database
-          await ErrorLogModel.create({
-            path: 'modules/transcriptCalculation/transcript_calculation.js',
-            parameter_input: JSON.stringify({ studentId, blockId, testId, subjectId, error: error.message }),
-            function_name: 'CalculateStudentBlockResults',
-            error: String(error.stack),
-          });
-          continue;
-        }
 
         // *************** Skip if no result exists
         if (!testResult) {

@@ -107,5 +107,4 @@ module.exports = {
   ValidateCalculateStudentBlockResultsParameters,
   ValidateSaveCalculationResultParameters,
   ValidateCalculateStudentCompleteTranscriptParameters,
-  ValidateTestSubjectDataIntegrity,
 };
