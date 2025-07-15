@@ -62,19 +62,26 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
       );
     }
 
-    // *************** Validate block exists
-    const block = await Block.findById(blockId);
+    // *************** Find block and populate subjects with their tests (single query)
+    const block = await Block.findById(blockId)
+      .populate({
+        path: "subjects",
+        match: { status: "active" },
+        populate: {
+          path: "tests",
+          match: { test_status: { $in: ["active", "published"] } },
+        },
+      })
+      .lean();
+
+    // *************** Check if block exists
     if (!block) {
       throw new ApolloError(`Block with ID ${blockId} not found`, "NOT_FOUND");
     }
 
-    // *************** Fetch all subjects in this block
-    const subjects = await Subject.find({
-      block_id: blockId,
-      status: "active",
-    });
-
-    if (!subjects || subjects.length === 0) {
+    // *************** Extract subjects from populated block
+    const subjects = Array.isArray(block.subjects) ? block.subjects : [];
+    if (!subjects.length) {
       throw new ApolloError(
         `No active subjects found for block ${blockId}`,
         "NOT_FOUND"
@@ -87,40 +94,29 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
       return map;
     }, {});
 
-    // *************** Create an array of all subject IDs for querying
-    const subjectIds = subjects.map((subject) => subject._id);
+    // *************** Create a map of tests by ID and by subject ID
+    const testsMap = {};
+    const testsBySubject = {};
+    const testIds = [];
+    for (const subject of subjects) {
+      const subjectId = String(subject._id);
+      const subjectTests = Array.isArray(subject.tests)
+        ? subject.tests.filter((t) => t && ["active", "published"].includes(t.test_status))
+        : [];
+      testsBySubject[subjectId] = subjectTests;
+      for (const test of subjectTests) {
+        testsMap[String(test._id)] = test;
+        testIds.push(test._id);
+      }
+    }
 
-    // *************** Fetch all tests for these subjects
-    const tests = await Test.find({
-      subject_id: { $in: subjectIds },
-      test_status: { $in: ["active", "published"] },
-    });
-
-    if (!tests || tests.length === 0) {
+    // *************** If no tests found for any subject, throw error
+    if (testIds.length === 0) {
       throw new ApolloError(
         `No active tests found for subjects in block ${blockId}`,
         "NOT_FOUND"
       );
     }
-
-    // *************** Create a map of tests by ID for quick lookups
-    const testsMap = tests.reduce((map, test) => {
-      map[String(test._id)] = test;
-      return map;
-    }, {});
-
-    // *************** Create a map of tests grouped by subject ID
-    const testsBySubject = tests.reduce((map, test) => {
-      const subjectId = String(test.subject_id);
-      if (!map[subjectId]) {
-        map[subjectId] = [];
-      }
-      map[subjectId].push(test);
-      return map;
-    }, {});
-
-    // *************** Create an array of all test IDs for querying
-    const testIds = tests.map((test) => test._id);
 
     // *************** Fetch all student test results for these tests
     const studentTestResults = await StudentTestResult.find({
@@ -129,17 +125,6 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
       student_test_result_status: { $in: ["active", "validated"] },
     });
     
-    // *************** Validate data relationships using helper function
-    const validation = ValidateTestSubjectRelationships(testsMap, subjectIdsMap);
-    if (!validation.isValid) {
-      // *************** Log validation issues to database
-      await ErrorLogModel.create({
-        path: 'modules/transcriptCalculation/transcript_calculation.js',
-        parameter_input: JSON.stringify({ studentId, blockId, inconsistencies: validation.inconsistencies }),
-        function_name: 'CalculateStudentBlockResults',
-        error: `Data inconsistencies detected: ${JSON.stringify(validation.inconsistencies)}`,
-      });
-    }
 
     // *************** Create a map of test results by test ID for quick lookups
     const testResultsMap = studentTestResults.reduce((map, result) => {
@@ -232,32 +217,27 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
           }
 
           const maxPoints = notation.max_points;
-          const percentage =
-            maxPoints > 0 ? (achievedPoints / maxPoints) * 100 : 0;
 
           return {
             notation_id: index,
             notation_text: notation.notation_text,
             max_points: maxPoints,
             achieved_points: achievedPoints,
-            percentage,
           };
         });
 
-        // *************** Calculate total points and percentages
+        // *************** Calculate total achieved points for the test
         const totalAchievedPoints = notationResults.reduce(
           (sum, n) => sum + n.achieved_points,
           0
         );
-        const totalMaxPoints = notationResults.reduce(
-          (sum, n) => sum + n.max_points,
-          0
-        );
-        const testPercentage =
-          totalMaxPoints > 0 ? (totalAchievedPoints / totalMaxPoints) * 100 : 0;
+
+        // *************** Calculate average mark for the test (average of achieved points per notation)
+        const averageMark =
+          notationResults.length > 0 ? totalAchievedPoints / notationResults.length : 0;
 
         // *************** Calculate weighted test mark using utility
-        const weightedMark = CalculateTestWeightedMark(testPercentage, test.weight);
+        const weightedMark = CalculateTestWeightedMark(averageMark, test.weight);
 
         // *************** Create the test result object
         const processedTestResult = {
@@ -267,8 +247,7 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
           weight: test.weight,
           weighted_mark: weightedMark, // *************** Add weighted mark calculated by utility
           total_points: totalAchievedPoints,
-          max_points: totalMaxPoints,
-          percentage: testPercentage,
+          average_mark: averageMark,
           notation_results: notationResults,
           criteria_evaluation: [],
           createdAt: new Date(),
@@ -303,7 +282,7 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
         } else {
           // *************** If no criteria defined, default to pass if any points achieved
           processedTestResult.status =
-            processedTestResult.percentage > 0 ? "PASS" : "FAIL";
+            processedTestResult.average_mark > 0 ? "PASS" : "FAIL";
         }
 
         // *************** Add to the test results array
@@ -313,10 +292,10 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
 
       // *************** Calculate subject average score using utility with weighted marks
       if (subjectResult.test_results.length > 0) {
-        // *************** Prepare test results for calculation utility, using the weighted marks
+        // *************** Prepare test results for calculation utility, using the average marks
         const testResultsForCalculation = subjectResult.test_results.map(
           (test) => ({
-            average_mark: test.percentage,
+            average_mark: test.average_mark,
             weight: test.weight,
           })
         );

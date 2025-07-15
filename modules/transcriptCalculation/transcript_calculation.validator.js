@@ -101,33 +101,6 @@ function ValidateCalculateStudentCompleteTranscriptParameters({ studentId, block
   ValidateMongoId(calculatedBy);
 }
 
-/**
- * Validates data integrity between tests and subjects using maps
- *
- * @function ValidateTestSubjectDataIntegrity
- * @param {Object} testsMap - Map of tests by ID
- * @param {Object} subjectIdsMap - Map of subjects by ID
- * @param {string} [testId] - Test ID to validate (optional)
- * @param {string} [subjectId] - Subject ID to validate (optional)
- * @throws {ApolloError} Throws error if data inconsistency detected
- */
-function ValidateTestSubjectDataIntegrity(testsMap, subjectIdsMap, testId = null, subjectId = null) {
-  // *************** Validate test exists in testsMap for data integrity
-  if (testId && !testsMap[testId]) {
-    throw new ApolloError(
-      `Test ${testId} not found in testsMap - data inconsistency detected`,
-      "DATA_INTEGRITY_ERROR"
-    );
-  }
-
-  // *************** Validate subject exists in subjectIdsMap for data integrity
-  if (subjectId && !subjectIdsMap[subjectId]) {
-    throw new ApolloError(
-      `Subject ${subjectId} not found in subjectIdsMap - data inconsistency detected`,
-      "DATA_INTEGRITY_ERROR"
-    );
-  }
-}
 
 // *************** EXPORT MODULE ***************
 module.exports = {

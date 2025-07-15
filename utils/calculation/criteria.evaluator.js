@@ -63,8 +63,8 @@ function EvaluateTestRule(rule, testResult) {
       break;
 
     case "TOTAL_SCORE":
-      // *************** Use the overall test score
-      actualValue = testResult.percentage || 0;
+      // *************** Use the overall test average mark
+      actualValue = testResult.average_mark || 0;
       break;
 
     default:
@@ -165,9 +165,9 @@ function EvaluateSubjectRule(rule, subjectResult, testResultsMap) {
       return false;
 
     case "TEST_MARK":
-      // *************** Get the mark for a specific test
+      // *************** Get the average mark for a specific test
       if (rule.test_id && testResultsMap[rule.test_id]) {
-        actualValue = testResultsMap[rule.test_id].percentage || 0;
+        actualValue = testResultsMap[rule.test_id].average_mark || 0;
       } else {
         return false;
       }
@@ -422,7 +422,7 @@ function EvaluateTestCriteriaDetailed(criteria, testResult) {
         );
         actualValue = notation ? notation.achieved_points : 0;
       } else if (rule.type === "TOTAL_SCORE") {
-        actualValue = testResult.percentage || 0;
+        actualValue = testResult.average_mark || 0;
       }
 
       // *************** Create detailed rule evaluation
@@ -521,7 +521,7 @@ function EvaluateSubjectCriteriaDetailed(criteria, subjectResult, testResultsMap
       if (rule.type === "TEST_RESULT" && rule.test_id) {
         actualValue = testResultsMap[rule.test_id] && testResultsMap[rule.test_id].status === "PASS" ? 1 : 0;
       } else if (rule.type === "TEST_MARK" && rule.test_id) {
-        actualValue = testResultsMap[rule.test_id] ? testResultsMap[rule.test_id].percentage || 0 : 0;
+        actualValue = testResultsMap[rule.test_id] ? testResultsMap[rule.test_id].average_mark || 0 : 0;
       } else if (rule.type === "SUBJECT_AVERAGE") {
         actualValue = subjectResult.average_score || 0;
       }
