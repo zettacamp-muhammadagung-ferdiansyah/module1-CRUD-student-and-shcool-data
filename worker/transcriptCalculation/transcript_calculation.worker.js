@@ -31,7 +31,7 @@ async function ConnectToDatabase() {
   }
 }
 
-// *************** MAIN WORKER LOGIC ***************
+// *************** MAIN WORKER LOGIC 
 /**
  * Calculates a student's block transcript, sends the result or error to the parent thread, and ensures the database connection is closed.
  *
