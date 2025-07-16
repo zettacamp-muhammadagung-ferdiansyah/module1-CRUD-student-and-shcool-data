@@ -15,40 +15,17 @@
  */
 function CompareValues(actualValue, operator, expectedValue) {
   switch (operator) {
-    case "GT":
-      return actualValue > expectedValue;
     case "GTE":
       return actualValue >= expectedValue;
-    case "LT":
-      return actualValue < expectedValue;
+    case "GT":
+      return actualValue > expectedValue;
     case "LTE":
       return actualValue <= expectedValue;
+    case "LT":
+      return actualValue < expectedValue;
     case "EQ":
-      // *************** For floating point equality
-      return Math.abs(actualValue - expectedValue) < Number.EPSILON;
+      return actualValue === expectedValue;
     default:
-      return false;
-  }
-}
-
-/**
- * Evaluates a single rule within a test's criteria.
- *
- * @function EvaluateTestRule
- * @param {Object} rule - The rule object to evaluate.
- * @param {Object} testResult - The test result data object.
- * @returns {boolean} True if the rule is satisfied, false otherwise.
- */
-function EvaluateTestRule(rule, testResult) {
-  // *************** Default to false if required data is missing
-  if (!rule || !testResult) {
-    return false;
-  }
-
-  // *************** Get the actual value based on rule type
-  let actualValue;
-
-
   switch (rule.type) {
     case "NOTATION_SCORE": {
       // *************** Find the specific notation result by notation_id or notation_text
@@ -61,15 +38,15 @@ function EvaluateTestRule(rule, testResult) {
         } else if (rule.notation_index !== undefined) {
           notation = testResult.notation_results.find(notationResult => notationResult.notation_id === rule.notation_index);
         }
-        actualValue = notation ? notation.achieved_points : 0;
+        actualValue = notation ? notation.achieved_marks : 0;
       } else {
         return false;
       }
       break;
     }
     case "TOTAL_SCORE": {
-      // *************** Use total_points from testResult
-      actualValue = testResult.total_points || 0;
+      // *************** Use total_marks from testResult
+      actualValue = testResult.total_marks || 0;
       break;
     }
     case "TEST_AVERAGE": {
@@ -80,144 +57,6 @@ function EvaluateTestRule(rule, testResult) {
     default:
       return false;
   }
-
-  // *************** Compare the actual value with the expected value using the rule's operator
-  return CompareValues(actualValue, rule.operator, rule.value);
-}
-
-/**
- * Determines if a test result meets the test's passing criteria.
- *
- * @function EvaluateTestCriteria
- * @param {Array<Object>} criteria - Array of criteria group objects, each with rules.
- * @param {Object} testResult - The test result data object.
- * @returns {boolean} True if passing criteria are met, false otherwise.
- */
-function EvaluateTestCriteria(criteria, testResult) {
-  // *************** If no criteria defined, return null (no result)
-  if (!Array.isArray(criteria) || criteria.length === 0) {
-    return null;
-  }
-
-  // *************** Track if there are PASS/FAIL groups and if any are satisfied
-  let hasPassCriteria = false;
-  let hasFailCriteria = false;
-  let passSatisfied = false;
-  let failSatisfied = false;
-
-  // *************** Evaluate all criteria groups (both PASS and FAIL)
-  for (const criteriaGroup of criteria) {
-    if (!Array.isArray(criteriaGroup.rules) || criteriaGroup.rules.length === 0) continue;
-
-    let groupResult = null;
-    // *************** Evaluate all rules in this group
-    for (const [ruleIndex, rule] of criteriaGroup.rules.entries()) {
-      const ruleResult = EvaluateTestRule(rule, testResult);
-      if (ruleIndex === 0) {
-        groupResult = ruleResult;
-      } else if (rule.logical_operator === 'AND') {
-        groupResult = groupResult && ruleResult;
-      } else if (rule.logical_operator === 'OR') {
-        groupResult = groupResult || ruleResult;
-      }
-    }
-
-    // *************** Track if this group is PASS or FAIL and if it is satisfied
-    if (criteriaGroup.expected_outcome === 'PASS') {
-      hasPassCriteria = true;
-      if (groupResult) passSatisfied = true;
-    } else if (criteriaGroup.expected_outcome === 'FAIL') {
-      hasFailCriteria = true;
-      if (groupResult) failSatisfied = true;
-    }
-  }
-
-  // *************** Return result based on satisfied groups and what groups exist
-  if (hasPassCriteria && passSatisfied) return 'PASS'; // *************** Any PASS group satisfied
-  if (hasFailCriteria && failSatisfied) return 'FAIL'; // *************** Any FAIL group satisfied
-  if (hasPassCriteria) return 'FAIL'; // *************** Only PASS groups exist, none satisfied
-  if (hasFailCriteria) return 'PASS'; // *************** Only FAIL groups exist, none satisfied
-  return null; // *************** No groups exist
-}
-
-/**
- * Evaluates a single rule within a subject's criteria.
- *
- * @function EvaluateSubjectRule
- * @param {Object} rule - The rule object to evaluate.
- * @param {Object} subjectResult - The subject result data object.
- * @param {Object} testResultsMap - Map of test results by test ID.
- * @returns {boolean} True if the rule is satisfied, false otherwise.
- */
-function EvaluateSubjectRule(rule, subjectResult, testResultsMap) {
-  // *************** Default to false if required data is missing
-  if (!rule || !subjectResult) {
-    return false;
-  }
-
-  // *************** Get the actual value based on rule type
-  let actualValue;
-
-  switch (rule.type) {
-    case "TEST_RESULT":
-      // *************** Check if a specific test was passed
-      if (rule.test_id && testResultsMap[rule.test_id]) {
-        // *************** The actual value is 1 if passed, 0 if failed, to be compared with 1 (EQ)
-        actualValue = testResultsMap[rule.test_id].status === "PASS" ? 1 : 0;
-        // *************** Override the comparison to check for equality with 1 (pass)
-        return CompareValues(actualValue, "EQ", 1);
-      }
-      return false;
-
-    case "TEST_MARK":
-      // *************** Get the average mark for a specific test
-      if (rule.test_id && testResultsMap[rule.test_id]) {
-        actualValue = testResultsMap[rule.test_id].average_mark || 0;
-      } else {
-        return false;
-      }
-      break;
-
-    case "SUBJECT_AVERAGE":
-      // *************** Use the overall subject average
-      actualValue = subjectResult.average_score || 0;
-      break;
-
-    default:
-      return false;
-  }
-
-  // *************** Compare the actual value with the expected value using the rule's operator
-  return CompareValues(actualValue, rule.operator, rule.value);
-}
-
-/**
- * Determines if a subject result meets the subject's passing criteria.
- *
- * @function EvaluateSubjectCriteria
- * @param {Array<Object>} criteria - Array of criteria group objects, each with rules.
- * @param {Object} subjectResult - The subject result data object.
- * @param {Object} testResultsMap - Map of test results by test ID.
- * @returns {boolean} True if passing criteria are met, false otherwise.
- */
-function EvaluateSubjectCriteria(criteria, subjectResult, testResultsMap) {
-  // *************** If no criteria defined, return null (no result)
-  if (!Array.isArray(criteria) || criteria.length === 0) {
-    return null;
-  }
-
-  // *************** Track if there are PASS/FAIL groups and if any are satisfied
-  let hasPassCriteria = false;
-  let hasFailCriteria = false;
-  let passSatisfied = false;
-  let failSatisfied = false;
-
-  // *************** Evaluate all criteria groups (both PASS and FAIL)
-  for (const criteriaGroup of criteria) {
-    if (!Array.isArray(criteriaGroup.rules) || criteriaGroup.rules.length === 0) continue;
-
-    let groupResult = null;
-    // *************** Evaluate all rules in this group
     for (const [ruleIndex, rule] of criteriaGroup.rules.entries()) {
       const ruleResult = EvaluateSubjectRule(
         rule,
@@ -415,13 +254,16 @@ function EvaluateTestCriteriaDetailed(criteria, testResult) {
       // *************** 2. Determine the actual value used for comparison, based on rule type
       let actualValue = 0;
       if (rule.type === "NOTATION_SCORE" && rule.notation_index !== undefined) {
-        // *************** If the rule is about a specific notation, get the achieved points for that notation
+        // *************** If the rule is about a specific notation, get the achieved marks for that notation
         const notation = testResult.notation_results && testResult.notation_results.find(
           (notation) => notation.notation_id === rule.notation_index
         );
-        actualValue = notation ? notation.achieved_points : 0;
+        actualValue = notation ? notation.achieved_marks : 0;
       } else if (rule.type === "TOTAL_SCORE") {
-        // *************** If the rule is about the total score, use the test's average_mark from student test result
+        // *************** If the rule is about the total score, use total_marks from test result
+        actualValue = testResult.total_marks || 0;
+      } else if (rule.type === "TEST_AVERAGE") {
+        // *************** If the rule is about the test average, use average_mark from test result
         actualValue = testResult.average_mark || 0;
       }
 
@@ -532,8 +374,8 @@ function EvaluateSubjectCriteriaDetailed(criteria, subjectResult, testResultsMap
         // *************** If the rule is about a test result, set 1 if the test was passed, 0 if failed
         actualValue = testResultsMap[rule.test_id] && testResultsMap[rule.test_id].status === "PASS" ? 1 : 0;
       } else if (rule.type === "TEST_MARK" && rule.test_id) {
-        // *************** If the rule is about a test mark, get the average mark for the specific test
-        actualValue = testResultsMap[rule.test_id] ? testResultsMap[rule.test_id].average_mark || 0 : 0;
+        // *************** If the rule is about a test mark, use the weighted mark (final score) for the specific test
+        actualValue = testResultsMap[rule.test_id] ? testResultsMap[rule.test_id].weighted_mark || 0 : 0;
       } else if (rule.type === "SUBJECT_AVERAGE") {
         // *************** If the rule is about the subject average, use the overall subject average score
         actualValue = subjectResult.average_score || 0;
@@ -707,9 +549,6 @@ function EvaluateBlockCriteriaDetailed(criteria, blockResult, subjectResultsMap)
 
 // *************** EXPORT MODULE ***************
 module.exports = {
-  EvaluateTestCriteria,
-  EvaluateSubjectCriteria,
-  EvaluateBlockCriteria,
   EvaluateTestCriteriaDetailed,
   EvaluateSubjectCriteriaDetailed,
   EvaluateBlockCriteriaDetailed,

@@ -5,29 +5,29 @@
  * Calculates the average score for a test based on its notations.
  *
  * @function CalculateTestAverageScore
- * @param {Array<Object>} notationResults - Array of notation result objects, each with achieved_points.
- * @returns {number} The average score (sum of achieved_points / number of notations). Returns 0 if no notations.
+ * @param {Array<Object>} notationResults - Array of notation result objects, each with achieved_marks.
+ * @returns {number} The average score (sum of achieved_marks / number of notations). Returns 0 if no notations.
  */
 function CalculateTestAverageMark(notationResults) {
   // *************** Validate input: must be a non-empty array
   if (!Array.isArray(notationResults) || notationResults.length === 0) {
     return 0;
   }
-  // *************** Sum all achieved points from notations
+// *************** Sum all achieved marks from notations
   const totalAchievedMark = notationResults.reduce((totalMark, notation) => {
-    return totalMark + (notation.achieved_points || 0);
+    return totalMark + (notation.achieved_marks || 0);
   }, 0);
-  // *************** Calculate average mark by dividing total by number of notations
+// *************** Calculate average mark by dividing total by number of notations
   return totalAchievedMark / notationResults.length;
 }
 
 /**
- * Calculates the weighted score for a test.
+ * Calculates the weighted mark for a test.
  *
- * @function CalculateTestWeightedScore
- * @param {Array<Object>} notationResults - Array of notation result objects, each with achieved_points.
+ * @function CalculateTestWeightedMark
+ * @param {Array<Object>} notationResults - Array of notation result objects, each with achieved_marks.
  * @param {number} weight - The test's weight factor (0.1-1).
- * @returns {number} The weighted test score (average score * weight). Returns 0 if inputs are invalid.
+ * @returns {number} The weighted test mark (average mark * weight). Returns 0 if inputs are invalid.
  */
 function CalculateTestWeightedMark(notationResults, weight) {
   // *************** Validate input: must be a non-empty array and weight must be a number
@@ -53,11 +53,11 @@ function CalculateSubjectTotalMark(testResults, coefficient) {
   if (!Array.isArray(testResults) || testResults.length === 0 || typeof coefficient !== 'number') {
     return 0;
   }
-  // *************** Sum all test marks (each test mark is already weighted)
+// *************** Sum all test marks (each test mark is already weighted)
   const totalTestMarks = testResults.reduce((totalTestMarksAccumulator, testResult) => {
     return totalTestMarksAccumulator + CalculateTestWeightedMark(testResult.notation_results, testResult.weight);
   }, 0);
-  // *************** Multiply total test marks by subject coefficient
+// *************** Multiply total test marks by subject coefficient
   return totalTestMarks * coefficient;
 }
 
@@ -74,19 +74,19 @@ function CalculateBlockTotalMark(subjectResults) {
   if (!Array.isArray(subjectResults) || subjectResults.length === 0) {
     return 0;
   }
-  // *************** Sum all subject marks
+// *************** Sum all subject marks
   const totalSubjectMarks = subjectResults.reduce((totalSubjectMarksAccumulator, subjectResult) => {
     return totalSubjectMarksAccumulator + (subjectResult.subject_mark || 0);
   }, 0);
-  // *************** Sum all subject coefficients
+// *************** Sum all subject coefficients
   const totalCoefficient = subjectResults.reduce((totalCoefficientAccumulator, subjectResult) => {
     return totalCoefficientAccumulator + (subjectResult.coefficient || 1);
   }, 0);
-  // *************** Avoid division by zero
+// *************** Avoid division by zero
   if (totalCoefficient === 0) {
     return 0;
   }
-  // *************** Calculate block mark as total subject marks divided by total coefficients
+// *************** Calculate block mark as total subject marks divided by total coefficients
   return totalSubjectMarks / totalCoefficient;
 }
 
@@ -103,11 +103,11 @@ function CalculateFinalMark(blockResults) {
   if (!Array.isArray(blockResults) || blockResults.length === 0) {
     return 0;
   }
-  // *************** Sum all block marks
+// *************** Sum all block marks
   const totalBlockMarks = blockResults.reduce((totalBlockMarksAccumulator, blockResult) => {
     return totalBlockMarksAccumulator + (blockResult.block_mark || 0);
   }, 0);
-  // *************** Calculate final mark as average of all block marks
+// *************** Calculate final mark as average of all block marks
   return totalBlockMarks / blockResults.length;
 }
 

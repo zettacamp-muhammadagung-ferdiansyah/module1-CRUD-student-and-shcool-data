@@ -162,7 +162,8 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
         status: "INCOMPLETE", 
         coefficient: subject.coefficient,
         // *************** Will be calculated
-        average_score: 0, 
+        subject_mark: 0, 
+        average_score: 0,
         test_results: [],
         criteria_evaluation: [],
       };
@@ -179,36 +180,36 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
         if (testResult && testResult.marks && testResult.marks.length > 0) {
           // *************** Build notation_results only if marks exist
           const notationResults = (test.notations || []).map((notation, index) => {
-            let achievedPoints = 0;
+            let achievedMarks = 0;
             const matchingMark = testResult.marks.find(
               (mark) => mark.notation_text === notation.notation_text
             );
             if (matchingMark) {
-              achievedPoints = matchingMark.mark;
+              achievedMarks = matchingMark.mark;
             }
             return {
               notation_id: index,
               notation_text: notation.notation_text,
-              max_points: notation.max_points,
-              achieved_points: achievedPoints,
+              max_marks: notation.max_marks,
+              achieved_marks: achievedMarks,
             };
           });
 
-          // Calculate total and max points
-          const total_points = notationResults.reduce((sum, n) => sum + n.achieved_points, 0);
-          const max_points = notationResults.reduce((sum, n) => sum + n.max_points, 0);
+          // Calculate total and max marks
+          const total_marks = notationResults.reduce((sum, n) => sum + n.achieved_marks, 0);
+          const max_marks = notationResults.reduce((sum, n) => sum + n.max_marks, 0);
           const averageMark = testResult.average_mark || 0;
           const weightedMark = CalculateTestWeightedMark(averageMark, test.weight);
 
-          // ***************  Create the test result object, only including max_points if marks exist
+          // ***************  Create the test result object, only including max_marks if marks exist
           const processedTestResult = {
             test_id: test._id,
             test_name: test.name,
             status: testResult.student_test_result_status === 'validated' ? 'PASS' : 'INCOMPLETE',
             weight: test.weight,
             weighted_mark: weightedMark,
-            total_points,
-            max_points,
+            total_marks,
+            max_marks,
             average_mark: averageMark,
             notation_results: notationResults,
             criteria_evaluation: [],
@@ -242,7 +243,7 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
               processedTestResult.status = basicResult ? "PASS" : "FAIL";
             }
           } else {
-            // *************** If no criteria defined, default to pass if any points achieved
+            // *************** If no criteria defined, default to pass if any marks achieved
             processedTestResult.status =
               processedTestResult.average_mark > 0 ? "PASS" : "FAIL";
           }
@@ -254,22 +255,15 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
         // ***************  If no marks, do not add test result at all
       }
 
-      // *************** Calculate subject average score using utility with weighted marks
+      // *************** Calculate subject mark using utility (sum of test marks * coefficient)
       if (subjectResult.test_results.length > 0) {
-        // *************** Prepare test results for calculation utility, using the average marks
-        const testResultsForCalculation = subjectResult.test_results.map(
-          (test) => ({
-            average_mark: test.average_mark,
-            weight: test.weight,
-          })
+        // *************** Prepare test results for calculation utility (pass full test_results array)
+        subjectResult.subject_mark = CalculateSubjectTotalMark(
+          subjectResult.test_results,
+          subjectResult.coefficient
         );
-
-        // *************** Use utility to calculate subject total (without coefficient applied yet)
-        const subjectTotalWithoutCoefficient = CalculateSubjectTotalMark(
-          testResultsForCalculation,
-          1
-        );
-        subjectResult.average_score = subjectTotalWithoutCoefficient;
+        //*************** For backward compatibility, set average_score as subject mark divided by coefficient
+        subjectResult.average_score = subjectResult.subject_mark / (subjectResult.coefficient || 1);
 
         // *************** Evaluate subject criteria using detailed utility
         if (subject.passing_criteria && subject.passing_criteria.length > 0) {
@@ -300,20 +294,20 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
             subjectResult.status = basicResult ? "PASS" : "FAIL";
           }
         } else {
-          // *************** If no criteria defined, create a default evaluation based on average score
-          const passed = subjectResult.average_score >= 50;
+          // *************** If no criteria defined, create a default evaluation based on subject mark
+          const passed = subjectResult.subject_mark >= 50;
           subjectResult.criteria_evaluation = [
             {
               expected_outcome: passed ? "PASS" : "FAIL",
               result: passed,
               rule_evaluations: [
                 {
-                  type: "SUBJECT_AVERAGE",
+                  type: "SUBJECT_MARK",
                   logical_operator: null,
                   target_id: null,
                   operator: "GTE",
                   value: 50,
-                  actual_value: subjectResult.average_score,
+                  actual_value: subjectResult.subject_mark,
                   passed: passed,
                 },
               ],
@@ -350,20 +344,14 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
       blockResult.subject_results.push(subjectResult);
     }
 
-    //*************** Calculate block average score using utility
+    //*************** Calculate block mark using utility
     if (blockResult.subject_results.length > 0) {
-      // *************** Prepare subject results for calculation utility
-      const subjectResultsForCalculation = blockResult.subject_results.map(
-        (subject) => ({
-          total_mark: subject.average_score,
-          coefficient: subject.coefficient,
-        })
+      // *************** Prepare subject results for calculation utility (pass full subject_results array)
+      blockResult.block_mark = CalculateBlockTotalMark(
+        blockResult.subject_results
       );
-
-      // *************** Use utility to calculate block total
-      blockResult.average_score = CalculateBlockTotalMark(
-        subjectResultsForCalculation
-      );
+      //*************** For backward compatibility, set average_score as block_mark
+      blockResult.average_score = blockResult.block_mark;
 
       // *************** Create a map of subject results by ID for block criteria evaluation
       const subjectResultsMap = blockResult.subject_results.reduce(
@@ -403,12 +391,12 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
           blockResult.status = basicResult ? "PASS" : "FAIL";
         }
       } else {
-        // ***************  If no criteria defined, create a default criteria evaluation based on block average and subject statuses
+        // ***************  If no criteria defined, create a default criteria evaluation based on block mark and subject statuses
         const allSubjectsPassed = blockResult.subject_results.every(
           (s) => s.status === "PASS"
         );
         const blockPassed =
-          blockResult.average_score >= 50 && allSubjectsPassed;
+          blockResult.block_mark >= 50 && allSubjectsPassed;
 
         // ***************  Create a default criteria evaluation
         blockResult.criteria_evaluation = [
@@ -417,13 +405,13 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
             result: blockPassed,
             rule_evaluations: [
               {
-                type: "BLOCK_AVERAGE",
+                type: "BLOCK_MARK",
                 logical_operator: null,
                 target_id: null,
                 operator: "GTE",
                 value: 50,
-                actual_value: blockResult.average_score,
-                passed: blockResult.average_score >= 50,
+                actual_value: blockResult.block_mark,
+                passed: blockResult.block_mark >= 50,
               },
               {
                 type: "ALL_SUBJECTS_PASSED",

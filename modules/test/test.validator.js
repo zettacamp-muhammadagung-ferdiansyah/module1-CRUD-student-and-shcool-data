@@ -49,8 +49,8 @@ function ValidateCreateTestParameters(testInput) {
     if (!notation.notation_text || typeof notation.notation_text !== 'string') {
       throw new ApolloError(`Notation text is required and must be a string for notation at index ${index}`, 'INVALID_INPUT');
     }
-    if (typeof notation.max_points !== 'number' || notation.max_points < 0) {
-      throw new ApolloError(`Max points is required and must be a non-negative number for notation at index ${index}`, 'INVALID_INPUT');
+    if (typeof notation.max_marks !== 'number' || notation.max_marks < 0) {
+      throw new ApolloError(`Max marks is required and must be a non-negative number for notation at index ${index}`, 'INVALID_INPUT');
     }
   });
   
@@ -160,8 +160,8 @@ function ValidateUpdateTestParameters({ id, testInput }) {
     if (!notation.notation_text || typeof notation.notation_text !== 'string') {
       throw new ApolloError(`Notation text is required and must be a string for notation at index ${index}`, 'INVALID_INPUT');
     }
-    if (typeof notation.max_points !== 'number' || notation.max_points < 0) {
-      throw new ApolloError(`Max points is required and must be a non-negative number for notation at index ${index}`, 'INVALID_INPUT');
+    if (typeof notation.max_marks !== 'number' || notation.max_marks < 0) {
+      throw new ApolloError(`Max marks is required and must be a non-negative number for notation at index ${index}`, 'INVALID_INPUT');
     }
   });
   

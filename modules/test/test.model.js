@@ -42,8 +42,8 @@ const testSchema = new Mongoose.Schema(
           required: true,
           trim: true,
         },
-        // Maximum possible points for this component (cannot be negative)
-        max_points: {
+        // Maximum possible marks for this component (cannot be negative)
+        max_marks: {
           type: Number,
           required: true,
           min: 0,

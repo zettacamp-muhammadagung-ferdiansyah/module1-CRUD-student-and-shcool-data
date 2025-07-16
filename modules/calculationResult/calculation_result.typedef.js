@@ -11,8 +11,8 @@ const CalculationResultTypeDefs = gql`
   type NotationResult {
     notation_id: Int!
     notation_text: String!
-    max_points: Float!
-    achieved_points: Float!
+    max_marks: Float!
+    achieved_marks: Float!
     percentage: Float!
   }
 
@@ -21,8 +21,8 @@ const CalculationResultTypeDefs = gql`
     test_name: String!
     status: CalculationStatus!
     weight: Float!
-    total_points: Float!
-    max_points: Float!
+    total_marks: Float!
+    max_marks: Float!
     percentage: Float!
     notation_results: [NotationResult!]!
     criteria_evaluation: [CriteriaEvaluation!]

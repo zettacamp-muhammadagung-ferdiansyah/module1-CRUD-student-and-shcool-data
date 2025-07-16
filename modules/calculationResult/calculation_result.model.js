@@ -130,14 +130,14 @@ const calculationResultSchema = new Mongoose.Schema(
                   required: true,
                 },
 
-                // Total points achieved in this test
-                total_points: {
+                // Total marks achieved in this test
+                total_marks: {
                   type: Number,
                   required: true,
                 },
 
-                // Maximum possible points for this test
-                max_points: {
+                // Maximum possible marks for this test
+                max_marks: {
                   type: Number,
                   required: true,
                 },
@@ -158,14 +158,14 @@ const calculationResultSchema = new Mongoose.Schema(
                       required: true,
                     },
 
-                    // Maximum possible points for this notation
-                    max_points: {
+                    // Maximum possible marks for this notation
+                    max_marks: {
                       type: Number,
                       required: true,
                     },
 
-                    // Points achieved for this notation
-                    achieved_points: {
+                    // Marks achieved for this notation
+                    achieved_marks: {
                       type: Number,
                       required: true,
                     },

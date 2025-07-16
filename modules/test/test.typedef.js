@@ -29,12 +29,12 @@ const TestTypeDefs = gql`
 
   type Notation {
     notation_text: String!
-    max_points: Float!
+    max_marks: Float!
   }
 
   input NotationInput {
     notation_text: String!
-    max_points: Float!
+    max_marks: Float!
   }
 
   input TestRuleInput {
