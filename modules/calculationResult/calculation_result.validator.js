@@ -36,22 +36,31 @@ function ValidateCalculationResultInput(input) {
 
   // *************** Validate block results if provided
   if (Array.isArray(input.block_results)) {
-    input.block_results.forEach((blockResult, index) => {
+    input.block_results.forEach((blockResult, blockIdx) => {
       if (!blockResult.block_id) {
-        throw new ApolloError(`Block ID is required for block result at index ${index}`, 'VALIDATION_ERROR');
+        throw new ApolloError(`Block ID is required for block result at index ${blockIdx}`, 'VALIDATION_ERROR');
       }
       ValidateMongoId(blockResult.block_id);
-      
       if (!blockResult.block_name) {
-        throw new ApolloError(`Block name is required for block result at index ${index}`, 'VALIDATION_ERROR');
+        throw new ApolloError(`Block name is required for block result at index ${blockIdx}`, 'VALIDATION_ERROR');
       }
-
       if (!blockResult.status || !['PASS', 'FAIL', 'INCOMPLETE'].includes(blockResult.status)) {
-        throw new ApolloError(`Invalid status for block result at index ${index}. Must be one of: PASS, FAIL, INCOMPLETE`, 'VALIDATION_ERROR');
+        throw new ApolloError(`Invalid status for block result at index ${blockIdx}. Must be one of: PASS, FAIL, INCOMPLETE`, 'VALIDATION_ERROR');
       }
-
       if (typeof blockResult.average_score !== 'number') {
-        throw new ApolloError(`Average score must be a number for block result at index ${index}`, 'VALIDATION_ERROR');
+        throw new ApolloError(`Average score must be a number for block result at index ${blockIdx}`, 'VALIDATION_ERROR');
+      }
+      // Validate subject_results
+      if (Array.isArray(blockResult.subject_results)) {
+        blockResult.subject_results.forEach((subjectResult, subjectIdx) => {
+          if (Array.isArray(subjectResult.test_results)) {
+            subjectResult.test_results.forEach((testResult, testIdx) => {
+              if (typeof testResult.weighted_mark !== 'number') {
+                throw new ApolloError(`weighted_mark must be a number for test result at block ${blockIdx}, subject ${subjectIdx}, test ${testIdx}`, 'VALIDATION_ERROR');
+              }
+            });
+          }
+        });
       }
     });
   }

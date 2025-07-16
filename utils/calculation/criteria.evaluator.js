@@ -1,8 +1,4 @@
 // *************** CRITERIA EVALUATOR UTILITY
-/**
- * Utility functions for evaluating passing criteria at different levels of the academic hierarchy.
- * These functions implement the rule-based evaluation logic for the transcript system.
- */
 
 /**
  * Compares two values using the specified operator.
@@ -26,6 +22,7 @@ function CompareValues(actualValue, operator, expectedValue) {
     case "EQ":
       return actualValue === expectedValue;
     default:
+
   switch (rule.type) {
     case "NOTATION_SCORE": {
       // *************** Find the specific notation result by notation_id or notation_text
@@ -52,6 +49,11 @@ function CompareValues(actualValue, operator, expectedValue) {
     case "TEST_AVERAGE": {
       // *************** Use average_mark from testResult
       actualValue = testResult.average_mark || 0;
+      break;
+    }
+    case "TEST_MARK": {
+      // *************** Use weighted_mark as the real test score (already multiplied by weight)
+      actualValue = typeof testResult.weighted_mark === 'number' ? testResult.weighted_mark : 0;
       break;
     }
     default:
@@ -83,11 +85,118 @@ function CompareValues(actualValue, operator, expectedValue) {
   }
 
   // *************** Return result based on satisfied groups and what groups exist
-  if (hasPassCriteria && passSatisfied) return 'PASS'; // Any PASS group satisfied
-  if (hasFailCriteria && failSatisfied) return 'FAIL'; // Any FAIL group satisfied
-  if (hasPassCriteria) return 'FAIL'; // Only PASS groups exist, none satisfied
-  if (hasFailCriteria) return 'PASS'; // Only FAIL groups exist, none satisfied
-  return null; // No groups exist
+  if (hasPassCriteria && passSatisfied) return 'PASS'; // *************** Any PASS group satisfied
+  if (hasFailCriteria && failSatisfied) return 'FAIL'; // *************** Any FAIL group satisfied
+  if (hasPassCriteria) return 'FAIL'; // *************** Only PASS groups exist, none satisfied
+  if (hasFailCriteria) return 'PASS'; // *************** Only FAIL groups exist, none satisfied
+  return null; //***************  No groups exist
+}
+
+/**
+ * Evaluates a single rule within a test's criteria.
+ *
+ * @function EvaluateTestRule
+ * @param {Object} rule - The rule object to evaluate.
+ * @param {Object} testResult - The test result data object.
+ * @returns {boolean} True if the rule is satisfied, false otherwise.
+ */
+function EvaluateTestRule(rule, testResult) {
+  // *************** Default to false if required data is missing
+  if (!rule || !testResult) {
+    return false;
+  }
+
+  // *************** Get the actual value based on rule type
+  let actualValue;
+
+  switch (rule.type) {
+    case "NOTATION_SCORE": {
+      // *************** Find the specific notation result by notation_id or notation_text
+      if (Array.isArray(testResult.notation_results)) {
+        let notation = null;
+        if (rule.notation_id !== undefined && rule.notation_id !== null) {
+          notation = testResult.notation_results.find(notationResult => notationResult.notation_id === rule.notation_id);
+        } else if (rule.notation_text) {
+          notation = testResult.notation_results.find(notationResult => notationResult.notation_text === rule.notation_text);
+        } else if (rule.notation_index !== undefined) {
+          notation = testResult.notation_results.find(notationResult => notationResult.notation_id === rule.notation_index);
+        }
+        actualValue = notation ? notation.achieved_marks : 0;
+      } else {
+        return false;
+      }
+      break;
+    }
+    case "TOTAL_SCORE": {
+      // *************** Use total_marks from testResult
+      actualValue = testResult.total_marks || 0;
+      break;
+    }
+    case "TEST_AVERAGE": {
+      // *************** Use average_mark from testResult
+      actualValue = testResult.average_mark || 0;
+      break;
+    }
+    default:
+      return false;
+  }
+
+  // *************** Compare the actual value with the expected value using the rule's operator
+  return CompareValues(actualValue, rule.operator, rule.value);
+}
+
+/**
+ * Evaluates a single rule within a subject's criteria.
+ *
+ * @function EvaluateSubjectRule
+ * @param {Object} rule - The rule object to evaluate.
+ * @param {Object} subjectResult - The subject result data object.
+ * @param {Object} testResultsMap - Map of test results by test ID.
+ * @returns {boolean} True if the rule is satisfied, false otherwise.
+ */
+function EvaluateSubjectRule(rule, subjectResult, testResultsMap) {
+  // *************** Default to false if required data is missing
+  if (!rule || !subjectResult) {
+    return false;
+  }
+
+  // *************** Get the actual value based on rule type
+  let actualValue;
+
+
+  switch (rule.type) {
+    case "TEST_RESULT":
+      // *************** Check if a specific test was passed
+      if (rule.test_id && testResultsMap[rule.test_id]) {
+        // *************** The actual value is 1 if passed, 0 if failed, to be compared with 1 (EQ)
+        actualValue = testResultsMap[rule.test_id].status === "PASS" ? 1 : 0;
+        // *************** Override the comparison to check for equality with 1 (pass)
+        return CompareValues(actualValue, "EQ", 1);
+      }
+      return false;
+
+    case "TEST_MARK": {
+      // *************** Get the weighted mark for a specific test (real test score)
+      if (rule.test_id && testResultsMap[rule.test_id]) {
+        const testResult = testResultsMap[rule.test_id];
+        actualValue = typeof testResult.weighted_mark === 'number' ? testResult.weighted_mark : 0;
+      } else {
+        return false;
+      }
+      break;
+    }
+
+    case "SUBJECT_AVERAGE":
+      // *************** Use the overall subject average
+      actualValue = subjectResult.average_score || 0;
+      break;
+
+    default:
+      return false;
+  }
+
+  // *************** Compare the actual value with the expected value using the rule's operator
+  return CompareValues(actualValue, rule.operator, rule.value);
 }
 
 /**

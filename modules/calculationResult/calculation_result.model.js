@@ -124,8 +124,15 @@ const calculationResultSchema = new Mongoose.Schema(
                   required: true,
                 },
 
+
                 // Test weight for weighted average calculations
                 weight: {
+                  type: Number,
+                  required: true,
+                },
+
+                // Real test mark (average of notations * weight)
+                weighted_mark: {
                   type: Number,
                   required: true,
                 },

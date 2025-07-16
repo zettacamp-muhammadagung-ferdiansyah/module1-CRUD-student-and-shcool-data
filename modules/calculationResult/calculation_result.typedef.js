@@ -24,6 +24,7 @@ const CalculationResultTypeDefs = gql`
     total_marks: Float!
     max_marks: Float!
     percentage: Float!
+    weighted_mark: Float!
     notation_results: [NotationResult!]!
     criteria_evaluation: [CriteriaEvaluation!]
     createdAt: Date!

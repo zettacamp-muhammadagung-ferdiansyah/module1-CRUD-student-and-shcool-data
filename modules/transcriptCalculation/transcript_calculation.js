@@ -176,9 +176,8 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
         const testId = String(test._id);
         const testResult = testResultsMap[testId];
 
-        // *************** Only include test result if student has marks for this test
+        // *************** Only build and add test result if student has marks for this test
         if (testResult && testResult.marks && testResult.marks.length > 0) {
-          // *************** Build notation_results only if marks exist
           const notationResults = (test.notations || []).map((notation, index) => {
             let achievedMarks = 0;
             const matchingMark = testResult.marks.find(
@@ -195,17 +194,36 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
             };
           });
 
-          // Calculate total and max marks
+          // *************** Calculate total and max marks
           const total_marks = notationResults.reduce((accumulatedMarks, notationResult) => accumulatedMarks + notationResult.achieved_marks, 0);
           const max_marks = notationResults.reduce((accumulatedMaxMarks, notationResult) => accumulatedMaxMarks + notationResult.max_marks, 0);
-          const averageMark = testResult.average_mark || 0;
-          const weightedMark = CalculateTestWeightedMark(averageMark, test.weight);
 
-          // ***************  Create the test result object, only including max_marks if marks exist
+          // *************** Use average_mark from StudentTestResult if available, else calculate from notations
+          let averageMark = 0;
+          if (typeof testResult.average_mark === 'number') {
+            averageMark = testResult.average_mark;
+          } else {
+            averageMark = notationResults.length > 0
+              ? notationResults.reduce((totalAchievedMarks, notationResult) => totalAchievedMarks + (notationResult.achieved_marks || 0), 0) / notationResults.length
+              : 0;
+          }
+
+          // *************** Calculate weighted mark as averageMark * weight
+          const weightedMark = averageMark * (typeof test.weight === 'number' ? test.weight : 1);
+
+          //***************  Status logic
+          let status = "INCOMPLETE";
+          if (testResult.student_test_result_status === 'validated') {
+            status = "PASS";
+          } else if (averageMark > 0) {
+            status = "FAIL";
+          }
+
+          //***************  Build test result object
           const processedTestResult = {
             test_id: test._id,
             test_name: test.name,
-            status: testResult.student_test_result_status === 'validated' ? 'PASS' : 'INCOMPLETE',
+            status,
             weight: test.weight,
             weighted_mark: weightedMark,
             total_marks,
@@ -223,12 +241,9 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
                 test.passing_criteria,
                 processedTestResult
               );
-
-              // *************** Use detailed evaluation results
               processedTestResult.criteria_evaluation = detailedEvaluation.criteria_evaluation;
               processedTestResult.status = detailedEvaluation.passed ? "PASS" : "FAIL";
             } catch (evaluationError) {
-              // *************** Fallback to basic evaluation if detailed evaluation fails
               const basicResult = EvaluateTestCriteria(
                 test.passing_criteria,
                 processedTestResult
@@ -242,17 +257,12 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
               ];
               processedTestResult.status = basicResult ? "PASS" : "FAIL";
             }
-          } else {
-            // *************** If no criteria defined, default to pass if any marks achieved
-            processedTestResult.status =
-              processedTestResult.average_mark > 0 ? "PASS" : "FAIL";
           }
 
           // *************** Add to the test results array
           subjectResult.test_results.push(processedTestResult);
           subjectTestResultsMap[testId] = processedTestResult;
         }
-        // ***************  If no marks, do not add test result at all
       }
 
       // *************** Calculate subject mark using utility (sum of test marks * coefficient)
