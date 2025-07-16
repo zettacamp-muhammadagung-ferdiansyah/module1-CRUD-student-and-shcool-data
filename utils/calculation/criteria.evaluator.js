@@ -372,8 +372,8 @@ function EvaluateTestCriteriaDetailed(criteria, testResult) {
         // *************** If the rule is about the total score, use total_marks from test result
         actualValue = testResult.total_marks || 0;
       } else if (rule.type === "TEST_AVERAGE") {
-        // *************** If the rule is about the test average, use average_mark from test result
-        actualValue = testResult.average_mark || 0;
+        // *************** If the rule is about the test average, use weighted_mark from test result (real test score)
+        actualValue = typeof testResult.weighted_mark === 'number' ? testResult.weighted_mark : 0;
       }
 
       // *************** 3. Store the evaluation details for this rule, including all relevant info
