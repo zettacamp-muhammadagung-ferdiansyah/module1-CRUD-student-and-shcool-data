@@ -5,7 +5,7 @@ module.exports = {
   LOGICAL_OPERATOR: ['AND', 'OR'],
 
   // Test rule types
-  TEST_RULE_TYPE: ['NOTATION_SCORE', 'TOTAL_SCORE'],
+  TEST_RULE_TYPE: ['NOTATION_SCORE', 'TOTAL_SCORE', 'TEST_AVERAGE'],
 
   // Subject rule types
   SUBJECT_RULE_TYPE: ['TEST_RESULT', 'TEST_MARK', 'SUBJECT_AVERAGE'],

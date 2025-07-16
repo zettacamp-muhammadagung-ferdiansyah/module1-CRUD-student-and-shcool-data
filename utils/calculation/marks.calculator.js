@@ -1,114 +1,119 @@
 // *************** MARKS CALCULATOR UTILITY 
-/**
- * Utility functions for calculating marks at different levels of the academic hierarchy.
- * These functions implement the core mathematical calculations required for the transcript system.
- */
+
 
 /**
- * Calculates the weighted mark for a test based on its weight.
+ * Calculates the average score for a test based on its notations.
  *
- * @function CalculateTestWeightedMark
- * @param {number} averageMark - The test's average mark (already calculated, not from notations).
- * @param {number} weight - The test's weight factor (0-1).
- * @returns {number} The weighted test mark (averageMark * weight). Returns 0 if inputs are invalid.
+ * @function CalculateTestAverageScore
+ * @param {Array<Object>} notationResults - Array of notation result objects, each with achieved_points.
+ * @returns {number} The average score (sum of achieved_points / number of notations). Returns 0 if no notations.
  */
-function CalculateTestWeightedMark(averageMark, weight) {
-  // *************** Validate inputs
-  if (typeof averageMark !== 'number' || typeof weight !== 'number') {
+function CalculateTestAverageMark(notationResults) {
+  // *************** Validate input: must be a non-empty array
+  if (!Array.isArray(notationResults) || notationResults.length === 0) {
     return 0;
   }
-  // *************** Use averageMark directly (should come from student test result)
+  // *************** Sum all achieved points from notations
+  const totalAchievedMark = notationResults.reduce((totalMark, notation) => {
+    return totalMark + (notation.achieved_points || 0);
+  }, 0);
+  // *************** Calculate average mark by dividing total by number of notations
+  return totalAchievedMark / notationResults.length;
+}
+
+/**
+ * Calculates the weighted score for a test.
+ *
+ * @function CalculateTestWeightedScore
+ * @param {Array<Object>} notationResults - Array of notation result objects, each with achieved_points.
+ * @param {number} weight - The test's weight factor (0.1-1).
+ * @returns {number} The weighted test score (average score * weight). Returns 0 if inputs are invalid.
+ */
+function CalculateTestWeightedMark(notationResults, weight) {
+  // *************** Validate input: must be a non-empty array and weight must be a number
+  if (!Array.isArray(notationResults) || notationResults.length === 0 || typeof weight !== 'number') {
+    return 0;
+  }
+  // *************** Calculate average mark for the test
+  const averageMark = CalculateTestAverageMark(notationResults);
+  // *************** Multiply average mark by test weight
   return averageMark * weight;
 }
 
+
 /**
- * Calculates the total mark for a subject based on test results and subject coefficient.
+ * Calculates the total score for a subject by summing all test scores (already weighted).
  *
- * @function CalculateSubjectTotalMark
- * @param {Array<Object>} testResults - Array of test result objects, each with average_mark and weight.
- * @param {number} coefficient - The subject's coefficient for weighted calculations.
- * @returns {number} The total subject mark (weighted average * coefficient). Returns 0 if inputs are invalid.
+ * @function CalculateSubjectTotalScore
+ * @param {Array<Object>} testResults - Array of test result objects, each with notation_results and weight.
+ * @returns {number} The total subject score (sum of all test weighted scores). Returns 0 if no tests.
  */
 function CalculateSubjectTotalMark(testResults, coefficient) {
-  // *************** Validate inputs
+  // *************** Validate input: must be a non-empty array and coefficient must be a number
   if (!Array.isArray(testResults) || testResults.length === 0 || typeof coefficient !== 'number') {
     return 0;
   }
-  
-  // *************** Calculate the sum of weighted test marks
-  const totalWeightedMarks = testResults.reduce((sum, test) => {
-    const weightedMark = CalculateTestWeightedMark(test.average_mark || 0, test.weight || 0);
-    return sum + weightedMark;
+  // *************** Sum all test marks (each test mark is already weighted)
+  const totalTestMarks = testResults.reduce((totalTestMarksAccumulator, testResult) => {
+    return totalTestMarksAccumulator + CalculateTestWeightedMark(testResult.notation_results, testResult.weight);
   }, 0);
-  
-  // *************** Calculate the total weight of all tests
-  const totalWeight = testResults.reduce((sum, test) => sum + (test.weight || 0), 0);
-  
-  // *************** If there are no weights, return 0 to avoid division by zero
-  if (totalWeight === 0) {
-    return 0;
-  }
-  
-  // *************** Calculate the weighted average and apply the subject coefficient
-  return (totalWeightedMarks / totalWeight) * coefficient;
+  // *************** Multiply total test marks by subject coefficient
+  return totalTestMarks * coefficient;
 }
 
+
 /**
- * Calculates the total mark for a block based on subject results.
+ * Calculates the block score as the weighted average of subject scores by coefficient.
  *
- * @function CalculateBlockTotalMark
- * @param {Array<Object>} subjectResults - Array of subject result objects, each with total_mark and coefficient.
- * @returns {number} The block's average mark (weighted average of subject marks). Returns 0 if inputs are invalid.
+ * @function CalculateBlockTotalScore
+ * @param {Array<Object>} subjectResults - Array of subject result objects, each with subject_score and coefficient.
+ * @returns {number} The block's average score (weighted average of subject scores). Returns 0 if inputs are invalid.
  */
 function CalculateBlockTotalMark(subjectResults) {
-  // *************** Validate inputs
+  // *************** Validate input: must be a non-empty array
   if (!Array.isArray(subjectResults) || subjectResults.length === 0) {
     return 0;
   }
-  
-  // *************** Calculate the sum of weighted subject marks
-  const totalWeightedMarks = subjectResults.reduce((sum, subject) => {
-    return sum + (subject.total_mark || 0) * (subject.coefficient || 1);
+  // *************** Sum all subject marks
+  const totalSubjectMarks = subjectResults.reduce((totalSubjectMarksAccumulator, subjectResult) => {
+    return totalSubjectMarksAccumulator + (subjectResult.subject_mark || 0);
   }, 0);
-  
-  // *************** Calculate the total coefficient sum
-  const totalCoefficient = subjectResults.reduce((sum, subject) => {
-    return sum + (subject.coefficient || 1);
+  // *************** Sum all subject coefficients
+  const totalCoefficient = subjectResults.reduce((totalCoefficientAccumulator, subjectResult) => {
+    return totalCoefficientAccumulator + (subjectResult.coefficient || 1);
   }, 0);
-  
-  // *************** If there are no coefficients, return 0 to avoid division by zero
+  // *************** Avoid division by zero
   if (totalCoefficient === 0) {
     return 0;
   }
-  
-  // *************** Calculate the weighted average of subject marks
-  return totalWeightedMarks / totalCoefficient;
+  // *************** Calculate block mark as total subject marks divided by total coefficients
+  return totalSubjectMarks / totalCoefficient;
 }
 
+
 /**
- * Calculates the final mark across all blocks.
+ * Calculates the final mark across all blocks (average of block scores).
  *
  * @function CalculateFinalMark
- * @param {Array<Object>} blockResults - Array of block result objects, each with total_mark.
- * @returns {number} The final overall mark (average of all block total marks). Returns 0 if inputs are invalid.
+ * @param {Array<Object>} blockResults - Array of block result objects, each with block_score.
+ * @returns {number} The final overall mark (average of all block scores). Returns 0 if inputs are invalid.
  */
 function CalculateFinalMark(blockResults) {
-  // *************** Validate inputs
+  // *************** Validate input: must be a non-empty array
   if (!Array.isArray(blockResults) || blockResults.length === 0) {
     return 0;
   }
-  
-  // *************** Calculate the sum of all block marks
-  const totalMarks = blockResults.reduce((sum, block) => {
-    return sum + (block.total_mark || 0);
+  // *************** Sum all block marks
+  const totalBlockMarks = blockResults.reduce((totalBlockMarksAccumulator, blockResult) => {
+    return totalBlockMarksAccumulator + (blockResult.block_mark || 0);
   }, 0);
-  
-  // *************** Calculate the average mark across all blocks
-  return totalMarks / blockResults.length;
+  // *************** Calculate final mark as average of all block marks
+  return totalBlockMarks / blockResults.length;
 }
 
 // *************** EXPORT MODULE ***************
 module.exports = {
+  CalculateTestAverageMark,
   CalculateTestWeightedMark,
   CalculateSubjectTotalMark,
   CalculateBlockTotalMark,

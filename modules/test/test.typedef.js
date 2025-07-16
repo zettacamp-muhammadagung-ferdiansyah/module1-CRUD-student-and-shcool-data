@@ -11,6 +11,7 @@ const TestTypeDefs = gql`
   enum TestRuleType {
     NOTATION_SCORE
     TOTAL_SCORE
+    TEST_AVERAGE
   }
 
   type TestRule {

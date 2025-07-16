@@ -48,27 +48,35 @@ function EvaluateTestRule(rule, testResult) {
   // *************** Get the actual value based on rule type
   let actualValue;
 
+
   switch (rule.type) {
-    case "NOTATION_SCORE":
-      // *************** Find the specific notation result if notation_index is provided
-      if (
-        rule.notation_index !== undefined &&
-        Array.isArray(testResult.notation_results)
-      ) {
-        const notation = testResult.notation_results.find(
-          (notation) => notation.notation_id === rule.notation_index
-        );
+    case "NOTATION_SCORE": {
+      // *************** Find the specific notation result by notation_id or notation_text
+      if (Array.isArray(testResult.notation_results)) {
+        let notation = null;
+        if (rule.notation_id !== undefined && rule.notation_id !== null) {
+          notation = testResult.notation_results.find(notationResult => notationResult.notation_id === rule.notation_id);
+        } else if (rule.notation_text) {
+          notation = testResult.notation_results.find(notationResult => notationResult.notation_text === rule.notation_text);
+        } else if (rule.notation_index !== undefined) {
+          notation = testResult.notation_results.find(notationResult => notationResult.notation_id === rule.notation_index);
+        }
         actualValue = notation ? notation.achieved_points : 0;
       } else {
         return false;
       }
       break;
-
-    case "TOTAL_SCORE":
-      // *************** Use the test's average_mark from student test result (not recalculated from notations)
+    }
+    case "TOTAL_SCORE": {
+      // *************** Use total_points from testResult
+      actualValue = testResult.total_points || 0;
+      break;
+    }
+    case "TEST_AVERAGE": {
+      // *************** Use average_mark from testResult
       actualValue = testResult.average_mark || 0;
       break;
-
+    }
     default:
       return false;
   }
