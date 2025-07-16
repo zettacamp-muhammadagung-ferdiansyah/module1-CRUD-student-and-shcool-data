@@ -196,8 +196,8 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
           });
 
           // Calculate total and max marks
-          const total_marks = notationResults.reduce((sum, n) => sum + n.achieved_marks, 0);
-          const max_marks = notationResults.reduce((sum, n) => sum + n.max_marks, 0);
+          const total_marks = notationResults.reduce((accumulatedMarks, notationResult) => accumulatedMarks + notationResult.achieved_marks, 0);
+          const max_marks = notationResults.reduce((accumulatedMaxMarks, notationResult) => accumulatedMaxMarks + notationResult.max_marks, 0);
           const averageMark = testResult.average_mark || 0;
           const weightedMark = CalculateTestWeightedMark(averageMark, test.weight);
 
