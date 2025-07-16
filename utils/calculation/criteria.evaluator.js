@@ -56,7 +56,7 @@ function EvaluateTestRule(rule, testResult) {
         Array.isArray(testResult.notation_results)
       ) {
         const notation = testResult.notation_results.find(
-          (n) => n.notation_id === rule.notation_index
+          (notation) => notation.notation_id === rule.notation_index
         );
         actualValue = notation ? notation.achieved_points : 0;
       } else {
@@ -65,7 +65,7 @@ function EvaluateTestRule(rule, testResult) {
       break;
 
     case "TOTAL_SCORE":
-      // *************** Use the overall test average mark
+      // *************** Use the test's average_mark from student test result (not recalculated from notations)
       actualValue = testResult.average_mark || 0;
       break;
 
@@ -86,57 +86,50 @@ function EvaluateTestRule(rule, testResult) {
  * @returns {boolean} True if passing criteria are met, false otherwise.
  */
 function EvaluateTestCriteria(criteria, testResult) {
-  // *************** If no criteria defined, default to pass
+  // *************** If no criteria defined, return null (no result)
   if (!Array.isArray(criteria) || criteria.length === 0) {
-    return true;
+    return null;
   }
 
-  // *************** For each criteria group with expected outcome "PASS"
+  // *************** Track if there are PASS/FAIL groups and if any are satisfied
+  let hasPassCriteria = false;
+  let hasFailCriteria = false;
+  let passSatisfied = false;
+  let failSatisfied = false;
+
+  // *************** Evaluate all criteria groups (both PASS and FAIL)
   for (const criteriaGroup of criteria) {
-    // *************** Skip criteria groups that don't have the "PASS" expected outcome
-    if (criteriaGroup.expected_outcome !== "PASS") {
-      continue;
-    }
+    if (!Array.isArray(criteriaGroup.rules) || criteriaGroup.rules.length === 0) continue;
 
-    // *************** If no rules in this group, continue to next group
-    if (
-      !Array.isArray(criteriaGroup.rules) ||
-      criteriaGroup.rules.length === 0
-    ) {
-      continue;
-    }
-
-    // *************** Evaluate all rules in this criteria group
-    let criteriaResult = true;
-    let prevResult = true;
-
-    for (let i = 0; i < criteriaGroup.rules.length; i++) {
-      const rule = criteriaGroup.rules[i];
+    let groupResult = null;
+    // *************** Evaluate all rules in this group
+    for (const [ruleIndex, rule] of criteriaGroup.rules.entries()) {
       const ruleResult = EvaluateTestRule(rule, testResult);
-
-      // *************** Apply logical operator if not the first rule
-      if (i > 0 && rule.logical_operator) {
-        if (rule.logical_operator === "AND") {
-          criteriaResult = criteriaResult && ruleResult;
-        } else if (rule.logical_operator === "OR") {
-          criteriaResult = criteriaResult || ruleResult;
-        }
-      } else {
-        // *************** First rule just sets the initial value
-        criteriaResult = ruleResult;
+      if (ruleIndex === 0) {
+        groupResult = ruleResult;
+      } else if (rule.logical_operator === 'AND') {
+        groupResult = groupResult && ruleResult;
+      } else if (rule.logical_operator === 'OR') {
+        groupResult = groupResult || ruleResult;
       }
-
-      prevResult = ruleResult;
     }
 
-    // *************** If this criteria group is satisfied, the test passes
-    if (criteriaResult) {
-      return true;
+    // *************** Track if this group is PASS or FAIL and if it is satisfied
+    if (criteriaGroup.expected_outcome === 'PASS') {
+      hasPassCriteria = true;
+      if (groupResult) passSatisfied = true;
+    } else if (criteriaGroup.expected_outcome === 'FAIL') {
+      hasFailCriteria = true;
+      if (groupResult) failSatisfied = true;
     }
   }
 
-  // *************** If no passing criteria were satisfied, the test fails
-  return false;
+  // *************** Return result based on satisfied groups and what groups exist
+  if (hasPassCriteria && passSatisfied) return 'PASS'; // *************** Any PASS group satisfied
+  if (hasFailCriteria && failSatisfied) return 'FAIL'; // *************** Any FAIL group satisfied
+  if (hasPassCriteria) return 'FAIL'; // *************** Only PASS groups exist, none satisfied
+  if (hasFailCriteria) return 'PASS'; // *************** Only FAIL groups exist, none satisfied
+  return null; // *************** No groups exist
 }
 
 /**
@@ -200,61 +193,54 @@ function EvaluateSubjectRule(rule, subjectResult, testResultsMap) {
  * @returns {boolean} True if passing criteria are met, false otherwise.
  */
 function EvaluateSubjectCriteria(criteria, subjectResult, testResultsMap) {
-  // *************** If no criteria defined, default to pass
+  // *************** If no criteria defined, return null (no result)
   if (!Array.isArray(criteria) || criteria.length === 0) {
-    return true;
+    return null;
   }
 
-  // *************** For each criteria group with expected outcome "PASS"
+  // *************** Track if there are PASS/FAIL groups and if any are satisfied
+  let hasPassCriteria = false;
+  let hasFailCriteria = false;
+  let passSatisfied = false;
+  let failSatisfied = false;
+
+  // *************** Evaluate all criteria groups (both PASS and FAIL)
   for (const criteriaGroup of criteria) {
-    // *************** Skip criteria groups that don't have the "PASS" expected outcome
-    if (criteriaGroup.expected_outcome !== "PASS") {
-      continue;
-    }
+    if (!Array.isArray(criteriaGroup.rules) || criteriaGroup.rules.length === 0) continue;
 
-    // *************** If no rules in this group, continue to next group
-    if (
-      !Array.isArray(criteriaGroup.rules) ||
-      criteriaGroup.rules.length === 0
-    ) {
-      continue;
-    }
-
-    // *************** Evaluate all rules in this criteria group
-    let criteriaResult = true;
-    let prevResult = true;
-
-    for (let i = 0; i < criteriaGroup.rules.length; i++) {
-      const rule = criteriaGroup.rules[i];
+    let groupResult = null;
+    // *************** Evaluate all rules in this group
+    for (const [ruleIndex, rule] of criteriaGroup.rules.entries()) {
       const ruleResult = EvaluateSubjectRule(
         rule,
         subjectResult,
         testResultsMap
       );
-
-      // *************** Apply logical operator if not the first rule
-      if (i > 0 && rule.logical_operator) {
-        if (rule.logical_operator === "AND") {
-          criteriaResult = criteriaResult && ruleResult;
-        } else if (rule.logical_operator === "OR") {
-          criteriaResult = criteriaResult || ruleResult;
-        }
-      } else {
-        // *************** First rule just sets the initial value
-        criteriaResult = ruleResult;
+      if (ruleIndex === 0) {
+        groupResult = ruleResult;
+      } else if (rule.logical_operator === 'AND') {
+        groupResult = groupResult && ruleResult;
+      } else if (rule.logical_operator === 'OR') {
+        groupResult = groupResult || ruleResult;
       }
-
-      prevResult = ruleResult;
     }
 
-    // *************** If this criteria group is satisfied, the subject passes
-    if (criteriaResult) {
-      return true;
+    // *************** Track if this group is PASS or FAIL and if it is satisfied
+    if (criteriaGroup.expected_outcome === 'PASS') {
+      hasPassCriteria = true;
+      if (groupResult) passSatisfied = true;
+    } else if (criteriaGroup.expected_outcome === 'FAIL') {
+      hasFailCriteria = true;
+      if (groupResult) failSatisfied = true;
     }
   }
 
-  // *************** If no passing criteria were satisfied, the subject fails
-  return false;
+  // *************** Return result based on satisfied groups and what groups exist
+  if (hasPassCriteria && passSatisfied) return 'PASS'; // Any PASS group satisfied
+  if (hasFailCriteria && failSatisfied) return 'FAIL'; // Any FAIL group satisfied
+  if (hasPassCriteria) return 'FAIL'; // Only PASS groups exist, none satisfied
+  if (hasFailCriteria) return 'PASS'; // Only FAIL groups exist, none satisfied
+  return null; // No groups exist
 }
 
 /**
@@ -319,61 +305,54 @@ function EvaluateBlockRule(rule, blockResult, subjectResultsMap) {
  * @returns {boolean} True if passing criteria are met, false otherwise.
  */
 function EvaluateBlockCriteria(criteria, blockResult, subjectResultsMap) {
-  // *************** If no criteria defined, default to pass
+  // *************** If no criteria defined, return null (no result)
   if (!Array.isArray(criteria) || criteria.length === 0) {
-    return true;
+    return null;
   }
 
-  // ***************  For each criteria group with expected outcome "PASS"
+  // *************** Track if there are PASS/FAIL groups and if any are satisfied
+  let hasPassCriteria = false;
+  let hasFailCriteria = false;
+  let passSatisfied = false;
+  let failSatisfied = false;
+
+  // *************** Evaluate all criteria groups (both PASS and FAIL)
   for (const criteriaGroup of criteria) {
-    // *************** Skip criteria groups that don't have the "PASS" expected outcome
-    if (criteriaGroup.expected_outcome !== "PASS") {
-      continue;
-    }
+    if (!Array.isArray(criteriaGroup.rules) || criteriaGroup.rules.length === 0) continue;
 
-    // ***************  If no rules in this group, continue to next group
-    if (
-      !Array.isArray(criteriaGroup.rules) ||
-      criteriaGroup.rules.length === 0
-    ) {
-      continue;
-    }
-
-    // ***************  Evaluate all rules in this criteria group
-    let criteriaResult = true;
-    let prevResult = true;
-
-    for (let i = 0; i < criteriaGroup.rules.length; i++) {
-      const rule = criteriaGroup.rules[i];
+    let groupResult = null;
+    // *************** Evaluate all rules in this group
+    for (const [ruleIndex, rule] of criteriaGroup.rules.entries()) {
       const ruleResult = EvaluateBlockRule(
         rule,
         blockResult,
         subjectResultsMap
       );
-
-      // *************** Apply logical operator if not the first rule
-      if (i > 0 && rule.logical_operator) {
-        if (rule.logical_operator === "AND") {
-          criteriaResult = criteriaResult && ruleResult;
-        } else if (rule.logical_operator === "OR") {
-          criteriaResult = criteriaResult || ruleResult;
-        }
-      } else {
-        // *************** First rule just sets the initial value
-        criteriaResult = ruleResult;
+      if (ruleIndex === 0) {
+        groupResult = ruleResult;
+      } else if (rule.logical_operator === 'AND') {
+        groupResult = groupResult && ruleResult;
+      } else if (rule.logical_operator === 'OR') {
+        groupResult = groupResult || ruleResult;
       }
-
-      prevResult = ruleResult;
     }
 
-    // *************** If this criteria group is satisfied, the block passes
-    if (criteriaResult) {
-      return true;
+    // *************** Track if this group is PASS or FAIL and if it is satisfied
+    if (criteriaGroup.expected_outcome === 'PASS') {
+      hasPassCriteria = true;
+      if (groupResult) passSatisfied = true;
+    } else if (criteriaGroup.expected_outcome === 'FAIL') {
+      hasFailCriteria = true;
+      if (groupResult) failSatisfied = true;
     }
   }
 
-  // *************** If no passing criteria were satisfied, the block fails
-  return false;
+  // *************** Return result based on satisfied groups and what groups exist
+  if (hasPassCriteria && passSatisfied) return 'PASS'; // Any PASS group satisfied
+  if (hasFailCriteria && failSatisfied) return 'FAIL'; // Any FAIL group satisfied
+  if (hasPassCriteria) return 'FAIL'; // Only PASS groups exist, none satisfied
+  if (hasFailCriteria) return 'PASS'; // Only FAIL groups exist, none satisfied
+  return null; // No groups exist
 }
 
 /**
@@ -384,96 +363,107 @@ function EvaluateBlockCriteria(criteria, blockResult, subjectResultsMap) {
  * @param {Object} testResult - The test result data object.
  * @returns {Object} An object with { passed: boolean, criteria_evaluation: Array }.
  */
+/**
+ * Returns a detailed evaluation of test criteria, including rule breakdowns.
+ * Handles both PASS and FAIL groups, and does not default to PASS if no criteria.
+ *
+ * @function EvaluateTestCriteriaDetailed
+ * @param {Array<Object>} criteria - Array of criteria group objects, each with rules.
+ * @param {Object} testResult - The test result data object.
+ * @returns {Object} An object with { result: 'PASS'|'FAIL'|null, criteria_evaluation: Array }.
+ */
 function EvaluateTestCriteriaDetailed(criteria, testResult) {
-  // *************** If no criteria defined, return default pass
+  // *************** If no criteria defined, return null and empty evaluation
   if (!Array.isArray(criteria) || criteria.length === 0) {
     return {
-      passed: true,
-      criteria_evaluation: [
-        {
-          expected_outcome: "PASS",
-          result: true,
-          rule_evaluations: [],
-        },
-      ],
+      result: null,
+      criteria_evaluation: [],
     };
   }
 
-  // *************** Process each criteria group
+  // *************** Stores detailed evaluation results for each criteria group
   const evaluationResults = [];
-  let overallPassed = false;
+  // *************** Tracks if any PASS group is satisfied
+  let passSatisfied = false;
+  // *************** Tracks if any FAIL group is satisfied
+  let failSatisfied = false;
+  // *************** Tracks if there is at least one PASS group
+  let hasPassCriteria = false;
+  // *************** Tracks if there is at least one FAIL group
+  let hasFailCriteria = false;
 
-  for (const criteriaGroup of criteria) {
-    // *************** Skip non-PASS criteria groups
-    if (criteriaGroup.expected_outcome !== "PASS") {
-      continue;
-    }
+  // *************** Evaluate all criteria groups (both PASS and FAIL)
+  for (const group of criteria) {
+    if (!Array.isArray(group.rules) || group.rules.length === 0) continue;
 
-    // *************** If no rules in this group, skip
-    if (!Array.isArray(criteriaGroup.rules) || criteriaGroup.rules.length === 0) {
-      continue;
-    }
-
-    // *************** Evaluate each rule and collect detailed results
-    const rule_evaluations = [];
-    let criteriaResult = true;
-
-    for (let i = 0; i < criteriaGroup.rules.length; i++) {
-      const rule = criteriaGroup.rules[i];
+    let groupResult = null;
+    const ruleEvaluations = [];
+    // *************** Evaluate all rules in this group and collect details
+    // *************** Evaluate each rule in the group, step by step
+    group.rules.forEach((rule, ruleIdx) => {
+      // *************** 1. Evaluate the rule using the test result
       const ruleResult = EvaluateTestRule(rule, testResult);
 
-      // *************** Get actual value for detailed logging
+      // *************** 2. Determine the actual value used for comparison, based on rule type
       let actualValue = 0;
       if (rule.type === "NOTATION_SCORE" && rule.notation_index !== undefined) {
+        // *************** If the rule is about a specific notation, get the achieved points for that notation
         const notation = testResult.notation_results && testResult.notation_results.find(
-          (n) => n.notation_id === rule.notation_index
+          (notation) => notation.notation_id === rule.notation_index
         );
         actualValue = notation ? notation.achieved_points : 0;
       } else if (rule.type === "TOTAL_SCORE") {
+        // *************** If the rule is about the total score, use the test's average_mark from student test result
         actualValue = testResult.average_mark || 0;
       }
 
-      // *************** Create detailed rule evaluation
-      rule_evaluations.push({
-        type: rule.type,
-        logical_operator: rule.logical_operator || null,
-        target_id:
-          rule.notation_index !== undefined
-            ? String(rule.notation_index)
-            : null,
-        operator: rule.operator,
-        value: rule.value,
-        actual_value: actualValue,
-        passed: ruleResult,
+      // *************** 3. Store the evaluation details for this rule, including all relevant info
+      ruleEvaluations.push({
+        type: rule.type, // *************** The type of rule (NOTATION_SCORE, TOTAL_SCORE, etc)
+        logical_operator: rule.logical_operator || null, // *************** Logical operator to combine with previous rule
+        target_id: rule.notation_index !== undefined ? String(rule.notation_index) : null, // The notation index if relevant
+        operator: rule.operator, // *************** The comparison operator (GTE, EQ, etc)
+        value: rule.value, // *************** The expected value
+        actual_value: actualValue, // *************** The actual value used for comparison
+        passed: ruleResult, // *************** Whether this rule was satisfied
       });
 
-      // *************** Apply logical operators
-      if (i > 0 && rule.logical_operator) {
-        if (rule.logical_operator === "AND") {
-          criteriaResult = criteriaResult && ruleResult;
-        } else if (rule.logical_operator === "OR") {
-          criteriaResult = criteriaResult || ruleResult;
-        }
-      } else {
-        criteriaResult = ruleResult;
+      // *************** 4. Combine rule results using logical operators (AND/OR) to get the group result
+      if (ruleIdx === 0) {
+        // *************** The first rule sets the initial group result
+        groupResult = ruleResult;
+      } else if (rule.logical_operator === 'AND') {
+        // *************** Combine with previous result using AND
+        groupResult = groupResult && ruleResult;
+      } else if (rule.logical_operator === 'OR') {
+        // *************** Combine with previous result using OR
+        groupResult = groupResult || ruleResult;
       }
-    }
-
-    // *************** Add this criteria group's evaluation
-    evaluationResults.push({
-      expected_outcome: "PASS",
-      result: criteriaResult,
-      rule_evaluations: rule_evaluations,
     });
-
-    // *************** If any criteria group passes, overall result is pass
-    if (criteriaResult) {
-      overallPassed = true;
+    evaluationResults.push({
+      expected_outcome: group.expected_outcome,
+      result: groupResult,
+      rule_evaluations: ruleEvaluations,
+    });
+    // *************** Track if this group is PASS or FAIL and if it is satisfied
+    if (group.expected_outcome === 'PASS') {
+      hasPassCriteria = true;
+      if (groupResult) passSatisfied = true;
+    } else if (group.expected_outcome === 'FAIL') {
+      hasFailCriteria = true;
+      if (groupResult) failSatisfied = true;
     }
   }
 
+  // *************** Return result based on satisfied groups and what groups exist
+  let result = null;
+  if (hasPassCriteria && passSatisfied) result = 'PASS';
+  else if (hasFailCriteria && failSatisfied) result = 'FAIL';
+  else if (hasPassCriteria) result = 'FAIL';
+  else if (hasFailCriteria) result = 'PASS';
+
   return {
-    passed: overallPassed,
+    result,
     criteria_evaluation: evaluationResults,
   };
 }
@@ -487,92 +477,107 @@ function EvaluateTestCriteriaDetailed(criteria, testResult) {
  * @param {Object} testResultsMap - Map of test results by test ID.
  * @returns {Object} An object with { passed: boolean, criteria_evaluation: Array }.
  */
+/**
+ * Returns a detailed evaluation of subject criteria, including rule breakdowns.
+ * Handles both PASS and FAIL groups, and does not default to PASS if no criteria.
+ *
+ * @function EvaluateSubjectCriteriaDetailed
+ * @param {Array<Object>} criteria - Array of criteria group objects, each with rules.
+ * @param {Object} subjectResult - The subject result data object.
+ * @param {Object} testResultsMap - Map of test results by test ID.
+ * @returns {Object} An object with { result: 'PASS'|'FAIL'|null, criteria_evaluation: Array }.
+ */
 function EvaluateSubjectCriteriaDetailed(criteria, subjectResult, testResultsMap) {
-  // *************** If no criteria defined, return default pass
+  // *************** If no criteria defined, return null and empty evaluation
   if (!Array.isArray(criteria) || criteria.length === 0) {
     return {
-      passed: true,
-      criteria_evaluation: [
-        {
-          expected_outcome: "PASS",
-          result: true,
-          rule_evaluations: [],
-        },
-      ],
+      result: null,
+      criteria_evaluation: [],
     };
   }
 
-  // *************** Process each criteria group
+  // *************** Stores detailed evaluation results for each criteria group
   const evaluationResults = [];
-  let overallPassed = false;
+  // *************** Tracks if any PASS group is satisfied
+  let passSatisfied = false;
+  // *************** Tracks if any FAIL group is satisfied
+  let failSatisfied = false;
+  // *************** Tracks if there is at least one PASS group
+  let hasPassCriteria = false;
+  // *************** Tracks if there is at least one FAIL group
+  let hasFailCriteria = false;
 
-  for (const criteriaGroup of criteria) {
-    // *************** Skip non-PASS criteria groups
-    if (criteriaGroup.expected_outcome !== "PASS") {
-      continue;
-    }
+  // *************** Evaluate all criteria groups (both PASS and FAIL)
+  for (const group of criteria) {
+    if (!Array.isArray(group.rules) || group.rules.length === 0) continue;
 
-    // *************** If no rules in this group, skip
-    if (!Array.isArray(criteriaGroup.rules) || criteriaGroup.rules.length === 0) {
-      continue;
-    }
-
-    // *************** Evaluate each rule and collect detailed results
-    const rule_evaluations = [];
-    let criteriaResult = true;
-
-    for (let i = 0; i < criteriaGroup.rules.length; i++) {
-      const rule = criteriaGroup.rules[i];
+    let groupResult = null;
+    const ruleEvaluations = [];
+    // *************** Evaluate each rule in the group, step by step
+    group.rules.forEach((rule, ruleIdx) => {
+      // *************** 1. Evaluate the rule using the subject result and test results map
       const ruleResult = EvaluateSubjectRule(rule, subjectResult, testResultsMap);
 
-      // *************** Get actual value for detailed logging
+      // *************** 2. Determine the actual value used for comparison, based on rule type
       let actualValue = 0;
       if (rule.type === "TEST_RESULT" && rule.test_id) {
+        // *************** If the rule is about a test result, set 1 if the test was passed, 0 if failed
         actualValue = testResultsMap[rule.test_id] && testResultsMap[rule.test_id].status === "PASS" ? 1 : 0;
       } else if (rule.type === "TEST_MARK" && rule.test_id) {
+        // *************** If the rule is about a test mark, get the average mark for the specific test
         actualValue = testResultsMap[rule.test_id] ? testResultsMap[rule.test_id].average_mark || 0 : 0;
       } else if (rule.type === "SUBJECT_AVERAGE") {
+        // *************** If the rule is about the subject average, use the overall subject average score
         actualValue = subjectResult.average_score || 0;
       }
 
-      // *************** Create detailed rule evaluation
-      rule_evaluations.push({
-        type: rule.type,
-        logical_operator: rule.logical_operator || null,
-        target_id: rule.test_id ? String(rule.test_id) : null,
-        operator: rule.operator,
-        value: rule.value,
-        actual_value: actualValue,
-        passed: ruleResult,
+      // *************** 3. Store the evaluation details for this rule, including all relevant info
+      ruleEvaluations.push({
+        type: rule.type, // *************** The type of rule (TEST_RESULT, TEST_MARK, etc)
+        logical_operator: rule.logical_operator || null, // *************** Logical operator to combine with previous rule
+        target_id: rule.test_id ? String(rule.test_id) : null, // *************** The test id if relevant
+        operator: rule.operator, // *************** The comparison operator (GTE, EQ, etc)
+        value: rule.value, // *************** The expected value
+        actual_value: actualValue, // *************** The actual value used for comparison
+        passed: ruleResult, // *************** Whether this rule was satisfied
       });
 
-      // *************** Apply logical operators
-      if (i > 0 && rule.logical_operator) {
-        if (rule.logical_operator === "AND") {
-          criteriaResult = criteriaResult && ruleResult;
-        } else if (rule.logical_operator === "OR") {
-          criteriaResult = criteriaResult || ruleResult;
-        }
-      } else {
-        criteriaResult = ruleResult;
+      // *************** 4. Combine rule results using logical operators (AND/OR) to get the group result
+      if (ruleIdx === 0) {
+        // *************** The first rule sets the initial group result
+        groupResult = ruleResult;
+      } else if (rule.logical_operator === 'AND') {
+        // *************** Combine with previous result using AND
+        groupResult = groupResult && ruleResult;
+      } else if (rule.logical_operator === 'OR') {
+        // *************** Combine with previous result using OR
+        groupResult = groupResult || ruleResult;
       }
-    }
-
-    // *************** Add this criteria group's evaluation
-    evaluationResults.push({
-      expected_outcome: "PASS",
-      result: criteriaResult,
-      rule_evaluations: rule_evaluations,
     });
-
-    // *************** If any criteria group passes, overall result is pass
-    if (criteriaResult) {
-      overallPassed = true;
+    evaluationResults.push({
+      expected_outcome: group.expected_outcome,
+      result: groupResult,
+      rule_evaluations: ruleEvaluations,
+    });
+    // *************** Track if this group is PASS or FAIL and if it is satisfied
+    if (group.expected_outcome === 'PASS') {
+      hasPassCriteria = true;
+      if (groupResult) passSatisfied = true;
+    } else if (group.expected_outcome === 'FAIL') {
+      hasFailCriteria = true;
+      if (groupResult) failSatisfied = true;
     }
   }
 
+  // *************** Return result based on satisfied groups and what groups exist
+  let result = null;
+  if (hasPassCriteria && passSatisfied) result = 'PASS';
+  else if (hasFailCriteria && failSatisfied) result = 'FAIL';
+  else if (hasPassCriteria) result = 'FAIL';
+  else if (hasFailCriteria) result = 'PASS';
+
   return {
-    passed: overallPassed,
+    result,
     criteria_evaluation: evaluationResults,
   };
 }
@@ -586,92 +591,108 @@ function EvaluateSubjectCriteriaDetailed(criteria, subjectResult, testResultsMap
  * @param {Object} subjectResultsMap - Map of subject results by subject ID.
  * @returns {Object} An object with { passed: boolean, criteria_evaluation: Array }.
  */
+/**
+ * Returns a detailed evaluation of block criteria, including rule breakdowns.
+ * Handles both PASS and FAIL groups, and does not default to PASS if no criteria.
+ *
+ * @function EvaluateBlockCriteriaDetailed
+ * @param {Array<Object>} criteria - Array of criteria group objects, each with rules.
+ * @param {Object} blockResult - The block result data object.
+ * @param {Object} subjectResultsMap - Map of subject results by subject ID.
+ * @returns {Object} An object with { result: 'PASS'|'FAIL'|null, criteria_evaluation: Array }.
+ */
 function EvaluateBlockCriteriaDetailed(criteria, blockResult, subjectResultsMap) {
-  // *************** If no criteria defined, return default pass
+  // *************** If no criteria defined, return null and empty evaluation
   if (!Array.isArray(criteria) || criteria.length === 0) {
     return {
-      passed: true,
-      criteria_evaluation: [
-        {
-          expected_outcome: "PASS",
-          result: true,
-          rule_evaluations: [],
-        },
-      ],
+      result: null,
+      criteria_evaluation: [],
     };
   }
 
-  // *************** Process each criteria group
+  // *************** Stores detailed evaluation results for each criteria group
   const evaluationResults = [];
-  let overallPassed = false;
+  // *************** Tracks if any PASS group is satisfied
+  let passSatisfied = false;
+  // *************** Tracks if any FAIL group is satisfied
+  let failSatisfied = false;
+  // *************** Tracks if there is at least one PASS group
+  let hasPassCriteria = false;
+  // *************** Tracks if there is at least one FAIL group
+  let hasFailCriteria = false;
 
-  for (const criteriaGroup of criteria) {
-    // *************** Skip non-PASS criteria groups
-    if (criteriaGroup.expected_outcome !== "PASS") {
-      continue;
-    }
+  // *************** Evaluate all criteria groups (both PASS and FAIL)
+  for (const group of criteria) {
+    if (!Array.isArray(group.rules) || group.rules.length === 0) continue;
 
-    // *************** If no rules in this group, skip
-    if (!Array.isArray(criteriaGroup.rules) || criteriaGroup.rules.length === 0) {
-      continue;
-    }
-
-    // *************** Evaluate each rule and collect detailed results
-    const rule_evaluations = [];
-    let criteriaResult = true;
-
-    for (let i = 0; i < criteriaGroup.rules.length; i++) {
-      const rule = criteriaGroup.rules[i];
+    let groupResult = null;
+    const ruleEvaluations = [];
+    // *************** Evaluate all rules in this group and collect details
+    // *************** Evaluate each rule in the group, step by step
+    group.rules.forEach((rule, ruleIdx) => {
+      // *************** 1. Evaluate the rule using the block result and subject results map
       const ruleResult = EvaluateBlockRule(rule, blockResult, subjectResultsMap);
 
-      // *************** Get actual value for detailed logging
+      // *************** 2. Determine the actual value used for comparison, based on rule type
       let actualValue = 0;
       if (rule.type === "SUBJECT_RESULT" && rule.subject_id) {
+        // *************** If the rule is about a subject result, set 1 if the subject was passed, 0 if failed
         actualValue = subjectResultsMap[rule.subject_id] && subjectResultsMap[rule.subject_id].status === "PASS" ? 1 : 0;
       } else if (rule.type === "SUBJECT_MARK" && rule.subject_id) {
+        // *************** If the rule is about a subject mark, get the average score for the specific subject
         actualValue = subjectResultsMap[rule.subject_id] ? subjectResultsMap[rule.subject_id].average_score || 0 : 0;
       } else if (rule.type === "BLOCK_AVERAGE") {
+        // *************** If the rule is about the block average, use the overall block average score
         actualValue = blockResult.average_score || 0;
       }
 
-      // *************** Create detailed rule evaluation
-      rule_evaluations.push({
-        type: rule.type,
-        logical_operator: rule.logical_operator || null,
-        target_id: rule.subject_id ? String(rule.subject_id) : null,
-        operator: rule.operator,
-        value: rule.value,
-        actual_value: actualValue,
-        passed: ruleResult,
+      // *************** 3. Store the evaluation details for this rule, including all relevant info
+      ruleEvaluations.push({
+        type: rule.type, // *************** The type of rule (SUBJECT_RESULT, SUBJECT_MARK, etc)
+        logical_operator: rule.logical_operator || null, // *************** Logical operator to combine with previous rule
+        target_id: rule.subject_id ? String(rule.subject_id) : null, // *************** The subject id if relevant
+        operator: rule.operator, // *************** The comparison operator (GTE, EQ, etc)
+        value: rule.value, // *************** The expected value
+        actual_value: actualValue, // *************** The actual value used for comparison
+        passed: ruleResult, // *************** Whether this rule was satisfied
       });
 
-      // *************** Apply logical operators
-      if (i > 0 && rule.logical_operator) {
-        if (rule.logical_operator === "AND") {
-          criteriaResult = criteriaResult && ruleResult;
-        } else if (rule.logical_operator === "OR") {
-          criteriaResult = criteriaResult || ruleResult;
-        }
-      } else {
-        criteriaResult = ruleResult;
+      // *************** 4. Combine rule results using logical operators (AND/OR) to get the group result
+      if (ruleIdx === 0) {
+        // *************** The first rule sets the initial group result
+        groupResult = ruleResult;
+      } else if (rule.logical_operator === 'AND') {
+        // *************** Combine with previous result using AND
+        groupResult = groupResult && ruleResult;
+      } else if (rule.logical_operator === 'OR') {
+        // *************** Combine with previous result using OR
+        groupResult = groupResult || ruleResult;
       }
-    }
-
-    // *************** Add this criteria group's evaluation
-    evaluationResults.push({
-      expected_outcome: "PASS",
-      result: criteriaResult,
-      rule_evaluations: rule_evaluations,
     });
-
-    // *************** If any criteria group passes, overall result is pass
-    if (criteriaResult) {
-      overallPassed = true;
+    evaluationResults.push({
+      expected_outcome: group.expected_outcome,
+      result: groupResult,
+      rule_evaluations: ruleEvaluations,
+    });
+    // *************** Track if this group is PASS or FAIL and if it is satisfied
+    if (group.expected_outcome === 'PASS') {
+      hasPassCriteria = true;
+      if (groupResult) passSatisfied = true;
+    } else if (group.expected_outcome === 'FAIL') {
+      hasFailCriteria = true;
+      if (groupResult) failSatisfied = true;
     }
   }
 
+  // *************** Return result based on satisfied groups and what groups exist
+  let result = null;
+  if (hasPassCriteria && passSatisfied) result = 'PASS';
+  else if (hasFailCriteria && failSatisfied) result = 'FAIL';
+  else if (hasPassCriteria) result = 'FAIL';
+  else if (hasFailCriteria) result = 'PASS';
+
   return {
-    passed: overallPassed,
+    result,
     criteria_evaluation: evaluationResults,
   };
 }

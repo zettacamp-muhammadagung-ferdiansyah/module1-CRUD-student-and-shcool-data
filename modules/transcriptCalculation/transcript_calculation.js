@@ -64,13 +64,14 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
       );
     }
 
-    // *************** Find block and populate subjects with their tests (single query)
+
+    // *************** Find block and populate subject_ids with their test_ids (single query)
     const block = await Block.findById(blockId)
       .populate({
-        path: "subjects",
+        path: "subject_ids",
         match: { status: "active" },
         populate: {
-          path: "tests",
+          path: "test_ids",
           match: { test_status: { $in: ["active", "published"] } },
         },
       })
@@ -82,13 +83,14 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
     }
 
     // *************** Extract subjects from populated block
-    const subjects = Array.isArray(block.subjects) ? block.subjects : [];
+    const subjects = Array.isArray(block.subject_ids) ? block.subject_ids : [];
     if (!subjects.length) {
       throw new ApolloError(
         `No active subjects found for block ${blockId}`,
         "NOT_FOUND"
       );
     }
+
 
     // *************** Create a map of subject IDs for quick lookups
     const subjectIdsMap = subjects.reduce((map, subject) => {
@@ -102,8 +104,8 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
     const testIds = [];
     for (const subject of subjects) {
       const subjectId = String(subject._id);
-      const subjectTests = Array.isArray(subject.tests)
-        ? subject.tests.filter((t) => t && ["active", "published"].includes(t.test_status))
+      const subjectTests = Array.isArray(subject.test_ids)
+        ? subject.test_ids.filter((t) => t && ["active", "published"].includes(t.test_status))
         : [];
       testsBySubject[subjectId] = subjectTests;
       for (const test of subjectTests) {
@@ -173,98 +175,83 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
         const testId = String(test._id);
         const testResult = testResultsMap[testId];
 
-
-        // *************** Skip if no result exists
-        if (!testResult) {
-          continue;
-        }
-
-        // *************** Calculate notation-level results
-        const notationResults = test.notations.map((notation, index) => {
-          let achievedPoints = 0;
-
-          // *************** Find the corresponding mark by notation_text instead of index
-          if (testResult.marks && testResult.marks.length > 0) {
+        // *************** Only include test result if student has marks for this test
+        if (testResult && testResult.marks && testResult.marks.length > 0) {
+          // *************** Build notation_results only if marks exist
+          const notationResults = (test.notations || []).map((notation, index) => {
+            let achievedPoints = 0;
             const matchingMark = testResult.marks.find(
               (mark) => mark.notation_text === notation.notation_text
             );
             if (matchingMark) {
               achievedPoints = matchingMark.mark;
             }
-          }
+            return {
+              notation_id: index,
+              notation_text: notation.notation_text,
+              max_points: notation.max_points,
+              achieved_points: achievedPoints,
+            };
+          });
 
-          const maxPoints = notation.max_points;
+          // Calculate total and max points
+          const total_points = notationResults.reduce((sum, n) => sum + n.achieved_points, 0);
+          const max_points = notationResults.reduce((sum, n) => sum + n.max_points, 0);
+          const averageMark = testResult.average_mark || 0;
+          const weightedMark = CalculateTestWeightedMark(averageMark, test.weight);
 
-          return {
-            notation_id: index,
-            notation_text: notation.notation_text,
-            max_points: maxPoints,
-            achieved_points: achievedPoints,
+          // ***************  Create the test result object, only including max_points if marks exist
+          const processedTestResult = {
+            test_id: test._id,
+            test_name: test.name,
+            status: testResult.student_test_result_status === 'validated' ? 'PASS' : 'INCOMPLETE',
+            weight: test.weight,
+            weighted_mark: weightedMark,
+            total_points,
+            max_points,
+            average_mark: averageMark,
+            notation_results: notationResults,
+            criteria_evaluation: [],
+            createdAt: testResult.createdAt,
           };
-        });
 
-        // *************** Calculate total achieved points for the test
-        const totalAchievedPoints = notationResults.reduce(
-          (sum, n) => sum + n.achieved_points,
-          0
-        );
+          // *************** Evaluate test criteria using detailed utility
+          if (test.passing_criteria && test.passing_criteria.length > 0) {
+            try {
+              const detailedEvaluation = EvaluateTestCriteriaDetailed(
+                test.passing_criteria,
+                processedTestResult
+              );
 
-        // *************** Calculate average mark for the test (average of achieved points per notation)
-        const averageMark =
-          notationResults.length > 0 ? totalAchievedPoints / notationResults.length : 0;
-
-        // *************** Calculate weighted test mark using utility
-        const weightedMark = CalculateTestWeightedMark(averageMark, test.weight);
-
-        // *************** Create the test result object
-        const processedTestResult = {
-          test_id: test._id,
-          test_name: test.name,
-          status: "INCOMPLETE", // *************** Will be updated after evaluation
-          weight: test.weight,
-          weighted_mark: weightedMark, // *************** Add weighted mark calculated by utility
-          total_points: totalAchievedPoints,
-          average_mark: averageMark,
-          notation_results: notationResults,
-          criteria_evaluation: [],
-          createdAt: new Date(),
-        };
-
-        // *************** Evaluate test criteria using detailed utility
-        if (test.passing_criteria && test.passing_criteria.length > 0) {
-          try {
-            const detailedEvaluation = EvaluateTestCriteriaDetailed(
-              test.passing_criteria,
-              processedTestResult
-            );
-
-            // *************** Use detailed evaluation results
-            processedTestResult.criteria_evaluation = detailedEvaluation.criteria_evaluation;
-            processedTestResult.status = detailedEvaluation.passed ? "PASS" : "FAIL";
-          } catch (evaluationError) {
-            // *************** Fallback to basic evaluation if detailed evaluation fails
-            const basicResult = EvaluateTestCriteria(
-              test.passing_criteria,
-              processedTestResult
-            );
-            processedTestResult.criteria_evaluation = [
-              {
-                expected_outcome: "PASS",
-                result: basicResult,
-                rule_evaluations: [],
-              },
-            ];
-            processedTestResult.status = basicResult ? "PASS" : "FAIL";
+              // *************** Use detailed evaluation results
+              processedTestResult.criteria_evaluation = detailedEvaluation.criteria_evaluation;
+              processedTestResult.status = detailedEvaluation.passed ? "PASS" : "FAIL";
+            } catch (evaluationError) {
+              // *************** Fallback to basic evaluation if detailed evaluation fails
+              const basicResult = EvaluateTestCriteria(
+                test.passing_criteria,
+                processedTestResult
+              );
+              processedTestResult.criteria_evaluation = [
+                {
+                  expected_outcome: "PASS",
+                  result: basicResult,
+                  rule_evaluations: [],
+                },
+              ];
+              processedTestResult.status = basicResult ? "PASS" : "FAIL";
+            }
+          } else {
+            // *************** If no criteria defined, default to pass if any points achieved
+            processedTestResult.status =
+              processedTestResult.average_mark > 0 ? "PASS" : "FAIL";
           }
-        } else {
-          // *************** If no criteria defined, default to pass if any points achieved
-          processedTestResult.status =
-            processedTestResult.average_mark > 0 ? "PASS" : "FAIL";
-        }
 
-        // *************** Add to the test results array
-        subjectResult.test_results.push(processedTestResult);
-        subjectTestResultsMap[testId] = processedTestResult;
+          // *************** Add to the test results array
+          subjectResult.test_results.push(processedTestResult);
+          subjectTestResultsMap[testId] = processedTestResult;
+        }
+        // ***************  If no marks, do not add test result at all
       }
 
       // *************** Calculate subject average score using utility with weighted marks

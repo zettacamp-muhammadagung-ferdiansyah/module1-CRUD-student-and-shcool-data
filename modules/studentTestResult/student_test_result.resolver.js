@@ -390,10 +390,10 @@ async function EnterMarks(_, { input }) {
  */
 async function ValidateMarks(_, { id }, context) {
   try {
-    // *************** Validate ID
+    // *************** Validate the provided student test result ID
     ValidateMongoId(id);
 
-    // *************** Update student test result and get populated test data in one operation
+    // *************** Update the student test result status to 'validated' and populate test and student info
     const validatedStudentTestResult = await StudentTestResultModel.findOneAndUpdate(
       { _id: id, student_test_result_status: 'active' },
       {
@@ -402,28 +402,39 @@ async function ValidateMarks(_, { id }, context) {
           updated_at: new Date(),
         },
       },
-      { new: true } 
-    ).populate([
-      { path: 'test_id', select: 'school_id subject_id name' },
-      { path: 'student_id', select: '_id' }
-    ]).lean();
+      { new: true }
+    )
+      // *************** Populate test_id (with subject_id and school_id) and student_id
+      .populate({
+        path: 'test_id',
+        select: 'school_id subject_id name',
+        populate: { path: 'subject_id', select: 'block_id' },
+      })
+      .populate({ path: 'student_id', select: '_id' })
+      .lean();
 
+
+    // *************** Check if the student test result exists and is valid
     if (!validatedStudentTestResult) {
       throw new ApolloError('Student test result not found or not active', 'RESOURCE_NOT_FOUND');
     }
 
+    // *************** Extract the test and subject info
     const test = validatedStudentTestResult.test_id;
     if (!test) {
       throw new ApolloError('Test not found', 'RESOURCE_NOT_FOUND');
     }
+    const subject = test.subject_id;
+    if (!subject || !subject.block_id) {
+      throw new ApolloError('Subject or block not found', 'RESOURCE_NOT_FOUND');
+    }
 
     // *************** Mark the VALIDATE_MARKS task for this student as COMPLETED
-    await TaskModel.updateOne(
+    const updateTaskResult = await TaskModel.updateOne(
       {
         test_id: test._id,
         school_id: test.school_id,
-        user_id: validatedStudentTestResult.user_id,
-        student_id: validatedStudentTestResult.student_id, 
+        student_id: validatedStudentTestResult.student_id,
         task_type: 'VALIDATE_MARKS',
         task_status: 'active',
       },
@@ -435,23 +446,21 @@ async function ValidateMarks(_, { id }, context) {
       }
     );
 
-    // *************** Get subject info to get the block ID
-    const subject = await SubjectModel.findById(test.subject_id).lean();
-    
-    if (!subject) {
-      throw new ApolloError('Subject not found', 'RESOURCE_NOT_FOUND');
-    }
-    
-    // *************** System calculation - always use a system ObjectId
+    // *************** Use a system ObjectId for calculatedBy (can be replaced with a real user if needed)
     const systemObjectId = new mongoose.Types.ObjectId();
-    // *************** Queue the calculation and await it properly
-    await QueueTranscriptCalculation({
-      studentId: String(validatedStudentTestResult.student_id._id),
-      blockId: String(subject.block_id),
-      calculatedBy: String(systemObjectId)
-    });
 
-    // *************** Return null confirming validation
+    // *************** Trigger transcript calculation for this student and block
+    try {
+      await QueueTranscriptCalculation({
+        studentId: String(validatedStudentTestResult.student_id._id || validatedStudentTestResult.student_id),
+        blockId: String(subject.block_id),
+        calculatedBy: String(systemObjectId),
+      });
+    } catch (calcError) {
+      throw new ApolloError(`Transcript calculation failed: ${calcError.message}`);
+    }
+
+    // *************** Return null to confirm validation completed
     return null;
 
   } catch (error) {

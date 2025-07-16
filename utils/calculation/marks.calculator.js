@@ -8,18 +8,17 @@
  * Calculates the weighted mark for a test based on its weight.
  *
  * @function CalculateTestWeightedMark
- * @param {number} mark - The test's average mark (0-20).
+ * @param {number} averageMark - The test's average mark (already calculated, not from notations).
  * @param {number} weight - The test's weight factor (0-1).
- * @returns {number} The weighted test mark (mark * weight). Returns 0 if inputs are invalid.
+ * @returns {number} The weighted test mark (averageMark * weight). Returns 0 if inputs are invalid.
  */
-function CalculateTestWeightedMark(mark, weight) {
+function CalculateTestWeightedMark(averageMark, weight) {
   // *************** Validate inputs
-  if (typeof mark !== 'number' || typeof weight !== 'number') {
+  if (typeof averageMark !== 'number' || typeof weight !== 'number') {
     return 0;
   }
-  
-  // *************** Apply test weight to the mark
-  return mark * weight;
+  // *************** Use averageMark directly (should come from student test result)
+  return averageMark * weight;
 }
 
 /**
