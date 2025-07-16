@@ -69,8 +69,8 @@ function ValidateCreateTestParameters(testInput) {
       
       criteria.rules.forEach((rule, ruleIndex) => {
         // *************** Validate rule type
-        if (!rule.type || !['NOTATION_SCORE', 'TOTAL_SCORE'].includes(rule.type)) {
-          throw new ApolloError(`Rule type must be either NOTATION_SCORE or TOTAL_SCORE for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        if (!rule.type || !['NOTATION_SCORE', 'TOTAL_SCORE', 'TEST_AVERAGE'].includes(rule.type)) {
+          throw new ApolloError(`Rule type must be one of NOTATION_SCORE, TOTAL_SCORE, or TEST_AVERAGE for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
         }
         
         // *************** First rule should not have logical operator
@@ -180,8 +180,8 @@ function ValidateUpdateTestParameters({ id, testInput }) {
       
       criteria.rules.forEach((rule, ruleIndex) => {
         // *************** Validate rule type
-        if (!rule.type || !['NOTATION_SCORE', 'TOTAL_SCORE'].includes(rule.type)) {
-          throw new ApolloError(`Rule type must be either NOTATION_SCORE or TOTAL_SCORE for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        if (!rule.type || !['NOTATION_SCORE', 'TOTAL_SCORE', 'TEST_AVERAGE'].includes(rule.type)) {
+          throw new ApolloError(`Rule type must be one of NOTATION_SCORE, TOTAL_SCORE, or TEST_AVERAGE for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
         }
         
         // *************** First rule should not have logical operator
