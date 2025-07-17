@@ -251,65 +251,6 @@ function EvaluateBlockRule(rule, blockResult, subjectResultsMap) {
   return CompareValues(actualValue, rule.operator, rule.value);
 }
 
-/**
- * Determines if a block result meets the block's passing criteria.
- *
- * @function EvaluateBlockCriteria
- * @param {Array<Object>} criteria - Array of criteria group objects, each with rules.
- * @param {Object} blockResult - The block result data object.
- * @param {Object} subjectResultsMap - Map of subject results by subject ID.
- * @returns {boolean} True if passing criteria are met, false otherwise.
- */
-function EvaluateBlockCriteria(criteria, blockResult, subjectResultsMap) {
-  // *************** If no criteria defined, return null (no result)
-  if (!Array.isArray(criteria) || criteria.length === 0) {
-    return null;
-  }
-
-  // *************** Track if there are PASS/FAIL groups and if any are satisfied
-  let hasPassCriteria = false;
-  let hasFailCriteria = false;
-  let passSatisfied = false;
-  let failSatisfied = false;
-
-  // *************** Evaluate all criteria groups (both PASS and FAIL)
-  for (const criteriaGroup of criteria) {
-    if (!Array.isArray(criteriaGroup.rules) || criteriaGroup.rules.length === 0) continue;
-
-    let groupResult = null;
-    // *************** Evaluate all rules in this group
-    for (const [ruleIndex, rule] of criteriaGroup.rules.entries()) {
-      const ruleResult = EvaluateBlockRule(
-        rule,
-        blockResult,
-        subjectResultsMap
-      );
-      if (ruleIndex === 0) {
-        groupResult = ruleResult;
-      } else if (rule.logical_operator === 'AND') {
-        groupResult = groupResult && ruleResult;
-      } else if (rule.logical_operator === 'OR') {
-        groupResult = groupResult || ruleResult;
-      }
-    }
-
-    // *************** Track if this group is PASS or FAIL and if it is satisfied
-    if (criteriaGroup.expected_outcome === 'PASS') {
-      hasPassCriteria = true;
-      if (groupResult) passSatisfied = true;
-    } else if (criteriaGroup.expected_outcome === 'FAIL') {
-      hasFailCriteria = true;
-      if (groupResult) failSatisfied = true;
-    }
-  }
-
-  // *************** Return result based on satisfied groups and what groups exist
-  if (hasPassCriteria && passSatisfied) return 'PASS'; // Any PASS group satisfied
-  if (hasFailCriteria && failSatisfied) return 'FAIL'; // Any FAIL group satisfied
-  if (hasPassCriteria) return 'FAIL'; // Only PASS groups exist, none satisfied
-  if (hasFailCriteria) return 'PASS'; // Only FAIL groups exist, none satisfied
-  return null; // No groups exist
-}
 
 /**
  * Returns a detailed evaluation of test criteria, including rule breakdowns.
@@ -354,7 +295,6 @@ function EvaluateTestCriteriaDetailed(criteria, testResult) {
 
     let groupResult = null;
     const ruleEvaluations = [];
-    // *************** Evaluate all rules in this group and collect details
     // *************** Evaluate each rule in the group, step by step
     group.rules.forEach((rule, ruleIdx) => {
       // *************** 1. Evaluate the rule using the test result
@@ -586,7 +526,6 @@ function EvaluateBlockCriteriaDetailed(criteria, blockResult, subjectResultsMap)
 
     let groupResult = null;
     const ruleEvaluations = [];
-    // *************** Evaluate all rules in this group and collect details
     // *************** Evaluate each rule in the group, step by step
     group.rules.forEach((rule, ruleIdx) => {
       // *************** 1. Evaluate the rule using the block result and subject results map
