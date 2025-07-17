@@ -1,11 +1,8 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require("apollo-server");
-const Mongoose = require("mongoose");
 
 // *************** IMPORT MODULES ***************
 const Block = require("../block/block.model");
-const Subject = require("../subject/subject.model");
-const Test = require("../test/test.model");
 const Student = require("../student/student.model");
 const StudentTestResult = require("../studentTestResult/student_test_result.model");
 const CalculationResult = require("../calculationResult/calculation_result.model");
@@ -27,9 +24,6 @@ const {
 } = require("../../utils/calculation/marks.calculator");
 
 const {
-  EvaluateTestCriteria,
-  EvaluateSubjectCriteria,
-  EvaluateBlockCriteria,
   EvaluateTestCriteriaDetailed,
   EvaluateSubjectCriteriaDetailed,
   EvaluateBlockCriteriaDetailed,
@@ -64,7 +58,6 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
       );
     }
 
-
     // *************** Find block and populate subject_ids with their test_ids (single query)
     const block = await Block.findById(blockId)
       .populate({
@@ -90,7 +83,6 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
         "NOT_FOUND"
       );
     }
-
 
     // *************** Create a map of subject IDs for quick lookups
     const subjectIdsMap = subjects.reduce((map, subject) => {
@@ -152,8 +144,6 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
     for (const subject of subjects) {
       const subjectId = String(subject._id);
       const subjectTests = testsBySubject[subjectId] || [];
-
-    
 
       const subjectResult = {
         subject_id: subject._id,
@@ -244,18 +234,6 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
               processedTestResult.criteria_evaluation = detailedEvaluation.criteria_evaluation;
               processedTestResult.status = detailedEvaluation.passed ? "PASS" : "FAIL";
             } catch (evaluationError) {
-              const basicResult = EvaluateTestCriteria(
-                test.passing_criteria,
-                processedTestResult
-              );
-              processedTestResult.criteria_evaluation = [
-                {
-                  expected_outcome: "PASS",
-                  result: basicResult,
-                  rule_evaluations: [],
-                },
-              ];
-              processedTestResult.status = basicResult ? "PASS" : "FAIL";
             }
           }
 
@@ -288,20 +266,6 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
             subjectResult.criteria_evaluation = detailedEvaluation.criteria_evaluation;
             subjectResult.status = detailedEvaluation.passed ? "PASS" : "FAIL";
           } catch (evaluationError) {
-            // *************** Fallback to basic evaluation if detailed evaluation fails
-            const basicResult = EvaluateSubjectCriteria(
-              subject.passing_criteria,
-              subjectResult,
-              subjectTestResultsMap
-            );
-            subjectResult.criteria_evaluation = [
-              {
-                expected_outcome: "PASS",
-                result: basicResult,
-                rule_evaluations: [],
-              },
-            ];
-            subjectResult.status = basicResult ? "PASS" : "FAIL";
           }
         } else {
           // *************** If no criteria defined, create a default evaluation based on subject mark
@@ -385,25 +349,11 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
           blockResult.criteria_evaluation = detailedEvaluation.criteria_evaluation;
           blockResult.status = detailedEvaluation.passed ? "PASS" : "FAIL";
         } catch (evaluationError) {
-          // *************** Fallback to basic evaluation if detailed evaluation fails
-          const basicResult = EvaluateBlockCriteria(
-            block.passing_criteria,
-            blockResult,
-            subjectResultsMap
-          );
-          blockResult.criteria_evaluation = [
-            {
-              expected_outcome: "PASS",
-              result: basicResult,
-              rule_evaluations: [],
-            },
-          ];
-          blockResult.status = basicResult ? "PASS" : "FAIL";
         }
       } else {
         // ***************  If no criteria defined, create a default criteria evaluation based on block mark and subject statuses
         const allSubjectsPassed = blockResult.subject_results.every(
-          (s) => s.status === "PASS"
+          (subjectResult) => subjectResult.status === "PASS"
         );
         const blockPassed =
           blockResult.block_mark >= 50 && allSubjectsPassed;
@@ -462,8 +412,6 @@ async function CalculateStudentBlockResults(studentId, blockId, calculatedBy) {
       blockResult.status = "INCOMPLETE";
     }
 
-    // ***************  Ensure all arrays are properly initialized
-    blockResult = EnsureCalculationResultArrays(blockResult);
 
     // *************** Save the calculation result
     const savedResult = await SaveCalculationResult(
@@ -589,10 +537,6 @@ async function SaveCalculationResult(studentId, blockResult, calculatedBy) {
  * @param {Object} blockResult - The block result object
  * @returns {Object} The block result with guaranteed arrays
  */
-function EnsureCalculationResultArrays(blockResult) {
-  // *************** Return the blockResult as is - the arrays should already be properly initialized
-  return blockResult;
-}
 
 /**
  * Calculates and saves a student's complete transcript results across all blocks
@@ -660,7 +604,7 @@ async function CalculateStudentCompleteTranscript(
         // *************** Extract the block data from the saved calculation result
         const savedCalculation = blockResult.result;
         const blockData = savedCalculation.block_results.find(
-          (br) => String(br.block_id) === blockId
+          (blockResult) => String(blockResult.block_id) === blockId
         );
 
         if (blockData) {
