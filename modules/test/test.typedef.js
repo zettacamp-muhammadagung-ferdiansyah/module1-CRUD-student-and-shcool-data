@@ -8,14 +8,46 @@ const TestTypeDefs = gql`
     deleted
   }
 
+  enum TestRuleType {
+    NOTATION_SCORE
+    TOTAL_SCORE
+    TEST_AVERAGE
+  }
+
+  type TestRule {
+    logical_operator: LogicalOperator
+    type: TestRuleType!
+    notation_index: Int
+    operator: ComparisonOperator
+    value: Float
+  }
+
+  type TestCriteria {
+    expected_outcome: ExpectedOutcome!
+    rules: [TestRule!]!
+  }
+
   type Notation {
     notation_text: String!
-    max_points: Float!
+    max_marks: Float!
   }
 
   input NotationInput {
     notation_text: String!
-    max_points: Float!
+    max_marks: Float!
+  }
+
+  input TestRuleInput {
+    logical_operator: LogicalOperator
+    type: TestRuleType!
+    notation_index: Int
+    operator: ComparisonOperator
+    value: Float
+  }
+
+  input TestCriteriaInput {
+    expected_outcome: ExpectedOutcome!
+    rules: [TestRuleInput!]!
   }
 
   type Test {
@@ -26,6 +58,7 @@ const TestTypeDefs = gql`
     description: String
     weight: Float!
     notations: [Notation!]!
+    passing_criteria: [TestCriteria]
     test_status: TestStatus!
     published_date: Date
     createdAt: Date!
@@ -43,6 +76,7 @@ const TestTypeDefs = gql`
     description: String
     weight: Float!
     notations: [NotationInput!]!
+    passing_criteria: [TestCriteriaInput]
     created_by: ID!
   }
 
@@ -53,6 +87,7 @@ const TestTypeDefs = gql`
     description: String
     weight: Float!
     notations: [NotationInput!]!
+    passing_criteria: [TestCriteriaInput]
     updated_by: ID!
   }
 

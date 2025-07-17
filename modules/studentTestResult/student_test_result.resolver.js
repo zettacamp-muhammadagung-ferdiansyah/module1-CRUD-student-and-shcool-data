@@ -1,5 +1,6 @@
 // *************** IMPORT LIBRARY ***************
 const { ApolloError } = require('apollo-server');
+const mongoose = require('mongoose');
 
 // *************** IMPORT MODULE ***************
 const StudentTestResultModel = require('./student_test_result.model');
@@ -7,11 +8,18 @@ const ErrorLogModel = require('../errorLogs/error_logs.model');
 const TestModel = require('../test/test.model');
 const TaskModel = require('../task/task.model');
 const UserModel = require('../user/user.model');
+const SubjectModel = require('../subject/subject.model');
+
+// *************** IMPORT UTILITIES *************** 
+ const { QueueTranscriptCalculation } = require('../../utils/worker.manager');
 
 // *************** IMPORT VALIDATOR ***************
 const StudentTestResultValidators = require('./student_test_result.validator');
 const { ValidateMongoId } = require('../../utils/validator/mongo.validator');
 const { ValidatePaginationParameters } = require('../../utils/validator/pagination.validator');
+
+// *************** IMPORT HELPER FUNCTION ***************
+const { CalculateAverageMark } = require('./student_test_result.helper');
 
 // *************** QUERY ***************
 /**
@@ -125,11 +133,8 @@ async function CreateStudentTestResult(_, { student_test_result_input }) {
       student_test_result_status: 'active',
     };
 
-    // *************** Calculate the total marks and average mark from the provided marks
-    const totalMarks = student_test_result_input.marks.reduce((total, markObject) => {
-      return total + markObject.mark;
-    }, 0);
-    studentTestResultData.average_mark = totalMarks / student_test_result_input.marks.length;
+    // *************** Calculate the average mark using helper function
+    studentTestResultData.average_mark = CalculateAverageMark(student_test_result_input.marks);
     studentTestResultData.mark_entry_date = new Date();
 
     // *************** Add optional fields if they exist
@@ -192,15 +197,12 @@ async function UpdateStudentTestResult(_, { id, student_test_result_input }) {
       throw new ApolloError('Student test result not found', 'RESOURCE_NOT_FOUND');
     }
 
-    // *************** Calculate the total marks and average mark if marks are provided
+    // *************** Calculate the average mark using helper function if marks are provided
     let marks = currentStudentTestResult.marks;
     let average_mark = currentStudentTestResult.average_mark;
     if (student_test_result_input.marks && student_test_result_input.marks.length) {
       marks = student_test_result_input.marks;
-      const totalMarks = marks.reduce((total, markObject) => {
-        return total + markObject.mark;
-      }, 0);
-      average_mark = totalMarks / marks.length;
+      average_mark = CalculateAverageMark(marks);
     }
 
     // *************** Build update payload 
@@ -334,11 +336,8 @@ async function EnterMarks(_, { input }) {
       student_test_result_status: 'active',
       created_by: input.created_by,
     };
-    // *************** Calculate the total marks and average mark
-    const totalMarks = input.marks.reduce((total, markObject) => {
-      return total + markObject.mark;
-    }, 0);
-    createStudentTestResultPayload.average_mark = totalMarks / input.marks.length;
+    // *************** Calculate the average mark using helper function
+    createStudentTestResultPayload.average_mark = CalculateAverageMark(input.marks);
     createStudentTestResultPayload.mark_entry_date = new Date();
     // *************** Create StudentTestResult
     const newStudentTestResult = await StudentTestResultModel.create(createStudentTestResultPayload);
@@ -382,19 +381,19 @@ async function EnterMarks(_, { input }) {
 }
 
 /**
- * Validates student marks and completes the VALIDATE_MARKS task.
+ * Validates student marks, completes the VALIDATE_MARKS task, and triggers transcript calculation.
  *
  * @async
  * @function ValidateMarks
  * @throws {ApolloError} If validation or update fails
  * @returns {Promise<Object>} The validated student test result object
  */
-async function ValidateMarks(_, { id }) {
+async function ValidateMarks(_, { id }, context) {
   try {
-    // *************** Validate ID
+    // *************** Validate the provided student test result ID
     ValidateMongoId(id);
 
-    // *************** Update student test result and get populated test data in one operation
+    // *************** Update the student test result status to 'validated' and populate test and student info
     const validatedStudentTestResult = await StudentTestResultModel.findOneAndUpdate(
       { _id: id, student_test_result_status: 'active' },
       {
@@ -403,25 +402,39 @@ async function ValidateMarks(_, { id }) {
           updated_at: new Date(),
         },
       },
-      { new: true } 
-    ).populate({ path: 'test_id', select: 'school_id' }).lean();
+      { new: true }
+    )
+      // *************** Populate test_id (with subject_id and school_id) and student_id
+      .populate({
+        path: 'test_id',
+        select: 'school_id subject_id name',
+        populate: { path: 'subject_id', select: 'block_id' },
+      })
+      .populate({ path: 'student_id', select: '_id' })
+      .lean();
 
+
+    // *************** Check if the student test result exists and is valid
     if (!validatedStudentTestResult) {
       throw new ApolloError('Student test result not found or not active', 'RESOURCE_NOT_FOUND');
     }
 
+    // *************** Extract the test and subject info
     const test = validatedStudentTestResult.test_id;
     if (!test) {
       throw new ApolloError('Test not found', 'RESOURCE_NOT_FOUND');
     }
+    const subject = test.subject_id;
+    if (!subject || !subject.block_id) {
+      throw new ApolloError('Subject or block not found', 'RESOURCE_NOT_FOUND');
+    }
 
     // *************** Mark the VALIDATE_MARKS task for this student as COMPLETED
-    await TaskModel.updateOne(
+    const updateTaskResult = await TaskModel.updateOne(
       {
         test_id: test._id,
         school_id: test.school_id,
-        user_id: validatedStudentTestResult.user_id,
-        student_id: validatedStudentTestResult.student_id, 
+        student_id: validatedStudentTestResult.student_id,
         task_type: 'VALIDATE_MARKS',
         task_status: 'active',
       },
@@ -433,8 +446,22 @@ async function ValidateMarks(_, { id }) {
       }
     );
 
-    // *************** Return null confirming validation
-    return null
+    // *************** Use a system ObjectId for calculatedBy (can be replaced with a real user if needed)
+    const systemObjectId = new mongoose.Types.ObjectId();
+
+    // *************** Trigger transcript calculation for this student and block
+    try {
+      await QueueTranscriptCalculation({
+        studentId: String(validatedStudentTestResult.student_id._id || validatedStudentTestResult.student_id),
+        blockId: String(subject.block_id),
+        calculatedBy: String(systemObjectId),
+      });
+    } catch (calcError) {
+      throw new ApolloError(`Transcript calculation failed: ${calcError.message}`);
+    }
+
+    // *************** Return null to confirm validation completed
+    return null;
 
   } catch (error) {
     // *************** Log error to database

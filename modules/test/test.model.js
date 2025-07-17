@@ -1,5 +1,7 @@
 // *************** IMPORT CORE ***************
 const Mongoose = require('mongoose');
+// *************** IMPORT MODULE ***************
+const ENUM = require('../../enum');
 
 const testSchema = new Mongoose.Schema(
   {
@@ -40,8 +42,8 @@ const testSchema = new Mongoose.Schema(
           required: true,
           trim: true,
         },
-        // Maximum possible points for this component (cannot be negative)
-        max_points: {
+        // Maximum possible marks for this component (cannot be negative)
+        max_marks: {
           type: Number,
           required: true,
           min: 0,
@@ -49,10 +51,52 @@ const testSchema = new Mongoose.Schema(
       },
     ],
 
+    // Passing criteria definition for test completion
+    passing_criteria: [
+      {
+        // Expected outcome when rules are evaluated (PASS/FAIL)
+        expected_outcome: {
+          type: String,
+          enum: ['PASS', 'FAIL'],
+          required: true
+        },
+        // Array of rule objects that make up this criteria
+        rules: [
+          {
+            // Optional logical operator to connect with previous rule (AND/OR)
+            logical_operator: {
+              type: String,
+              enum: ENUM.LOGICAL_OPERATOR
+            },
+            // Type of rule (NOTATION_SCORE, TOTAL_SCORE)
+            type: {
+              type: String,
+              enum: ENUM.TEST_RULE_TYPE,
+              required: true
+            },
+            // Optional notation index for notation-specific rules
+            notation_index: {
+              type: Number,
+              default: null
+            },
+            // Comparison operator (GTE, GT, LTE, LT, EQ)
+            operator: {
+              type: String,
+              enum: ENUM.COMPARISON_OPERATOR
+            },
+            // Threshold value for comparison
+            value: {
+              type: Number
+            }
+          }
+        ]
+      }
+    ],
+
     // Current status of the test
     test_status: {
       type: String,
-      enum: ['active', 'published', 'deleted'],
+      enum: ENUM.TEST_STATUS,
       default: 'active',
     },
 

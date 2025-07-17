@@ -49,10 +49,63 @@ function ValidateCreateTestParameters(testInput) {
     if (!notation.notation_text || typeof notation.notation_text !== 'string') {
       throw new ApolloError(`Notation text is required and must be a string for notation at index ${index}`, 'INVALID_INPUT');
     }
-    if (typeof notation.max_points !== 'number' || notation.max_points < 0) {
-      throw new ApolloError(`Max points is required and must be a non-negative number for notation at index ${index}`, 'INVALID_INPUT');
+    if (typeof notation.max_marks !== 'number' || notation.max_marks < 0) {
+      throw new ApolloError(`Max marks is required and must be a non-negative number for notation at index ${index}`, 'INVALID_INPUT');
     }
   });
+  
+  // *************** Validate passing criteria if provided
+  if (testInput.passing_criteria && Array.isArray(testInput.passing_criteria)) {
+    testInput.passing_criteria.forEach((criteria, criteriaIndex) => {
+      // *************** Validate expected outcome
+      if (!criteria.expected_outcome || !['PASS', 'FAIL'].includes(criteria.expected_outcome)) {
+        throw new ApolloError(`Expected outcome must be either PASS or FAIL for criteria at index ${criteriaIndex}`, 'INVALID_INPUT');
+      }
+      
+      // *************** Validate rules
+      if (!criteria.rules || !Array.isArray(criteria.rules) || criteria.rules.length === 0) {
+        throw new ApolloError(`Rules are required and must be a non-empty array for criteria at index ${criteriaIndex}`, 'INVALID_INPUT');
+      }
+      
+      criteria.rules.forEach((rule, ruleIndex) => {
+        // *************** Validate rule type
+        if (!rule.type || !['NOTATION_SCORE', 'TOTAL_SCORE', 'TEST_AVERAGE'].includes(rule.type)) {
+          throw new ApolloError(`Rule type must be one of NOTATION_SCORE, TOTAL_SCORE, or TEST_AVERAGE for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        }
+        
+        // *************** First rule should not have logical operator
+        if (ruleIndex === 0 && rule.logical_operator) {
+          throw new ApolloError(`First rule should not have a logical operator in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        }
+        
+        // *************** Validate logical operator if not first rule
+        if (ruleIndex > 0 && !rule.logical_operator) {
+          throw new ApolloError(`Logical operator is required for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        }
+        
+        if (ruleIndex > 0 && rule.logical_operator && !['AND', 'OR'].includes(rule.logical_operator)) {
+          throw new ApolloError(`Logical operator must be either AND or OR for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        }
+        
+        // *************** Validate notation_index for NOTATION_SCORE rules
+        if (rule.type === 'NOTATION_SCORE') {
+          if (typeof rule.notation_index !== 'number' || rule.notation_index < 0 || rule.notation_index >= testInput.notations.length) {
+            throw new ApolloError(`Invalid notation_index for rule at index ${ruleIndex} in criteria ${criteriaIndex}. Must be between 0 and ${testInput.notations.length - 1}`, 'INVALID_INPUT');
+          }
+        }
+        
+        // *************** Validate operator
+        if (!rule.operator || !['GTE', 'GT', 'LTE', 'LT', 'EQ'].includes(rule.operator)) {
+          throw new ApolloError(`Operator must be one of GTE, GT, LTE, LT, EQ for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        }
+        
+        // *************** Validate value
+        if (typeof rule.value !== 'number') {
+          throw new ApolloError(`Value must be a number for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        }
+      });
+    });
+  }
 
   // *************** Validate created_by (required, must be valid MongoId)
   ValidateMongoId(testInput.created_by);
@@ -107,10 +160,63 @@ function ValidateUpdateTestParameters({ id, testInput }) {
     if (!notation.notation_text || typeof notation.notation_text !== 'string') {
       throw new ApolloError(`Notation text is required and must be a string for notation at index ${index}`, 'INVALID_INPUT');
     }
-    if (typeof notation.max_points !== 'number' || notation.max_points < 0) {
-      throw new ApolloError(`Max points is required and must be a non-negative number for notation at index ${index}`, 'INVALID_INPUT');
+    if (typeof notation.max_marks !== 'number' || notation.max_marks < 0) {
+      throw new ApolloError(`Max marks is required and must be a non-negative number for notation at index ${index}`, 'INVALID_INPUT');
     }
   });
+  
+  // *************** Validate passing criteria if provided
+  if (testInput.passing_criteria && Array.isArray(testInput.passing_criteria)) {
+    testInput.passing_criteria.forEach((criteria, criteriaIndex) => {
+      // *************** Validate expected outcome
+      if (!criteria.expected_outcome || !['PASS', 'FAIL'].includes(criteria.expected_outcome)) {
+        throw new ApolloError(`Expected outcome must be either PASS or FAIL for criteria at index ${criteriaIndex}`, 'INVALID_INPUT');
+      }
+      
+      // *************** Validate rules
+      if (!criteria.rules || !Array.isArray(criteria.rules) || criteria.rules.length === 0) {
+        throw new ApolloError(`Rules are required and must be a non-empty array for criteria at index ${criteriaIndex}`, 'INVALID_INPUT');
+      }
+      
+      criteria.rules.forEach((rule, ruleIndex) => {
+        // *************** Validate rule type
+        if (!rule.type || !['NOTATION_SCORE', 'TOTAL_SCORE', 'TEST_AVERAGE'].includes(rule.type)) {
+          throw new ApolloError(`Rule type must be one of NOTATION_SCORE, TOTAL_SCORE, or TEST_AVERAGE for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        }
+        
+        // *************** First rule should not have logical operator
+        if (ruleIndex === 0 && rule.logical_operator) {
+          throw new ApolloError(`First rule should not have a logical operator in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        }
+        
+        // *************** Validate logical operator if not first rule
+        if (ruleIndex > 0 && !rule.logical_operator) {
+          throw new ApolloError(`Logical operator is required for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        }
+        
+        if (ruleIndex > 0 && rule.logical_operator && !['AND', 'OR'].includes(rule.logical_operator)) {
+          throw new ApolloError(`Logical operator must be either AND or OR for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        }
+        
+        // *************** Validate notation_index for NOTATION_SCORE rules
+        if (rule.type === 'NOTATION_SCORE') {
+          if (typeof rule.notation_index !== 'number' || rule.notation_index < 0 || rule.notation_index >= testInput.notations.length) {
+            throw new ApolloError(`Invalid notation_index for rule at index ${ruleIndex} in criteria ${criteriaIndex}. Must be between 0 and ${testInput.notations.length - 1}`, 'INVALID_INPUT');
+          }
+        }
+        
+        // *************** Validate operator
+        if (!rule.operator || !['GTE', 'GT', 'LTE', 'LT', 'EQ'].includes(rule.operator)) {
+          throw new ApolloError(`Operator must be one of GTE, GT, LTE, LT, EQ for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        }
+        
+        // *************** Validate value
+        if (typeof rule.value !== 'number') {
+          throw new ApolloError(`Value must be a number for rule at index ${ruleIndex} in criteria ${criteriaIndex}`, 'INVALID_INPUT');
+        }
+      });
+    });
+  }
 
   // *************** Validate updated_by (required, must be valid MongoId)
   ValidateMongoId(testInput.updated_by);

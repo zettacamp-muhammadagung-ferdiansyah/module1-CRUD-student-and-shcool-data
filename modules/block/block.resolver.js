@@ -12,6 +12,9 @@ const BlockValidators = require("./block.validator");
 const { ValidateMongoId } = require("../../utils/validator/mongo.validator");
 const { ValidatePaginationParameters,} = require("../../utils/validator/pagination.validator");
 
+// *************** IMPORT HELPER FUNCTION ***************
+const { SanitizePassingCriteria } = require("./block.helper");
+
 // *************** QUERY ***************
 /**
  * Retrieves a paginated list of active blocks.
@@ -117,11 +120,15 @@ async function CreateBlock(_, { block_input }) {
     // *************** Validate Input
     BlockValidators.ValidateCreateBlockParameters(block_input);
 
+    // *************** Sanitize passing_criteria using helper function
+    const sanitizedPassingCriteria = SanitizePassingCriteria(block_input.passing_criteria);
+
     // *************** Create sanitized block object with only allowed fields
     const blockData = {
       name: block_input.name,
       description: block_input.description,
       subject_ids: block_input.subject_ids || [],
+      passing_criteria: sanitizedPassingCriteria,
       status: "active",
       created_by: block_input.created_by,
     };
@@ -164,11 +171,15 @@ async function UpdateBlock(_, { id, block_input }) {
       blockInput: block_input,
     });
 
+    // *************** Sanitize passing_criteria using helper function
+    const sanitizedPassingCriteria = SanitizePassingCriteria(block_input.passing_criteria);
+
     // *************** Create sanitized update object with only allowed fields
     const updateData = {
       name: block_input.name,
       description: block_input.description,
       subject_ids: block_input.subject_ids,
+      passing_criteria: sanitizedPassingCriteria,
       updated_by: block_input.updated_by,
       updated_at: new Date(),
     };

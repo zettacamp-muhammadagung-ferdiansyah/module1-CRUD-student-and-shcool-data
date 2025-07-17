@@ -130,6 +130,7 @@ async function CreateSubject(_, { subject_input }) {
       description: subject_input.description,
       coefficient: subject_input.coefficient,
       test_ids: subject_input.test_ids || [],
+      passing_criteria: subject_input.passing_criteria || [],
       status: 'active',
       created_by: subject_input.created_by,
     };
@@ -185,6 +186,7 @@ async function UpdateSubject(_, { id, subject_input }) {
       description: subject_input.description,
       coefficient: subject_input.coefficient,
       test_ids: subject_input.test_ids,
+      passing_criteria: subject_input.passing_criteria,
       updated_by: subject_input.updated_by,
       updatedAt: new Date(),
     };
@@ -446,7 +448,7 @@ module.exports = {
     DeleteSubject,
   },
   Subject: {
-    test_id: GetTestsBySubject,
+    test_ids: GetTestsBySubject,
     created_by: CreatedByUser,
     updated_by: UpdatedByUser,
     deleted_by: DeletedByUser,
